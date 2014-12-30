@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
 """
 Created on Fri Dec 26 12:35:16 2014
 
-@author: Richard
+Solve a system of equations with binary variables
+
+@author: Richard Tanburn
 """
 from copy import deepcopy
 from collections import defaultdict
@@ -11,6 +12,11 @@ import itertools
 import sympy
 
 import ReHandler
+
+__author__ = "Richard Tanburn"
+__credits__ = ["Richard Tanburn", "Nathaniel Bryans", "Nikesh Dattani"]
+__version__ = "0.0.1"
+__status__ = "Prototype"
 
 
 class ContradictionException(Exception):
@@ -167,18 +173,12 @@ class EquationSolver(object):
 
         for eqn in itertools.chain(self.equations,
                                    self.deductions_as_equations):
-#            if not is_one_or_zero(val):
-#                continue
             expr, val = eqn.lhs, eqn.rhs
             latoms = expr.atoms()
             ratoms = set([val]) if isinstance(val, int) else val.atoms()
             if len(latoms.intersection(unsolved_var)) or len(ratoms.intersection(unsolved_var)):
                 eqn = sympy.Eq(expr, val)
-#                for k, v in solved_var.iteritems():
-#                    if eqn == True:
-#                        break
-#                    eqn = eqn.subs(k, v)
-
+                # Substitute all of the solved variables
                 eqn = eqn.subs(solved_var)
 
                 if eqn == True:
@@ -224,11 +224,6 @@ class EquationSolver(object):
 #        # Remove squares
         obj_func = remove_binary_squares(obj_func)
 
-
-#        # Sub in values
-#        for eqn in self.final_equations:
-#            obj_func = obj_func.subs(eqn.lhs, eqn.rhs)
-
         return obj_func.simplify()
 
     def objective_function_to_file(self, filename=None):
@@ -259,14 +254,6 @@ class EquationSolver(object):
                 continue
 
             # Substitute in all values
-#            for k, v in self.deductions.iteritems():
-#                # If trivial, drop it
-#                if clean == True:
-#                    break
-#
-#                clean = clean.subs(k, v)
-
-
             clean = clean.subs(self.deductions)
 
             if clean == True:
@@ -1113,8 +1100,5 @@ def get_judgement():
 
 
 if __name__ == "__main__":
-    if 1:
-        import doctest
-        doctest.testmod()
-#    else:
-#        import PrimeFactorizationEquationGenerator
+    import doctest
+    doctest.testmod()
