@@ -128,7 +128,10 @@ def do_batch(filename, num_digits_factor):
     for p in lines:
         print p
         p = int(p)
-        print_experiment_to_file(p, num_digits_factor=num_digits_factor)
+        try:
+            print_experiment_to_file(p, num_digits_factor=num_digits_factor)
+        except:
+            print 'Error thrown for {}!!!'.format(p)
 
 if __name__ == '__main__':
 #    print_factorisation(143)
