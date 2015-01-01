@@ -3,7 +3,6 @@
 import GenerateTableOutput
 import GenerateCarry
 import EquationHandler
-#import EquationSolver
 import sys
 
 __author__ = "Nathaniel Bryans"
@@ -41,7 +40,7 @@ OutputFileName = "output.txt"
 #digitsInMultiplicand2 = 4
 #product = 403
 
-exp = 2
+exp = 8
 if exp == 1:
     digitsInMultiplicand1 = 4
     digitsInMultiplicand2 = 4
@@ -54,6 +53,21 @@ if exp == 3:
     digitsInMultiplicand1 = 17
     digitsInMultiplicand2 = 17
     product = 4299161663
+
+if exp == 6:
+    digitsInMultiplicand1 = 17
+    digitsInMultiplicand2 = 17
+    product = 4296409109
+
+if exp == 7:
+    digitsInMultiplicand1 = 17
+    digitsInMultiplicand2 = 17    
+    product = 4306239659
+
+if exp == 8:
+    digitsInMultiplicand1 = 17
+    digitsInMultiplicand2 = 17    
+    product = 4345168637
 
 if exp == 4:
     digitsInMultiplicand1 = 21
@@ -70,7 +84,9 @@ if exp == 100:
     digitsInMultiplicand2 = 165
     product = 1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139
 
-
+if product < 10**16:
+    from verification import print_factorisation
+    print_factorisation(product)
 
 #We can override the digit and product values above using arguments
 if len(sys.argv) > 2:
@@ -137,7 +153,7 @@ carry = GenerateCarry.CarryGenerator(myParams)
 #Generate Output
 myParams = [multiplier, multiplication, carry, binPrime]
 formattedCols = GenerateTableOutput.FormatOutput(myParams)
-print ""
+#print ""
 
 #Generate Equations
 myParams = [formattedCols, carry]
