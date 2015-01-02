@@ -1265,7 +1265,7 @@ def is_constant(expr):
 
 def is_equation(eqn):
     ''' Return True if it is an equation rather than a boolean value '''
-    return isinstance(eqn, sympy.Equality)
+    return not (isinstance(eqn, sympy.boolalg.Boolean) or isinstance(eqn, bool))
 
 def parity(expr):
     ''' Return parity:
