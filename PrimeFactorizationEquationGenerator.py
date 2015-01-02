@@ -40,7 +40,7 @@ OutputFileName = "output.txt"
 #digitsInMultiplicand2 = 4
 #product = 403
 
-exp = 8
+exp = 7
 if exp == 1:
     digitsInMultiplicand1 = 4
     digitsInMultiplicand2 = 4
@@ -69,6 +69,11 @@ if exp == 8:
     digitsInMultiplicand2 = 17    
     product = 4345168637
 
+if exp == 9:
+    digitsInMultiplicand1 = 17
+    digitsInMultiplicand2 = 17    
+    product = 4314890543
+
 if exp == 4:
     digitsInMultiplicand1 = 21
     digitsInMultiplicand2 = 21
@@ -85,8 +90,11 @@ if exp == 100:
     product = 1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139
 
 if product < 10**16:
-    from verification import print_factorisation
-    print_factorisation(product)
+    try:    
+        from verification import print_factorisation
+        print_factorisation(product)
+    except:
+        pass
 
 #We can override the digit and product values above using arguments
 if len(sys.argv) > 2:

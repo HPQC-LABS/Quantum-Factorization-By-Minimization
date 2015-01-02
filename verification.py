@@ -41,7 +41,7 @@ def print_factorisation(n):
     bin_fact = binary_factorisation(n)
     max_len = len(max(bin_fact, key=len))
     fact_str = '\n'.join([b_f[2:].rjust(max_len) for b_f in bin_fact])
-    print '{}\n={}\n{}'.format(n, bin(n), fact_str)
+    print '{}\n={}\nFactors:\n{}'.format(n, bin(n), fact_str)
 
 
 def print_experiment_to_file(n, num_digits_factor):

@@ -140,26 +140,37 @@ class EquationSolver(object):
 #            for e in self.deductions_as_equations:
 #                print e
 
-            print 'Solns'
-            for k in sorted(self.final_solutions.keys()):
-                print '{} = {}'.format(k, self.final_solutions[k])
-            #print self.final_solutions
-            print
+#            print 'Solns'
+#            for k in sorted(self.final_solutions.keys()):
+#                print '{} = {}'.format(k, self.final_solutions[k])
+#            #print self.final_solutions
+#            print
 
-            print 'Final Equations'
-            for e in sorted(self.final_equations, key=lambda x: str(x)):
-                print e
+            print
 
             print 'Final Variables'
             print self.final_variables
 
             print
+            
+            print 'Final Equations'
+            for e in sorted(self.final_equations, key=lambda x: str(x)):
+                print e
+            
+            print
 
-            print 'Num Qubits: {} -> {}'.format(self.num_qubits_start,
-                                                len(self.final_variables))
+            print 'Num Qubits Start: {}'.format(self.num_qubits_start)
+            print 'Num Qubits End: {}'.format(len(self.final_variables))
 
-#            print 'Final equation'
-#            print self.objective_function
+            print
+
+            print 'Final equation'
+            print '{} = 0'.format(self.objective_function)
+            
+            print 
+            
+            print 'Final coefficients'
+            print expression_to_coef_string(self.objective_function)
 
 
 
@@ -228,8 +239,7 @@ class EquationSolver(object):
 
         obj_func = sympy.sympify(0)
         for eqn in self.final_equations:
-            if eqn.rhs == 1:
-                obj_func += (eqn.lhs - eqn.rhs) ** 2
+            obj_func += (eqn.lhs - eqn.rhs) ** 2
 
         obj_func = obj_func.expand().simplify()
 
@@ -284,6 +294,7 @@ class EquationSolver(object):
                     to_add)
         cleaned.extend(to_add)
         
+        ### Old code
 #        cleaned = []
 #        for eqn in eqns + to_add:
 #
@@ -531,14 +542,21 @@ class EquationSolver(object):
             if i > 990:
                 foo = lambda self, x: self.solutions.get(x)
                 raise ValueError('Invalid solutions, check it out!')
+
+            # If we have x = xy, then remove this from solutions and put it in             
+            # deductions
+            if len(variable.atoms(sympy.Symbol).intersection(value.atoms(sympy.Symbol))):
+                self.update_value(variable, value)
+                continue
             
             if value != init_value:
                 changes = True
+                        
             new_solutions[variable] = value
 
         self.solutions = new_solutions
         
-        if changes or len(to_skip):
+        if changes:
             self.clean_solutions()
 
     def update_value(self, expr, value):
