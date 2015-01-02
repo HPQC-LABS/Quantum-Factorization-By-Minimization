@@ -263,16 +263,16 @@ class EquationSolver(object):
 
     def clean_equations(self, eqns):
         ''' Remove True equations and simplify '''
-        cleaned = filter(lambda x: not isinstance(x, bool), eqns[:])
+        cleaned = filter(is_equation, eqns[:])
         cleaned = [eqn.subs(self.deductions) for eqn in cleaned]
-        cleaned = filter(lambda x: not isinstance(x, bool), cleaned)
+        cleaned = filter(is_equation, cleaned)
         cleaned = [eqn.subs(self.solutions) for eqn in cleaned]
-        cleaned = filter(lambda x: not isinstance(x, bool), cleaned)
+        cleaned = filter(is_equation, cleaned)
         cleaned = [eqn.expand() for eqn in cleaned]
         cleaned = map(remove_binary_squares, cleaned)
         cleaned = map(balance_terms, cleaned)
         cleaned = map(divide_2, cleaned)
-        cleaned = filter(lambda x: not isinstance(x, bool), cleaned)
+        cleaned = filter(is_equation, cleaned)
 
         to_add = []
         # Now add any equations where LHS = RHS1, LHS = RHS2 and permutations
@@ -424,7 +424,7 @@ class EquationSolver(object):
             else:
                 eqn = sympy.Eq(expr, val)
                 
-                if isinstance(eqn, bool) and (not eqn):
+                if is_equation(eqn) and (not eqn):
                     raise ContradictionException('Subbing solutions raised contradiction in deductions')
                 
                 if expr != 0:                
@@ -1262,6 +1262,10 @@ def is_constant(expr):
         False
     '''
     return len(expr.atoms(sympy.Symbol)) == 0
+
+def is_equation(eqn):
+    ''' Return True if it is an equation rather than a boolean value '''
+    return isinstance(eqn, sympy.Equality)
 
 def parity(expr):
     ''' Return parity:
