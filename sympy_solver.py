@@ -9,6 +9,7 @@ from copy import deepcopy
 from collections import defaultdict
 import inspect
 import itertools
+import fractions
 import sympy
 
 import ReHandler
@@ -33,24 +34,24 @@ class EquationSolver(object):
             equations = []
         if variables is None:
             variables = {}
-    
-        # Number of variables at the start        
-        self.num_qubits_start = len(variables)        
-        
+
+        # Number of variables at the start
+        self.num_qubits_start = len(variables)
+
         # Dict of string tag to sympy variable instance
         self.variables = variables
         # List of Equation instances to be solved
         self.equations = equations
         # Set of deductions we have made
         self.deductions = {}
-        
+
         # Solutions. Subset of deductions, where the key is a single variable.
         self.solutions = {}
 
 
         # And keep a nested dictionary of who made them
         self.deduction_record = defaultdict(lambda : defaultdict(list))
-        
+
         # Final solutions
         self.final_equations = None
         # Final variables
@@ -98,10 +99,10 @@ class EquationSolver(object):
         len_ded = len(self.deductions)
         # The number of iterations in which we've made no new deductions
         num_constant_iter = 0
-        
+
 #        print len(self.variables)
         for i in xrange(max_iter):
-#            print i, len_ded, len(self.equations), len(self.solutions)
+            print i, len_ded, len(self.equations), len(self.solutions)
             self.equations = self.clean_equations(self.equations)
             self.apply_judgements(self.equations)
 
@@ -110,6 +111,7 @@ class EquationSolver(object):
                 if num_constant_iter > 5:
                     break
             else:
+                num_constant_iter = 0
                 len_ded = len(self.deductions)
 
         print '{} iterations reached'.format(i)
@@ -121,7 +123,7 @@ class EquationSolver(object):
         #final_equations = self.clean_equations(final_equations)
         final_equations = sorted(set(final_equations), key=lambda x: str(x))
         unsolved_var = set(self.variables.values()).difference(self.solutions.keys())
-        
+
         self.final_variables = unsolved_var
 
         self.final_equations = final_equations
@@ -152,11 +154,11 @@ class EquationSolver(object):
             print self.final_variables
 
             print
-            
+
             print 'Final Equations'
             for e in sorted(self.final_equations, key=lambda x: str(x)):
                 print e
-            
+
             print
 
             print 'Num Qubits Start: {}'.format(self.num_qubits_start)
@@ -166,9 +168,9 @@ class EquationSolver(object):
 
             print 'Final equation'
             print '{} = 0'.format(self.objective_function)
-            
-            print 
-            
+
+            print
+
             print 'Final coefficients'
             print expression_to_coef_string(self.objective_function)
 
@@ -207,7 +209,7 @@ class EquationSolver(object):
                 if eqn == True:
                     continue
 
-                eqn = remove_binary_squares(eqn)
+                eqn = remove_binary_squares_eqn(eqn)
 
                 # If the final equation is x=constant, then we're also done!!
 #                if len(eqn.atoms(sympy.Symbol)) == 1:
@@ -237,6 +239,9 @@ class EquationSolver(object):
         if self.final_equations is None:
             return None
 
+        if len(self.final_equations) == 0:
+            return sympy.sympify('0')
+
         obj_func = sympy.sympify(0)
         for eqn in self.final_equations:
             obj_func += (eqn.lhs - eqn.rhs) ** 2
@@ -245,6 +250,7 @@ class EquationSolver(object):
 
 #        # Remove squares
         obj_func = remove_binary_squares(obj_func)
+        obj_func = cancel_constant_factor(sympy.Eq(obj_func)).lhs
 
         return obj_func.simplify()
 
@@ -269,15 +275,15 @@ class EquationSolver(object):
         cleaned = [eqn.subs(self.solutions) for eqn in cleaned]
         cleaned = filter(is_equation, cleaned)
         cleaned = [eqn.expand() for eqn in cleaned]
-        cleaned = map(remove_binary_squares, cleaned)
+        cleaned = map(remove_binary_squares_eqn, cleaned)
         cleaned = map(balance_terms, cleaned)
-        cleaned = map(divide_2, cleaned)
+        cleaned = map(cancel_constant_factor, cleaned)
         cleaned = filter(is_equation, cleaned)
 
         to_add = []
         # Now add any equations where LHS = RHS1, LHS = RHS2 and permutations
         def _helper(eqn1, eqn2, to_add):
-            if ((eqn1.lhs == eqn2.lhs) and 
+            if ((eqn1.lhs == eqn2.lhs) and
                 (eqn1.rhs != eqn2.rhs) and
                 (not is_constant(eqn1.lhs))):
                 new_eq = sympy.Eq(eqn1.rhs, eqn2.rhs)
@@ -290,16 +296,16 @@ class EquationSolver(object):
             _helper(eqn1, eqn2, to_add)
             _helper(sympy.Eq(eqn1.rhs, eqn1.lhs), eqn2, to_add)
             _helper(eqn1, sympy.Eq(eqn2.rhs, eqn2.lhs), to_add)
-            _helper(sympy.Eq(eqn1.rhs, eqn1.lhs), sympy.Eq(eqn2.rhs, eqn2.lhs), 
+            _helper(sympy.Eq(eqn1.rhs, eqn1.lhs), sympy.Eq(eqn2.rhs, eqn2.lhs),
                     to_add)
         cleaned.extend(to_add)
-        
+
         ### Old code
 #        cleaned = []
 #        for eqn in eqns + to_add:
 #
 #            clean = balance_constant(eqn) #sympy.simplify(eqn)
-#            clean = divide_2(clean)
+#            clean = cancel_constant_factor(clean)
 #
 #            if clean == True:
 #                continue
@@ -311,8 +317,8 @@ class EquationSolver(object):
 #                clean = clean.expand()
 #
 #            # every square is itself
-#            clean = remove_binary_squares(clean)
-#            
+#            clean = remove_binary_squares_eqn(clean)
+#
 #            if clean == True:
 #                continue
 #
@@ -328,8 +334,8 @@ class EquationSolver(object):
 
     def clean_deductions(self):
         ''' Clean our deductions. Involves caching solved values and rearranging
-            some equations, now we can have negative variables and substitutions 
-        
+            some equations, now we can have negative variables and substitutions
+
             >>> a, b, c, x, y, z = sympy.symbols('a b c x y z')
             >>> variables = [a, b, c, x, y, z]
             >>> system = EquationSolver([], {str(v) : v for v in variables})
@@ -337,29 +343,37 @@ class EquationSolver(object):
             >>> deductions = {a: ONE, b: ZERO, ONE: c, x: 1 - y, z*x: ONE}
             >>> system.deductions = deductions
             >>> system.clean_deductions()
-            >>> system.solutions            
+            >>> system.solutions
             {c: 1, x: -y + 1, b: 0, a: 1}
 
             >>> system.deductions
             {z: y*z + 1}
+
+            >>> variables = [a, b, c, x, y, z]
+            >>> system = EquationSolver([], {str(v) : v for v in variables})
+            >>> deductions = {a: a*b, b: a*b, a: b}
+            >>> system.deductions = deductions
+            >>> system.clean_deductions()
+            >>> system.solutions
+            {a: b}
         '''
         # First trawl through the deductions for definite solutions
         for expr, val in self.deductions.copy().iteritems():
             latoms = expr.atoms(sympy.Symbol)
             ratoms = val.atoms(sympy.Symbol)
-            
-            # Hack around the dodgy edge case xy = y           
+
+            # Hack around the dodgy edge case xy = y
             if len(ratoms.intersection(latoms)):
                 if len(latoms) == 1:
                     possible_other_value = self.deductions.get(val)
                     if possible_other_value is not None:
                         self.update_value(expr, possible_other_value)
                 continue
- 
+
             if len(latoms) == 1:
                 self.deductions.pop(expr)
                 curr_sol = self.solutions.get(expr)
-                
+
                 if (curr_sol is not None) and (curr_sol != val):
                     # We have different things. Better be careful!!
                     if is_constant(curr_sol):
@@ -375,24 +389,24 @@ class EquationSolver(object):
                             self.update_value(curr_sol, val)
                         # Both are symbolic
                         else:
-                            self.update_value(val, curr_sol)
+                            self.update_value(curr_sol, val)
                 else:
                     self.solutions[expr] = val
-            
+
             elif (len(val.atoms(sympy.Symbol)) == 1) and (len(latoms) != 1):
                 self.deductions.pop(expr)
                 curr_sol = self.solutions.get(val)
-                
+
                 if (curr_sol is not None) and (curr_sol != expr):
                     raise ContradictionException()
-                
+
                 self.solutions[val] = expr
 
         # Now clean up the solutions before we plug them in
         self.clean_solutions()
 
         # Now go over the remaining deductions and pick out equations which
-        # include an unsolved variables        
+        # include an unsolved variables
         unsolved_var = set(self.variables.values()).difference(self.solutions.keys())
 
         old_deductions = self.deductions.copy()
@@ -406,28 +420,28 @@ class EquationSolver(object):
             val = val.subs(self.solutions).expand()
             latoms = expr.atoms()
             ratoms = set([val]) if isinstance(val, int) else val.atoms()
-            if (len(latoms.intersection(unsolved_var)) or 
+            if (len(latoms.intersection(unsolved_var)) or
                 len(ratoms.intersection(unsolved_var))):
                 eqn = sympy.Eq(expr, val)
 
                 if eqn == True:
                     continue
                 eqn = eqn.expand()
-                eqn = remove_binary_squares(eqn)
+                eqn = remove_binary_squares_eqn(eqn)
                 eqn = balance_terms(eqn)
                 if eqn == True:
                     continue
-                
+
                 self.update_value(eqn.lhs, eqn.rhs)
-            
+
             # Else we want to check consistency
             else:
                 eqn = sympy.Eq(expr, val)
-                
+
                 if is_equation(eqn) and (not eqn):
                     raise ContradictionException('Subbing solutions raised contradiction in deductions')
-                
-                if expr != 0:                
+
+                if expr != 0:
                     print 'Dropping deduction {} = {}'.format(expr, val)
 
     def clean_solutions(self):
@@ -470,7 +484,7 @@ class EquationSolver(object):
             >>> system.clean_solutions()
             >>> system.solutions
             {}
-            
+
             Incorrect keys
             >>> system = EquationSolver()
             >>> x, y = sympy.symbols('x y')
@@ -499,7 +513,7 @@ class EquationSolver(object):
                     rhs *= -1
                 self.solutions.pop(expr)
                 self.solutions[variable] = rhs
-        
+
         changes = False
         new_solutions = {}
         to_skip = []  # Skip for the infinite loops
@@ -515,14 +529,14 @@ class EquationSolver(object):
             # Break the infinite chain!
             if variable in to_skip:
                 continue
-            
+
             init_value = value
             # Keep a track of the variables we've visited
             seen_before = [variable, value]
             for i in xrange(1000):
                 old_value = value
                 value = self.solutions.get(value)
-                
+
                 # Watch out for the infinite loops!
                 if value in seen_before:
                     value = old_value
@@ -530,7 +544,7 @@ class EquationSolver(object):
                     break
                 else:
                     seen_before.append(value)
-                    
+
                 if value is None:
                     value = old_value.subs(self.solutions, simultaneous=True)
                     break
@@ -538,24 +552,24 @@ class EquationSolver(object):
                     break
                 else:
                     continue#value = value.subs(self.solutions, simultaneous=True)
-                    
+
             if i > 990:
                 foo = lambda self, x: self.solutions.get(x)
                 raise ValueError('Invalid solutions, check it out!')
 
-            # If we have x = xy, then remove this from solutions and put it in             
+            # If we have x = xy, then remove this from solutions and put it in
             # deductions
             if len(variable.atoms(sympy.Symbol).intersection(value.atoms(sympy.Symbol))):
                 self.update_value(variable, value)
                 continue
-            
+
             if value != init_value:
                 changes = True
-                        
+
             new_solutions[variable] = value
 
         self.solutions = new_solutions
-        
+
         if changes:
             self.clean_solutions()
 
@@ -569,7 +583,7 @@ class EquationSolver(object):
             >>> system.update_value(x, 0)
             >>> system.deductions
             {x: 0}
-            
+
             >>> system = EquationSolver()
             >>> x = sympy.symbols('x')
             >>> system.update_value(-x, 1)
@@ -594,7 +608,7 @@ class EquationSolver(object):
         # If expr = 2*x and value ==0, then we can get rid of the 2
         if value == 0:
             expr = expr.as_coeff_Mul()[1]
-        
+
         # Make sure the left is positive
         if expr.as_coeff_Mul()[0] < 0:
             expr = - expr
@@ -647,11 +661,20 @@ class EquationSolver(object):
                 self.deduction_record[judgement][eqn].append((expr, value))
             # Both values are symbolic!
             else:
-                self.deductions[expr] = current_val
-                self.deduction_record[judgement][eqn].append((expr, current_val))
-                if value != current_val:
-                    self.deductions[value] = current_val
-                    self.deduction_record[judgement][eqn].append((value, current_val))
+                #TODO Clean up the hack around this silly edge case
+                # Right now, if the RHS is written in terms of the LHS, then
+                # we'd prefer to use the new value
+                if (expr.atoms(sympy.Symbol).issubset(current_val.atoms(sympy.Symbol)) and
+                    not expr.atoms(sympy.Symbol).issubset(value.atoms(sympy.Symbol))):
+                    self.deductions[expr] = value
+                    self.deduction_record[judgement][eqn].append((expr, value))
+
+                else:
+                    self.deductions[expr] = current_val
+                    self.deduction_record[judgement][eqn].append((expr, current_val))
+                    if value != current_val:
+                        self.deductions[current_val] = value
+                        self.deduction_record[judgement][eqn].append((current_val, value))
 
     def get_var(self, var):
         ''' Return symbolic variable
@@ -727,8 +750,8 @@ class EquationSolver(object):
             self.judgement_9(eqn)
             self.judgement_10(eqn)
             self.judgement_11(eqn)
-            
-            # This is now implemented as a special case of 11            
+
+            # This is now implemented as a special case of 11
             #self.judgement_two_term(eqn)
 
 
@@ -775,7 +798,7 @@ class EquationSolver(object):
             >>> system.judgement_two_term(eqn)
             >>> system.deductions
             {x: -y + 1}
-            
+
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(1 + y, 1)
@@ -789,7 +812,7 @@ class EquationSolver(object):
             >>> system.judgement_two_term(eqn)
             >>> system.deductions
             {x: y + 1}
-            
+
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(-x + y, 1)
@@ -799,15 +822,15 @@ class EquationSolver(object):
         '''
         lhs, rhs = eqn.lhs, eqn.rhs
         if (num_add_terms(lhs) == 2) and is_constant(rhs):
-            
+
             term1, term2 = lhs.as_ordered_terms()
-            
+
             if ((0 < len(term2.atoms(sympy.Symbol)) < len(term1.atoms(sympy.Symbol)))
                 or is_constant(term1)):
                 self.update_value(term2, rhs - term1)
 #                self.update_value(term1 + term2, rhs)
-            
-            else:                
+
+            else:
                 self.update_value(term1, rhs - term2)
 #                self.update_value(term1 + term2, rhs)
 
@@ -1140,14 +1163,14 @@ class EquationSolver(object):
         ''' Parity argument. If RHS is always odd and the LHS has 2 monic terms
             then the sum must be 1.
             Also make sure we don't replicate judgement_two_term
-            
+
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + 2*x*y, 2 * z + 1)
             >>> system.judgement_11(eqn)
             >>> system.deductions
             {x: -y + 1}
-            
+
             >>> system = EquationSolver()
             >>> x, y = sympy.symbols('x y')
             >>> eqn = sympy.Eq(x + y, 1)
@@ -1164,7 +1187,7 @@ class EquationSolver(object):
                     if term.is_constant():
                         return
                     odd_terms.append(term)
-            
+
             if len(odd_terms) == 2:
                 self.judgement_two_term(sympy.Eq(sum(odd_terms), 1))
 
@@ -1264,24 +1287,37 @@ def is_constant(expr):
     return len(expr.atoms(sympy.Symbol)) == 0
 
 def is_equation(eqn):
-    ''' Return True if it is an equation rather than a boolean value '''
-    return not (isinstance(eqn, sympy.boolalg.Boolean) or isinstance(eqn, bool))
+    ''' Return True if it is an equation rather than a boolean value
+
+        >>> x, y = sympy.symbols('x y')
+        >>> eq1 = sympy.Eq(x, y)
+        >>> eq2 = sympy.Eq(x, x)
+        >>> eq3 = sympy.Eq(x, y).subs(y, x)
+
+        >>> is_equation(eq1)
+        True
+        >>> is_equation(eq2)
+        False
+        >>> is_equation(eq3)
+        False
+    '''
+    return not isinstance(eqn, sympy.boolalg.BooleanAtom)
 
 def parity(expr):
     ''' Return parity:
         0 - even
         1 - odd
         None - undetermined
-        
+
         >>> expr = 'x + 2*y'
         >>> parity(sympy.sympify(expr))
-        
+
         >>> expr = '2*x + 2*y'
         >>> parity(sympy.sympify(expr))
         0
         >>> expr = 'x + 5'
         >>> parity(sympy.sympify(expr))
-        
+
         >>> expr = '3'
         >>> parity(sympy.sympify(expr))
         1
@@ -1301,16 +1337,47 @@ def parity(expr):
         else:
             if coef % 2:
                 return None
-    return parity                
+    return parity
 
-def divide_2(eqn):
-    ''' Return equation divided by 2 if needed '''
-    if eqn == True:
-        return True
-    for term in eqn.lhs.as_ordered_terms():
-        if (term.as_coeff_mul()[0] % 2) == 1:
-            return eqn
-    return sympy.Eq(eqn.lhs / 2, eqn.rhs / 2)
+
+def cancel_constant_factor(eqn):
+    ''' Divide the equation by the hcf of all the terms.
+        If every term is negative, then also divide by -1
+
+        >>> lhs = sympy.sympify('2*x + 2')
+        >>> rhs = sympy.sympify('2*y + 3')
+        >>> cancel_constant_factor(sympy.Eq(lhs, rhs))
+        2*x + 2 == 2*y + 3
+
+        >>> lhs = sympy.sympify('2*x - 2')
+        >>> rhs = sympy.sympify('4*y + 6')
+        >>> cancel_constant_factor(sympy.Eq(lhs, rhs))
+        x - 1 == 2*y + 3
+
+        >>> lhs = sympy.sympify('15*x + 3')
+        >>> rhs = sympy.sympify('45*y')
+        >>> cancel_constant_factor(sympy.Eq(lhs, rhs))
+        5*x + 1 == 15*y
+
+        >>> lhs = sympy.sympify('15*x + 3')
+        >>> cancel_constant_factor(sympy.Eq(lhs))
+        5*x + 1 == 0
+
+        Negative equations
+        >>> lhs = sympy.sympify('-3*x - 6')
+        >>> rhs = sympy.sympify('-9*y')
+        >>> cancel_constant_factor(sympy.Eq(lhs, rhs))
+        x + 2 == 3*y
+
+    '''
+    if not is_equation(eqn):
+        return eqn
+
+    coef = (eqn.lhs.as_coefficients_dict().values() +
+            eqn.rhs.as_coefficients_dict().values())
+    hcf = reduce(fractions.gcd, coef)
+    return sympy.Eq(eqn.lhs / hcf, eqn.rhs / hcf)
+
 
 def balance_constant(eqn):
     ''' Take an equation and tidy up the constant part
@@ -1330,8 +1397,8 @@ def balance_constant(eqn):
         >>> balance_constant(sympy.Eq(lhs, rhs))
         x + 5 == y
     '''
-    if eqn == True:
-        return True
+    if not is_equation(eqn):
+        return eqn
 
     lhs_c = eqn.lhs.as_coeff_add()[0]
     rhs_c = eqn.rhs.as_coeff_add()[0]
@@ -1358,34 +1425,34 @@ def balance_terms(eqn):
         >>> balance_terms(sympy.Eq(lhs, rhs))
         x == 11*x*y + y + 5
     '''
-    if eqn == True:
-        return True
+    if not is_equation(eqn):
+        return eqn
 
     lhs_terms = eqn.lhs.as_coefficients_dict()
     rhs_terms = eqn.rhs.as_coefficients_dict()
-    
+
     terms = set(lhs_terms.keys()).union(set(rhs_terms.keys()))
-    
+
     for term in terms:
         lhs_c = lhs_terms.get(term)
         rhs_c = rhs_terms.get(term)
-        
+
         if lhs_c is None:
             lhs_c = 0
         if rhs_c is None:
             rhs_c = 0
-    
+
         if (lhs_c < 0) or (rhs_c < 0):
             to_add = abs(min(lhs_c, rhs_c))
         else:
             to_add = - min(lhs_c, rhs_c)
-    
+
         eqn = sympy.Eq(eqn.lhs + to_add * term,
                        eqn.rhs + to_add * term)
-        
+
     if is_constant(eqn.lhs):
         eqn = sympy.Eq(eqn.rhs, eqn.lhs)
-        
+
     return eqn
 
 def max_value(expr):
@@ -1458,26 +1525,43 @@ def min_value(expr):
             min_ += c
     return min_
 
-def remove_binary_squares(eqn):
+def remove_binary_squares_eqn(eqn):
+    ''' Given an equation, remove all of the squares as any binary
+        variable squared is itself.
+
+        >>> lhs = sympy.sympify('x**2 * y + z**3 + 2*z - 4')
+        >>> rhs = sympy.sympify('x + 1')
+        >>> remove_binary_squares_eqn(sympy.Eq(lhs, rhs))
+        x*y + 3*z - 4 == x + 1
+
+        >>> expr1 = sympy.sympify('2*x**2 + 1')
+        >>> expr2 = sympy.sympify('y**4 + z')
+        >>> remove_binary_squares_eqn(sympy.Eq(expr1, expr2))
+        2*x + 1 == y + z
+    '''
+    if not is_equation(eqn):
+        return eqn
+    #eqn = eqn.subs({var ** 2: var for var in eqn.atoms(sympy.Symbol)})
+
+    return sympy.Eq(remove_binary_squares(eqn.lhs),
+                    remove_binary_squares(eqn.rhs))
+
+def remove_binary_squares(expr):
     ''' Given an equation, remove all of the squares as any binary
         variable squared is itself.
 
         >>> expr = 'x**2 * y + z**3 + 2*z - 4'
         >>> remove_binary_squares(sympy.sympify(expr))
         x*y + 3*z - 4
-        
+
         >>> expr = 'x**2 * y + z**3 + 1'
         >>> remove_binary_squares(sympy.sympify(expr))
         x*y + z + 1
     '''
-    if eqn == True:
-        return True
-    #eqn = eqn.subs({var ** 2: var for var in eqn.atoms(sympy.Symbol)})
-    
     w = sympy.Wild('w')
     p = sympy.Wild('p')
-    eqn = eqn.replace(w ** p, w, exact=True)
-    return eqn
+    expr = expr.replace(w ** p, w, exact=True)
+    return expr
 
 ## Objective function help
 

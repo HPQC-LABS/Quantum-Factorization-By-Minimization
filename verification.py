@@ -36,7 +36,7 @@ def binary_factorisation(n):
     return bin_fact
 
 
-def print_factorisation(n):
+def print_binary_factorisation(n):
     ''' Print the binary factorisation of a number '''
     bin_fact = binary_factorisation(n)
     max_len = len(max(bin_fact, key=len))
@@ -46,32 +46,32 @@ def print_factorisation(n):
 
 def print_experiment_to_file(n, num_digits_factor):
     output_filename = 'results\{}.txt'.format(n)
-    
+
     old_std = sys.stdout
     sys.stdout = open(output_filename, 'w')
 
     digitsInMultiplicand1 = num_digits_factor
     digitsInMultiplicand2 = num_digits_factor
     product = n
-    
+
     if product < 10**16:
-        print_factorisation(product)
+        print_binary_factorisation(product)
 
     multiplier = []
     multiplication = []
     carry = []
-    
+
     #digitsInMultiplicand1 will always have the greater number of digits
     if digitsInMultiplicand1 < digitsInMultiplicand2:
     	temp = digitsInMultiplicand1
     	digitsInMultiplicand1 = digitsInMultiplicand2
     	digitsInMultiplicand2 = temp
-    
+
     binPrime = bin(product)[2:]
     if (digitsInMultiplicand1 + digitsInMultiplicand2) > len(binPrime):
     	for i in range (0, ((digitsInMultiplicand1 + digitsInMultiplicand2)-len(binPrime))):
     		binPrime = "0" + binPrime
-    
+
     #Generate multipliers based on digits
     #	They take form 1,p2,p1,1 and 1,q2,q1,1
     #	This code will have to be rewritten to support >2 multiplicands
@@ -87,7 +87,7 @@ def print_experiment_to_file(n, num_digits_factor):
     strQ.insert(0, "1")
     multiplier.append(strP)
     multiplier.append(strQ)
-    
+
     #Generate intermediary Multiplication row values
     #	This is the result of multiplying p by every bit of q
     for i in strQ:
@@ -101,23 +101,23 @@ def print_experiment_to_file(n, num_digits_factor):
     			else:
     				temp.append(j + i)
     	multiplication.append(temp)
-    
+
     #Find Carry row values
     myParams = [digitsInMultiplicand1, digitsInMultiplicand2]
     carry = GenerateCarry.CarryGenerator(myParams)
-    
+
     #Generate Output
     myParams = [multiplier, multiplication, carry, binPrime]
     formattedCols = GenerateTableOutput.FormatOutput(myParams)
     #print ""
-    
+
     #Generate Equations
     myParams = [formattedCols, carry]
     eqns = EquationHandler.GenerateEquations(myParams)
-    
+
     system = EquationSolver.from_params(eqns)
     system.solve_equations(verbose=True)
-    
+
     sys.stdout.close()
     sys.stdout = old_std
 
@@ -134,8 +134,8 @@ def do_batch(filename, num_digits_factor):
             print 'Error thrown for {}!!!'.format(p)
 
 if __name__ == '__main__':
-#    print_factorisation(143)
-#    print_factorisation(70368895172689)
+#    print_binary_factorisation(143)
+    print_binary_factorisation(70368895172689)
 #    print_experiment_to_file(143, 4)
 #    print_experiment_to_file(4299161663, 17)
-    do_batch('17x17semiprimesFirst100.txt', 17)
+#    do_batch('17x17semiprimesFirst100.txt', 17)
