@@ -155,9 +155,9 @@ class EquationSolver(object):
 
             print
 
-            print 'Final Equations'
-            for e in sorted(self.final_equations, key=lambda x: str(x)):
-                print e
+#            print 'Final Equations'
+#            for e in sorted(self.final_equations, key=lambda x: str(x)):
+#                print e
 
             print
 
