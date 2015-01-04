@@ -180,10 +180,6 @@ else:
     except:
         print 'Failed to write the coefficient'
 
-    print system.deductions
-    print system.equations
-    print system.solutions
-
 #    sim1 = system.simplified_system()
 #    sim1.update_value(sim1.get_var('p1'), 1)
 #    sim1.solve_equations(verbose=True)
