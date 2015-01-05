@@ -173,8 +173,8 @@ if 0:
     EquationSolver.SolveEquation(myParams)
 else:
     from sympy_solver import EquationSolver
-    system = EquationSolver.from_params(eqns)
-    system.solve_equations(verbose=True)
+    system = EquationSolver.from_params(eqns, output_filename=OutputFileName)
+    system.solve_equations(verbose=False)
     try:
         system.objective_function_to_file(OutputFileName.replace('.txt', '_coef.txt'))
     except:

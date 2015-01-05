@@ -29,7 +29,8 @@ class ContradictionException(Exception):
 class EquationSolver(object):
     ''' Solver of equations '''
 
-    def __init__(self, equations=None, variables=None):
+    def __init__(self, equations=None, variables=None, log_deductions=False,
+                 output_filename=None):
         if equations is None:
             equations = []
         if variables is None:
@@ -48,8 +49,12 @@ class EquationSolver(object):
         # Solutions. Subset of deductions, where the key is a single variable.
         self.solutions = {}
 
+        # File to print to
+        self.output_filename = output_filename
+        self._file = None
 
-        # And keep a nested dictionary of who made them
+        # And keep a nested dictionary of who made them, if we want
+        self.log_deductions = log_deductions
         self.deduction_record = defaultdict(lambda : defaultdict(list))
 
         # Final solutions
@@ -59,6 +64,18 @@ class EquationSolver(object):
         # Final solutions
         self.final_solutions = None
 
+    def print_(self, output, close=False):
+        ''' Print either to screen or a file if given '''
+        if self.output_filename is None:
+            print output
+        else:
+            if self._file is None:
+                self._file = open(self.output_filename, 'a')
+            output = str(output)
+            self._file.write(output + '\n')
+            if close:
+                self._file.close()
+
     def copy(self):
         ''' Return a new instance of itself '''
         copy = EquationSolver(deepcopy(self.equations), deepcopy(self.variables))
@@ -67,13 +84,13 @@ class EquationSolver(object):
         return copy
 
     @classmethod
-    def from_params(cls, params):
+    def from_params(cls, params, **kwargs):
         ''' Create an instance from the outpu of whatever came before
             params[0][i] contains all leftsides
             params[1][i] contains all rightsides
         '''
         equations, variables = parse_equations(params)
-        return cls(equations, variables)
+        return cls(equations, variables, **kwargs)
 
     @property
     def deductions_as_equations(self):
@@ -86,12 +103,12 @@ class EquationSolver(object):
     def print_deduction_log(self):
         ''' Print the judgements and the deductions they have made '''
         for judgement, ded_info in self.deduction_record.iteritems():
-            print '\n', judgement
+            self.print_('\n' + judgement)
             for eqn, deds in ded_info.iteritems():
                 eqn_str = str(eqn).ljust(25)
                 ded_str = map(lambda (x, y) : '{}={}'.format(x, y), deds)
                 ded_str = ', '.join(ded_str)
-                print '{}\t=>\t{}'.format(eqn_str, ded_str)
+                self.print_('{}\t=>\t{}'.format(eqn_str, ded_str))
 
     def solve_equations(self, max_iter=60, verbose=False):
         ''' Solve a system of equations
@@ -100,21 +117,25 @@ class EquationSolver(object):
         # The number of iterations in which we've made no new deductions
         num_constant_iter = 0
 
-#        print len(self.variables)
+        self.print_('Num variables: {}'.format(len(self.variables)))
+        self.print_('Iter\tNum Eqn\tNum Ded\tNum Sol')
         for i in xrange(max_iter):
-            print i, len_ded, len(self.equations), len(self.solutions)
+            self.print_('\t'.join(['{}'] * 4).format(i,
+                                                   len_ded,
+                                                   len(self.equations),
+                                                   len(self.solutions)))
             self.equations = self.clean_equations(self.equations)
             self.apply_judgements(self.equations)
 
             if len(self.deductions) == len_ded:
                 num_constant_iter += 1
-                if num_constant_iter > 5:
+                if num_constant_iter > 3:
                     break
             else:
                 num_constant_iter = 0
                 len_ded = len(self.deductions)
 
-        print '{} iterations reached'.format(i)
+        self.print_('{} iterations reached'.format(i))
 
         # Final clean again, for good luck
         self.equations = self.clean_equations(self.equations)
@@ -130,50 +151,40 @@ class EquationSolver(object):
         self.final_solutions = self.solutions.copy()
 
 
-        if verbose:
-#            self.print_deduction_log()
+        if verbose or (self.output_filename is not None):
+
+            if self.log_deductions:
+                self.print_deduction_log()
+
 #
-#            print
-#
-#            print 'Unsimplified equations'
+#            self.print_('Unsimplified equations')
 #            for e in self.equations:
-#                print e
-#            print 'Deductions'
+#                self.print_(e)
+#            self.print_('Deductions')
 #            for e in self.deductions_as_equations:
-#                print e
+#                self.print_(e)
 
-#            print 'Solns'
+#            self.print_('Solns')
 #            for k in sorted(self.final_solutions.keys()):
-#                print '{} = {}'.format(k, self.final_solutions[k])
-#            #print self.final_solutions
-#            print
+#                self.print_('{} = {}'.format(k, self.final_solutions[k]))
+#            #self.print_(self.final_solutions)
 
-            print
+            self.print_('Final Variables')
+            self.print_(self.final_variables)
 
-            print 'Final Variables'
-            print self.final_variables
 
-            print
-
-#            print 'Final Equations'
+#            self.print_('Final Equations')
 #            for e in sorted(self.final_equations, key=lambda x: str(x)):
-#                print e
+#                self.print_(e)
 
-            print
+            self.print_('Num Qubits Start: {}'.format(self.num_qubits_start))
+            self.print_('Num Qubits End: {}'.format(len(self.final_variables)))
 
-            print 'Num Qubits Start: {}'.format(self.num_qubits_start)
-            print 'Num Qubits End: {}'.format(len(self.final_variables))
+            self.print_('Final equation')
+            self.print_('{} = 0'.format(self.objective_function))
 
-            print
-
-            print 'Final equation'
-            print '{} = 0'.format(self.objective_function)
-
-            print
-
-            print 'Final coefficients'
-            print expression_to_coef_string(self.objective_function)
-
+            self.print_('Final coefficients')
+            self.print_(expression_to_coef_string(self.objective_function), close=True)
 
 
     def reformulate_equations(self):
@@ -261,7 +272,7 @@ class EquationSolver(object):
         out = expression_to_coef_string(self.objective_function)
 
         if filename is None:
-            print out
+            self.print_(out)
         else:
             f = open(filename, 'a')
             f.write(out)
@@ -272,7 +283,15 @@ class EquationSolver(object):
         cleaned = filter(is_equation, eqns[:])
         cleaned = [eqn.subs(self.deductions) for eqn in cleaned]
         cleaned = filter(is_equation, cleaned)
-        cleaned = [eqn.subs(self.solutions) for eqn in cleaned]
+
+        # Extract only the atoms we would like to try and find
+        if len(cleaned):
+            cleaned_atoms = set.union(*[eqn.atoms(sympy.Symbol) for eqn in cleaned])
+            cleaned_sol = ((var, self.solutions.get(var)) for var in cleaned_atoms)
+            cleaned_sol = filter(lambda x: x[1] is not None, cleaned_sol)
+            cleaned_sol = {x[0]: x[1] for x in cleaned_sol}
+
+        cleaned = [eqn.subs(cleaned_sol) for eqn in cleaned]
         cleaned = filter(is_equation, cleaned)
         cleaned = [eqn.expand() for eqn in cleaned]
         cleaned = map(remove_binary_squares_eqn, cleaned)
@@ -289,7 +308,7 @@ class EquationSolver(object):
                 new_eq = sympy.Eq(eqn1.rhs, eqn2.rhs)
                 new_eq = balance_terms(new_eq)
                 to_add.append(new_eq)
-                #print 'Equation added! {}, {}'.format(eqn1, eqn2)
+                #self.print_('Equation added! {}, {}'.format(eqn1, eqn2))
 
         all_equations = itertools.chain(cleaned, self.deductions_as_equations)
         for eqn1, eqn2 in itertools.combinations(all_equations, 2):
@@ -409,6 +428,15 @@ class EquationSolver(object):
         # include an unsolved variables
         unsolved_var = set(self.variables.values()).difference(self.solutions.keys())
 
+        # Clean the solutions so we don't spend so long in subs
+        # Extract only the atoms we would like to try and find
+        ded_as_eqn = self.deductions_as_equations
+        if len(ded_as_eqn):
+            cleaned_atoms = set.union(*[eqn.atoms(sympy.Symbol) for eqn in ded_as_eqn])
+            cleaned_sol = ((var, self.solutions.get(var)) for var in cleaned_atoms)
+            cleaned_sol = filter(lambda x: x[1] is not None, cleaned_sol)
+            cleaned_sol = {x[0]: x[1] for x in cleaned_sol}
+
         old_deductions = self.deductions.copy()
         self.deductions = {}
         for expr, val in old_deductions.iteritems():
@@ -416,8 +444,8 @@ class EquationSolver(object):
 #                                         self.solutions.copy().iteritems()):
 
             # Substitute all of the solved variables
-            expr = expr.subs(self.solutions).expand()
-            val = val.subs(self.solutions).expand()
+            expr = expr.subs(cleaned_sol).expand()
+            val = val.subs(cleaned_sol).expand()
             latoms = expr.atoms()
             ratoms = set([val]) if isinstance(val, int) else val.atoms()
             if (len(latoms.intersection(unsolved_var)) or
@@ -442,7 +470,7 @@ class EquationSolver(object):
                     raise ContradictionException('Subbing solutions raised contradiction in deductions')
 
                 if expr != 0:
-                    print 'Dropping deduction {} = {}'.format(expr, val)
+                    self.print_('Dropping deduction {} = {}'.format(expr, val))
 
     def clean_solutions(self):
         ''' Remove cycles and chains in the solutions. Make sure every value is
@@ -573,6 +601,15 @@ class EquationSolver(object):
         if changes:
             self.clean_solutions()
 
+    def _update_log(self, expr, value):
+        ''' Log an update under a judgement '''
+        if not self.log_deductions:
+            return
+
+        # Update the deductions process dictionary
+        judgement, eqn = _get_judgement()
+        self.deduction_record[judgement][eqn].append((expr, value))
+
     def update_value(self, expr, value):
         ''' Update the global dictionary and check for contradictions.
             Make sure expr is always 'positive'.
@@ -602,9 +639,6 @@ class EquationSolver(object):
             >>> system.deductions
             {x: 0}
         '''
-        # Update the deductions process dictionary
-        judgement, eqn = get_judgement()
-
         # If expr = 2*x and value ==0, then we can get rid of the 2
         if value == 0:
             expr = expr.as_coeff_Mul()[1]
@@ -627,7 +661,7 @@ class EquationSolver(object):
         # No possible conflict
         if current_val is None:
             self.deductions[expr] = value
-            self.deduction_record[judgement][eqn].append((expr, value))
+            self._update_log(expr, value)
 
         # If we already know a value of this family
         elif is_one_or_zero(current_val):
@@ -642,7 +676,7 @@ class EquationSolver(object):
             else:
                 self.update_value(value, current_val)
 #                self.deductions[expr] = current_val
-                self.deduction_record[judgement][eqn].append((expr, value))
+                self._update_log(expr, value)
 
         # Current_val is symbolic
         else:
@@ -657,8 +691,8 @@ class EquationSolver(object):
                             value))
                 self.deductions[current_val] = value
                 self.deductions[expr] = value
-                self.deduction_record[judgement][eqn].append((current_val, value))
-                self.deduction_record[judgement][eqn].append((expr, value))
+                self._update_log(current_val, value)
+                self._update_log(expr, value)
             # Both values are symbolic!
             else:
                 #TODO Clean up the hack around this silly edge case
@@ -667,14 +701,14 @@ class EquationSolver(object):
                 if (expr.atoms(sympy.Symbol).issubset(current_val.atoms(sympy.Symbol)) and
                     not expr.atoms(sympy.Symbol).issubset(value.atoms(sympy.Symbol))):
                     self.deductions[expr] = value
-                    self.deduction_record[judgement][eqn].append((expr, value))
+                    self._update_log(expr, value)
 
                 else:
                     self.deductions[expr] = current_val
-                    self.deduction_record[judgement][eqn].append((expr, current_val))
+                    self._update_log(expr, current_val)
                     if value != current_val:
                         self.deductions[current_val] = value
-                        self.deduction_record[judgement][eqn].append((current_val, value))
+                        self._update_log(current_val, value)
 
     def get_var(self, var):
         ''' Return symbolic variable
@@ -1147,11 +1181,9 @@ class EquationSolver(object):
                         odd_terms.append(term)
 
             if len(odd_terms) == 3:
-                print '\n*** 10i\n{}'.format(eqn)
                 pairs = [a * b for a, b in itertools.combinations(odd_terms, 2)]
                 expressions = [ab + bc for ab, bc in itertools.combinations(pairs, 2)]
                 for expr in expressions:
-                    print expr
                     self.update_value(expr, 0)
 
 
@@ -1301,7 +1333,7 @@ def is_equation(eqn):
         >>> is_equation(eq3)
         False
     '''
-    return not isinstance(eqn, sympy.boolalg.BooleanAtom)
+    return isinstance(eqn, sympy.Equality)
 
 def parity(expr):
     ''' Return parity:
@@ -1605,14 +1637,14 @@ def expression_to_coef_string(expr):
 
 
 # Inspection
-def get_judgement():
+def _get_judgement():
     ''' Find the judgement calling update_value. Horrible hackery, but at least
         it's in 1 place
     '''
     up_again = ['set_to_min', 'set_to_max', 'update_value', '_helper',
                 'judgement_two_term']
 
-    ind = 2
+    ind = 3
     frame = inspect.stack()[ind]
     caller_name = frame[-3]
     while caller_name in up_again:
