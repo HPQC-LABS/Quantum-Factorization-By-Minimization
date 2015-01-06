@@ -124,12 +124,20 @@ class EquationSolver(object):
                                                    len_ded,
                                                    len(self.equations),
                                                    len(self.solutions)))
+            
             self.equations = self.clean_equations(self.equations)
             self.apply_judgements(self.equations)
 
             if len(self.deductions) == len_ded:
                 num_constant_iter += 1
-                if num_constant_iter > 3:
+                
+                # Here lets apply some slower, complex judgements to try and
+                # unstick ourselves
+                if num_constant_iter == 3:
+                    for eqn in self.equations:
+                        self.judgement_n_term(eqn, 4)
+
+                if num_constant_iter > 5:
                     break
             else:
                 num_constant_iter = 0
@@ -165,17 +173,17 @@ class EquationSolver(object):
 #                self.print_(e)
 
 #            self.print_('Solns')
-#            for k in sorted(self.final_solutions.keys()):
+#            for k in sorted(self.final_solutions.keys(), key=str):
 #                self.print_('{} = {}'.format(k, self.final_solutions[k]))
-#            #self.print_(self.final_solutions)
+#            self.print_(self.final_solutions)
 
             self.print_('Final Variables')
             self.print_(self.final_variables)
 
 
-#            self.print_('Final Equations')
-#            for e in sorted(self.final_equations, key=lambda x: str(x)):
-#                self.print_(e)
+            self.print_('Final Equations')
+            for e in sorted(self.final_equations, key=lambda x: str(x)):
+                self.print_(e)
 
             self.print_('Num Qubits Start: {}'.format(self.num_qubits_start))
             self.print_('Num Qubits End: {}'.format(len(self.final_variables)))
@@ -410,7 +418,8 @@ class EquationSolver(object):
                         else:
                             self.update_value(curr_sol, val)
                 else:
-                    self.solutions[expr] = val
+                    if is_monic(expr):
+                        self.solutions[expr] = val
 
             elif (len(val.atoms(sympy.Symbol)) == 1) and (len(latoms) != 1):
                 self.deductions.pop(expr)
@@ -867,6 +876,82 @@ class EquationSolver(object):
             else:
                 self.update_value(term1, rhs - term2)
 #                self.update_value(term1 + term2, rhs)
+            
+    def judgement_n_term(self, eqn, max_num_terms=3):
+        ''' If an expression has n or fewer variable terms, sub it in!
+            Only substitute single atoms terms for the moment
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y*z, 1)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {x: -y*z + 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y, z)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {x: -y + z}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(1 + y, 1)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {y: 0}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x - y, 1)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {x: y + 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(-x + y, 1)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {y: x + 1}
+            
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y + z, 1)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {x: -y - z + 1}
+            
+            >>> system = EquationSolver()
+            >>> x, y, z, z2, u, v = sympy.symbols('x y z z2 u v')
+            >>> eqn = sympy.Eq(2*x + y + z*z2, u + v)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {y: u + v - 2*x - z*z2}
+            
+            >>> system = EquationSolver()
+            >>> lhs = sympy.sympify('q2 + q3')
+            >>> rhs = sympy.sympify('2*q2*q3 + 2*z2021')
+            >>> eqn = sympy.Eq(lhs, rhs)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {q2: 2*q2*q3 - q3 + 2*z2021}
+        '''
+        lhs, rhs = eqn.lhs, eqn.rhs
+        if (num_add_terms(lhs) <= max_num_terms):
+
+            term_to_sub = None
+            for term in lhs.as_ordered_terms():
+                # We want a monic term of 1 variable if we haven't found one yet                
+                if ((len(term.atoms(sympy.Symbol)) == 1) and 
+                    (term.as_coeff_mul()[0] == 1) and
+                    (term_to_sub is None)):
+                    term_to_sub = term
+            
+            if term_to_sub is not None:
+                self.update_value(term_to_sub, rhs - lhs + term_to_sub)                
+
 
     def judgement_mm(self, eqn):
         ''' If min(rhs) == max(lhs), then we know what to do
@@ -1317,6 +1402,32 @@ def is_constant(expr):
         False
     '''
     return len(expr.atoms(sympy.Symbol)) == 0
+
+def is_monic(expr):
+    ''' Determine whether an expression is monic
+        >>> expr = 'x + 2*y'
+        >>> is_monic(sympy.sympify(expr))
+        False
+        >>> expr = 'x + 5'
+        >>> is_monic(sympy.sympify(expr))
+        False
+        >>> expr = '3'
+        >>> is_monic(sympy.sympify(expr))
+        False
+        >>> expr = '2*x - 4'
+        >>> is_monic(sympy.sympify(expr))
+        False
+        >>> expr = 'x'
+        >>> is_monic(sympy.sympify(expr))
+        True
+        >>> expr = 'x*y + z'
+        >>> is_monic(sympy.sympify(expr))
+        True
+        >>> expr = 'x*y + z**2 + 1'
+        >>> is_monic(sympy.sympify(expr))
+        True
+    '''
+    return all(coef == 1 for coef in expr.as_coefficients_dict().itervalues())
 
 def is_equation(eqn):
     ''' Return True if it is an equation rather than a boolean value

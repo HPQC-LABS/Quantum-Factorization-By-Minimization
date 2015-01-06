@@ -34,13 +34,14 @@ digitsInMultiplicand2 = 6
 #product = r
 #product = 99
 product = 3737
+
 OutputFileName = "output.txt"
 
 #digitsInMultiplicand1 = 5
 #digitsInMultiplicand2 = 4
 #product = 403
 
-exp = 9
+exp = 11
 if exp == 1:
     digitsInMultiplicand1 = 4
     digitsInMultiplicand2 = 4
@@ -74,10 +75,22 @@ if exp == 9:
     digitsInMultiplicand2 = 17
     product = 4314890543
 
+if exp == 10:
+    # 3 term test
+    digitsInMultiplicand1 = 17
+    digitsInMultiplicand2 = 17
+    product = 4297981997
+
 if exp == 4:
     digitsInMultiplicand1 = 21
     digitsInMultiplicand2 = 21
     product = 1099532599387
+
+if exp == 11:
+    # 3 term test 2
+    digitsInMultiplicand1 = 21
+    digitsInMultiplicand2 = 21
+    product = 1099526307889
 
 if exp == 5:
     digitsInMultiplicand1 = 24
@@ -173,10 +186,12 @@ if 0:
     EquationSolver.SolveEquation(myParams)
 else:
     from sympy_solver import EquationSolver
-    system = EquationSolver.from_params(eqns, output_filename=OutputFileName)
-    system.solve_equations(verbose=False)
+    # None means the result will be printed to screen
+    system = EquationSolver.from_params(eqns, output_filename=None, log_deductions=False)
+    system.solve_equations(verbose=True)
     try:
-        system.objective_function_to_file(OutputFileName.replace('.txt', '_coef.txt'))
+        coef_filename = OutputFileName.replace('.txt', '_coef.txt')
+        system.objective_function_to_file(coef_filename)
     except:
         print 'Failed to write the coefficient'
 
