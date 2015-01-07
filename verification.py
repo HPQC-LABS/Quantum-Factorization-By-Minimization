@@ -5,14 +5,77 @@ Created on Wed Dec 31 18:35:14 2014
 @author: Richard
 """
 
-import math
+import itertools
+import sympy
 
-import GenerateTableOutput
-import GenerateCarry
-import EquationHandler
-import sys
-from sympy_solver import EquationSolver
+from sympy_helper_fns import is_constant
 
+def _extract_solutions(solutions, max_digits):
+    ''' Solutions is a dict of solutions we want to look in. num_digits is
+        the total number of digits in a factor.
+        Returns the solution according to solutions.
+        NOTE only works for factors with same number of digits
+    '''
+    p = [1]
+    q = [1]
+    for i in xrange(max_digits - 2, 0, -1):
+        p.append(solutions.get(sympy.Symbol('p{}'.format(i))))
+        q.append(solutions.get(sympy.Symbol('q{}'.format(i))))
+    p.append(1)
+    q.append(1)
+    return p, q
+
+def check_solutions(product, solutions, verbose=False):
+    ''' Check that solutions are consistent with the binary factorisation.
+        NOTE Only works with prime numbers with the same number of digits in
+        their factors
+    '''
+    # Work out our target ps and qs
+    target_factors = binary_factorisation(product)
+    assert len(target_factors) == 2
+    # Check the same length
+    assert len(target_factors[0]) == len(target_factors[1])
+    
+    # Trim off the first '0b' and check we have a 1 at each end
+    target_factors = [fact[2:] for fact in target_factors]
+    target_factors = [map(int, fact) for fact in target_factors]
+    for fact in target_factors:
+        assert fact[0] == fact[-1] == 1
+    
+    target_p, target_q = target_factors
+    
+    # Now extract a similar list from the given solutions dict
+    digits_in_multiplicand = len(target_p)
+    soln_p, soln_q = _extract_solutions(solutions, digits_in_multiplicand)
+    
+    symbolic_pairs = []
+    # Check fully determined ps and qs and extract symbolic matchings
+    for sol, target in itertools.chain(itertools.izip(soln_p, target_p),
+                                       itertools.izip(soln_q, target_q)):
+        # No solutions found whatsoever
+        if sol is None:
+            continue
+        # If constant, we can check that easily
+        if is_constant(sol):
+            assert sol == target
+        else:
+            symbolic_pairs.append((sol, target))
+    
+    # For symbolic matchings, just check that no symbolic expression is mapped to
+    # two different values
+    #TODO Do something cleverer here, like plug into a new EquationSolver.
+    symbolic_map = {}
+    for sol, tar in symbolic_pairs:
+        prev_tar = symbolic_map.get(sol)
+        if prev_tar is None:
+            symbolic_map[sol] = tar
+        else:
+            assert tar == prev_tar
+    
+    if verbose:    
+        print
+        print 'All assertions passed. Check the below are consistent'
+        print symbolic_map
 
 
 def factorise(n):
@@ -44,98 +107,6 @@ def print_binary_factorisation(n):
     print '{}\n={}\nFactors:\n{}'.format(n, bin(n), fact_str)
 
 
-def print_experiment_to_file(n, num_digits_factor):
-    output_filename = 'results\{}.txt'.format(n)
-
-    old_std = sys.stdout
-    sys.stdout = open(output_filename, 'w')
-
-    digitsInMultiplicand1 = num_digits_factor
-    digitsInMultiplicand2 = num_digits_factor
-    product = n
-
-    if product < 10**16:
-        print_binary_factorisation(product)
-
-    multiplier = []
-    multiplication = []
-    carry = []
-
-    #digitsInMultiplicand1 will always have the greater number of digits
-    if digitsInMultiplicand1 < digitsInMultiplicand2:
-    	temp = digitsInMultiplicand1
-    	digitsInMultiplicand1 = digitsInMultiplicand2
-    	digitsInMultiplicand2 = temp
-
-    binPrime = bin(product)[2:]
-    if (digitsInMultiplicand1 + digitsInMultiplicand2) > len(binPrime):
-    	for i in range (0, ((digitsInMultiplicand1 + digitsInMultiplicand2)-len(binPrime))):
-    		binPrime = "0" + binPrime
-
-    #Generate multipliers based on digits
-    #	They take form 1,p2,p1,1 and 1,q2,q1,1
-    #	This code will have to be rewritten to support >2 multiplicands
-    strP = []
-    strQ = []
-    for i in range(1,digitsInMultiplicand1-1):
-    	strP.append("p" + str(i))
-    for i in range(1, digitsInMultiplicand2-1):
-    	strQ.append("q" + str(i))
-    strP.append("1")
-    strP.insert(0, "1")
-    strQ.append("1")
-    strQ.insert(0, "1")
-    multiplier.append(strP)
-    multiplier.append(strQ)
-
-    #Generate intermediary Multiplication row values
-    #	This is the result of multiplying p by every bit of q
-    for i in strQ:
-    	temp = []
-    	for j in strP:
-    		if i == "1":
-    			temp.append(j)
-    		else:
-    			if j == "1":
-    				temp.append(i)
-    			else:
-    				temp.append(j + i)
-    	multiplication.append(temp)
-
-    #Find Carry row values
-    myParams = [digitsInMultiplicand1, digitsInMultiplicand2]
-    carry = GenerateCarry.CarryGenerator(myParams)
-
-    #Generate Output
-    myParams = [multiplier, multiplication, carry, binPrime]
-    formattedCols = GenerateTableOutput.FormatOutput(myParams)
-    #print ""
-
-    #Generate Equations
-    myParams = [formattedCols, carry]
-    eqns = EquationHandler.GenerateEquations(myParams)
-
-    system = EquationSolver.from_params(eqns)
-    system.solve_equations(verbose=True)
-
-    sys.stdout.close()
-    sys.stdout = old_std
-
-def do_batch(filename, num_digits_factor):
-    f = open(filename, 'r')
-    lines = f.readlines()
-    f.close()
-    for p in lines:
-        print p
-        p = int(p)
-        try:
-            print_experiment_to_file(p, num_digits_factor=num_digits_factor)
-        except:
-            print 'Error thrown for {}!!!'.format(p)
-
 if __name__ == '__main__':
-#    print_binary_factorisation(143)
+    print_binary_factorisation(143)
     print_binary_factorisation(70368895172689)
-#    print_experiment_to_file(143, 4)
-#    print_experiment_to_file(4299161663, 17)
-#    do_batch('17x17semiprimesFirst100.txt', 17)

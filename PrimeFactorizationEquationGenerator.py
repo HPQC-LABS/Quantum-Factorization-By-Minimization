@@ -5,6 +5,8 @@ import GenerateCarry
 import EquationHandler
 import sys
 
+from verification import print_binary_factorisation, check_solutions
+
 __author__ = "Nathaniel Bryans"
 __credits__ = ["Nathaniel Bryans", "Nikesh Dattani"]
 __version__ = "0.0.6"
@@ -41,7 +43,7 @@ OutputFileName = "output.txt"
 #digitsInMultiplicand2 = 4
 #product = 403
 
-exp = 11
+exp = 9
 if exp == 1:
     digitsInMultiplicand1 = 4
     digitsInMultiplicand2 = 4
@@ -97,6 +99,11 @@ if exp == 5:
     digitsInMultiplicand2 = 24
     product = 70368895172689
 
+if exp == 12:
+    digitsInMultiplicand1 = 17
+    digitsInMultiplicand2 = 17
+    product = 4301127773
+
 if exp == 100:
     digitsInMultiplicand1 = 165
     digitsInMultiplicand2 = 165
@@ -110,9 +117,10 @@ if len(sys.argv) > 2:
 	product = int(sys.argv[3])
 	OutputFileName = str(sys.argv[4])
 
-if product < 10**16:
+VERIFY_FACTORISATION_LIMIT = 10**16
+
+if product < VERIFY_FACTORISATION_LIMIT:
     try:
-        from verification import print_binary_factorisation
         print_binary_factorisation(product)
     except:
         pass
@@ -187,13 +195,17 @@ if 0:
 else:
     from sympy_solver import EquationSolver
     # None means the result will be printed to screen
-    system = EquationSolver.from_params(eqns, output_filename=None, log_deductions=False)
+    output = None#OutputFileName
+    system = EquationSolver.from_params(eqns, output_filename=output, log_deductions=False)
     system.solve_equations(verbose=True)
     try:
         coef_filename = OutputFileName.replace('.txt', '_coef.txt')
         system.objective_function_to_file(coef_filename)
     except:
         print 'Failed to write the coefficient'
+    
+    if product < VERIFY_FACTORISATION_LIMIT:
+        check_solutions(product, system.solutions.copy(), verbose=False)
 
 #    sim1 = system.simplified_system()
 #    sim1.update_value(sim1.get_var('p1'), 1)
