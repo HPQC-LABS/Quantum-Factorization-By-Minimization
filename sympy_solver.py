@@ -10,7 +10,9 @@ from collections import defaultdict
 import inspect
 import itertools
 import fractions
+import re
 import sympy
+from sympy.core.cache import clear_cache
 
 import ReHandler
 
@@ -69,7 +71,7 @@ class EquationSolver(object):
         if self.output_filename is None:
             print output
         else:
-            if self._file is None:
+            if (self._file is None) or self._file.closed:
                 self._file = open(self.output_filename, 'a')
             output = str(output)
             self._file.write(output + '\n')
@@ -120,9 +122,12 @@ class EquationSolver(object):
         self.print_('Num variables: {}'.format(len(self.variables)))
         self.print_('Iter\tNum Eqn\tNum Ded\tNum Sol')
         for i in xrange(max_iter):
+            # Clear the cache so that we don't blow up memory when working with
+            # large numbers            
+            clear_cache()
             self.print_('\t'.join(['{}'] * 4).format(i,
-                                                   len_ded,
                                                    len(self.equations),
+                                                   len_ded,
                                                    len(self.solutions)))
             
             self.equations = self.clean_equations(self.equations)
@@ -133,7 +138,7 @@ class EquationSolver(object):
                 
                 # Here lets apply some slower, complex judgements to try and
                 # unstick ourselves
-                if num_constant_iter == 3:
+                if num_constant_iter >= 3:
                     for eqn in self.equations:
                         self.judgement_n_term(eqn, 4)
 
@@ -1102,6 +1107,14 @@ class EquationSolver(object):
             >>> system.judgement_7i(eqn)
             >>> system.deductions
             {}
+
+            >>> system = EquationSolver()
+            >>> lhs = sympy.sympify('q3 + q4')
+            >>> rhs = sympy.sympify('2*q3*q4 + 2*z78 + 4*z79')
+            >>> eqn = sympy.Eq(lhs, rhs)
+            >>> system.judgement_7i(eqn)
+            >>> system.deductions
+            {z79: 0}
         '''
         eqn = balance_constant(eqn)
 
@@ -1697,14 +1710,32 @@ def remove_binary_squares(expr):
         >>> remove_binary_squares(sympy.sympify(expr))
         x*y + 3*z - 4
 
-        >>> expr = 'x**2 * y + z**3 + 1'
+        >>> expr = '(x*y)**2 + z**3 + 1'
         >>> remove_binary_squares(sympy.sympify(expr))
         x*y + z + 1
+        
+        Because of the new implementation, we want to check the variables
+        are exactly equivalent
+        >>> x = sympy.symbols('x')
+        >>> remove_binary_squares(x ** 3) == x
+        True
+        >>> remove_binary_squares(x ** 3) is x
+        True
     '''
-    w = sympy.Wild('w')
-    p = sympy.Wild('p')
-    expr = expr.replace(w ** p, w, exact=True)
+    exp_match = re.compile('[a-zA-Z][0-9]*\*\*[0-9]*')
+    matches = re.findall(exp_match, str(expr))
+    for match in matches:
+        var, exp = match.split('**')
+        var = sympy.sympify(var)
+        exp = int(exp)
+        expr = expr.subs(var ** exp, var)
     return expr
+    
+    # Old, memory hungry implementation
+#    w = sympy.Wild('w')
+#    p = sympy.Wild('p')
+#    expr = expr.replace(w ** p, w, exact=True)
+#    return expr
 
 ## Objective function help
 
