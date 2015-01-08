@@ -13,12 +13,12 @@ import sympy
 from sympy.core.cache import clear_cache
 
 import ReHandler
-from sympy_helper_fns import (max_value, min_value, is_equation, 
+from sympy_helper_fns import (max_value, min_value, is_equation,
                               remove_binary_squares_eqn, balance_terms,
                               cancel_constant_factor, is_constant,
                               num_add_terms, parity, is_monic, is_one_or_zero,
                               remove_binary_squares)
-
+from objective_function_helper import equations_to_coef_string, objective_function_from_equations
 
 __author__ = "Richard Tanburn"
 __credits__ = ["Richard Tanburn", "Nathaniel Bryans", "Nikesh Dattani"]
@@ -127,19 +127,19 @@ class EquationSolver(object):
         self.print_('Iter\tNum Eqn\tNum Ded\tNum Sol')
         for i in xrange(max_iter):
             # Clear the cache so that we don't blow up memory when working with
-            # large numbers            
+            # large numbers
             clear_cache()
             self.print_('\t'.join(['{}'] * 4).format(i,
                                                    len(self.equations),
                                                    len_ded,
                                                    len(self.solutions)))
-            
+
             self.equations = self.clean_equations(self.equations)
             self.apply_judgements(self.equations)
 
             if len(self.deductions) == len_ded:
                 num_constant_iter += 1
-                
+
                 # Here lets apply some slower, complex judgements to try and
                 # unstick ourselves
                 if num_constant_iter >= 3:
@@ -191,19 +191,14 @@ class EquationSolver(object):
 
 
             self.print_('Final Equations')
-            for e in sorted(self.final_equations, key=lambda x: str(x)):
+            for e in sorted(self.final_equations, key=str):
                 self.print_(e)
 
             self.print_('Num Qubits Start: {}'.format(self.num_qubits_start))
-            self.print_('Num Qubits End: {}'.format(len(self.final_variables)))
-
-            obj_func = self.objective_function
-
-            self.print_('Final equation')
-            self.print_('{} = 0'.format(obj_func))
+            self.print_('Num Qubits End: {}'.format(len(self.final_variables)), close=True)
 
             self.print_('Final coefficients')
-            self.print_(expression_to_coef_string(obj_func), close=True)
+            self.print_(equations_to_coef_string(self.final_equations), close=True)
 
 
     def reformulate_equations(self):
@@ -269,27 +264,16 @@ class EquationSolver(object):
         if self.final_equations is None:
             return None
 
-        if len(self.final_equations) == 0:
-            return sympy.sympify('0')
-
-        obj_func = sympy.sympify(0)
-        for eqn in self.final_equations:
-            clear_cache()
-            term = (eqn.lhs - eqn.rhs) ** 2
-            term = term.expand()
-            term = remove_binary_squares(term)
-            obj_func += term
-
-        # Remove any constant factors they may have in common
-        obj_func = cancel_constant_factor(sympy.Eq(obj_func)).lhs
-
-        return obj_func
+        return objective_function_from_equations(self.final_equations)
 
     def objective_function_to_file(self, filename=None):
         ''' Write the objective function to a file, or printing if None.
             Also include the dictionary of variable number to original variable
         '''
-        out = expression_to_coef_string(self.objective_function)
+        if self.final_equations is None:
+            return
+
+        out = equations_to_coef_string(self.final_equations)
 
         if filename is None:
             self.print_(out)
@@ -887,7 +871,7 @@ class EquationSolver(object):
             else:
                 self.update_value(term1, rhs - term2)
 #                self.update_value(term1 + term2, rhs)
-            
+
     def judgement_n_term(self, eqn, max_num_terms=3):
         ''' If an expression has n or fewer variable terms, sub it in!
             Only substitute single atoms terms for the moment
@@ -926,21 +910,21 @@ class EquationSolver(object):
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {y: x + 1}
-            
+
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + z, 1)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {x: -y - z + 1}
-            
+
             >>> system = EquationSolver()
             >>> x, y, z, z2, u, v = sympy.symbols('x y z z2 u v')
             >>> eqn = sympy.Eq(2*x + y + z*z2, u + v)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {y: u + v - 2*x - z*z2}
-            
+
             >>> system = EquationSolver()
             >>> lhs = sympy.sympify('q2 + q3')
             >>> rhs = sympy.sympify('2*q2*q3 + 2*z2021')
@@ -954,14 +938,14 @@ class EquationSolver(object):
 
             term_to_sub = None
             for term in lhs.as_ordered_terms():
-                # We want a monic term of 1 variable if we haven't found one yet                
-                if ((len(term.atoms(sympy.Symbol)) == 1) and 
+                # We want a monic term of 1 variable if we haven't found one yet
+                if ((len(term.atoms(sympy.Symbol)) == 1) and
                     (term.as_coeff_mul()[0] == 1) and
                     (term_to_sub is None)):
                     term_to_sub = term
-            
+
             if term_to_sub is not None:
-                self.update_value(term_to_sub, rhs - lhs + term_to_sub)                
+                self.update_value(term_to_sub, rhs - lhs + term_to_sub)
 
 
     def judgement_mm(self, eqn):
@@ -1375,45 +1359,6 @@ def _parse_term(term, variables):
             variables[v] = instance
         var_instances.append(instance)
     return coef * sympy.prod(var_instances)
-
-## Objective function help
-
-def expression_to_coef_string(expr):
-    ''' Write the objective function to a file, or printing if None.
-        Also include the dictionary of variable number to original variable
-
-        >>> inp = '40*s_1 + 30*s_1*s_2 + 100*s_1*s_2*s_3 - 15*s_2*s_3 - 20*s_3 + 4'
-        >>> print expression_to_coef_string(inp)
-        4
-        1 2 30
-        2 3 -15
-        1 40
-        3 -20
-        1 2 3 100
-        <BLANKLINE>
-        {s_3: 3, s_2: 2, s_1: 1}
-    '''
-    if isinstance(expr, str):
-        expr = sympy.sympify(expr)
-
-    atoms = expr.atoms(sympy.Symbol)
-    atoms = sorted(list(atoms), key=lambda x: str(x))
-    atom_map = {v : i + 1 for i, v in enumerate(atoms)}
-
-    lines = []
-    for term, coef in expr.as_coefficients_dict().iteritems():
-        var_num = sorted([atom_map[atom] for atom in term.atoms(sympy.Symbol)])
-        line = ' '.join(map(str, var_num))
-        if line:
-            line += ' ' + str(coef)
-        else:
-            line = str(coef)
-        lines.append(line)
-
-    coef_str = '\n'.join(lines)
-    atom_str = str(atom_map)
-    return '\n\n'.join([coef_str, atom_str])
-
 
 # Inspection
 def _get_judgement():

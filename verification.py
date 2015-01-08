@@ -9,6 +9,13 @@ import itertools
 import sympy
 
 from sympy_helper_fns import is_constant
+from rsa_constants import RSA100, RSA100_F1, RSA100_F2
+
+KNOWN_FACTORISATIONS = {
+        RSA100: (RSA100_F1, RSA100_F2)
+
+}
+BRUTE_FORCE_FACTORISATION_LIMIT = 10**16
 
 def _extract_solutions(solutions, max_digits):
     ''' Solutions is a dict of solutions we want to look in. num_digits is
@@ -25,29 +32,54 @@ def _extract_solutions(solutions, max_digits):
     q.append(1)
     return p, q
 
+def get_target_factors(product):
+    ''' Return tuple of target factors, or None if the can't be found '''
+
+    known_factors = KNOWN_FACTORISATIONS.get(product)
+    if known_factors is not None:
+        return known_factors
+
+    # Work out our target ps and qs
+    if product < BRUTE_FORCE_FACTORISATION_LIMIT:
+        return factorise(product)
+
+    return None
+
+
 def check_solutions(product, solutions, verbose=False):
     ''' Check that solutions are consistent with the binary factorisation.
         NOTE Only works with prime numbers with the same number of digits in
         their factors
+
+        >>> p1, p2, p3, p10, p160, q1, q3, q164 = sympy.var('p1 p2 p3 p10 p160 q1 q3 q164')
+        >>> soln = {p1: 0, p2: 1, p3: 1, p10: 1, p160: 1, q1: 1, q3: 0, q164: 1}
+        >>> check_solutions(RSA100, soln, verbose=True)
+        All assertions passed.
     '''
-    # Work out our target ps and qs
-    target_factors = binary_factorisation(product)
+
+    # Get the target factors, turn them into binary and do some checks
+    target_factors = get_target_factors(product)
+    if target_factors is None:
+        return
+    target_factors = map(bin, target_factors)
+
+    # Check we have 2 factors
     assert len(target_factors) == 2
+
     # Check the same length
     assert len(target_factors[0]) == len(target_factors[1])
-    
+
     # Trim off the first '0b' and check we have a 1 at each end
     target_factors = [fact[2:] for fact in target_factors]
     target_factors = [map(int, fact) for fact in target_factors]
     for fact in target_factors:
         assert fact[0] == fact[-1] == 1
-    
     target_p, target_q = target_factors
-    
+
     # Now extract a similar list from the given solutions dict
     digits_in_multiplicand = len(target_p)
     soln_p, soln_q = _extract_solutions(solutions, digits_in_multiplicand)
-    
+
     symbolic_pairs = []
     # Check fully determined ps and qs and extract symbolic matchings
     for sol, target in itertools.chain(itertools.izip(soln_p, target_p),
@@ -60,7 +92,7 @@ def check_solutions(product, solutions, verbose=False):
             assert sol == target
         else:
             symbolic_pairs.append((sol, target))
-    
+
     # For symbolic matchings, just check that no symbolic expression is mapped to
     # two different values
     #TODO Do something cleverer here, like plug into a new EquationSolver.
@@ -71,11 +103,12 @@ def check_solutions(product, solutions, verbose=False):
             symbolic_map[sol] = tar
         else:
             assert tar == prev_tar
-    
-    if verbose:    
-        print
-        print 'All assertions passed. Check the below are consistent'
-        print symbolic_map
+
+    if verbose:
+        print 'All assertions passed.'
+        if symbolic_map:
+            print 'Check the below are consistent'
+            print symbolic_map
 
 
 def factorise(n):
@@ -100,7 +133,15 @@ def binary_factorisation(n):
 
 
 def print_binary_factorisation(n):
-    ''' Print the binary factorisation of a number '''
+    ''' Print the binary factorisation of a number
+
+        >>> print_binary_factorisation(143)
+        143
+        =0b10001111
+        Factors:
+          1101
+          1011
+    '''
     bin_fact = binary_factorisation(n)
     max_len = len(max(bin_fact, key=len))
     fact_str = '\n'.join([b_f[2:].rjust(max_len) for b_f in bin_fact])
@@ -108,5 +149,5 @@ def print_binary_factorisation(n):
 
 
 if __name__ == '__main__':
-    print_binary_factorisation(143)
-    print_binary_factorisation(70368895172689)
+    import doctest
+    doctest.testmod()

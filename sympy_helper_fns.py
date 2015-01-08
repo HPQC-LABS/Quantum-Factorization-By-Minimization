@@ -137,9 +137,10 @@ def parity(expr):
     return parity
 
 
-def cancel_constant_factor(eqn):
+def cancel_constant_factor(eqn, maintain_sign=False):
     ''' Divide the equation by the hcf of all the terms.
-        If every term is negative, then also divide by -1
+        If every term is negative, then also divide by -1.
+        If maintain_sign is True, then the dividing factor cannot be negative
 
         >>> lhs = sympy.sympify('2*x + 2')
         >>> rhs = sympy.sympify('2*y + 3')
@@ -165,7 +166,8 @@ def cancel_constant_factor(eqn):
         >>> rhs = sympy.sympify('-9*y')
         >>> cancel_constant_factor(sympy.Eq(lhs, rhs))
         x + 2 == 3*y
-
+        >>> cancel_constant_factor(sympy.Eq(lhs, rhs), maintain_sign=True)
+        -x - 2 == -3*y
     '''
     if not is_equation(eqn):
         return eqn
@@ -173,6 +175,8 @@ def cancel_constant_factor(eqn):
     coef = (eqn.lhs.as_coefficients_dict().values() +
             eqn.rhs.as_coefficients_dict().values())
     hcf = reduce(fractions.gcd, coef)
+    if maintain_sign:
+        hcf = abs(hcf)
     return sympy.Eq(eqn.lhs / hcf, eqn.rhs / hcf)
 
 
@@ -354,7 +358,7 @@ def remove_binary_squares(expr):
         >>> expr = '(x*y)**2 + z**3 + 1'
         >>> remove_binary_squares(sympy.sympify(expr))
         x*y + z + 1
-        
+
         Because of the new implementation, we want to check the variables
         are exactly equivalent
         >>> x = sympy.symbols('x')
@@ -371,7 +375,7 @@ def remove_binary_squares(expr):
         exp = int(exp)
         expr = expr.subs(var ** exp, var)
     return expr
-    
+
     # Old, memory hungry implementation
 #    w = sympy.Wild('w')
 #    p = sympy.Wild('p')
