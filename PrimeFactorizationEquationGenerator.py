@@ -43,7 +43,7 @@ OutputFileName = "output.txt"
 #digitsInMultiplicand2 = 4
 #product = 403
 
-exp = 12
+exp = 100
 if exp == 1:
     digitsInMultiplicand1 = 4
     digitsInMultiplicand2 = 4
@@ -108,6 +108,17 @@ if exp == 13:
     digitsInMultiplicand1 = 45
     digitsInMultiplicand2 = 45
     product = 309485009822787627980424653
+
+if exp == 14:
+    digitsInMultiplicand1 = 45
+    digitsInMultiplicand2 = 45
+    product = 309485009821943203050291389
+
+if exp == 15:
+    digitsInMultiplicand1 = 51
+    digitsInMultiplicand2 = 51
+    product = 1267650600228508624673600186743
+
 
 if exp == 100:
     digitsInMultiplicand1 = 165
@@ -190,15 +201,20 @@ if 0:
     EquationSolver.SolveEquation(myParams)
 else:
     from sympy_solver import EquationSolver
+    from time import time
+    s = time()
     # None means the result will be printed to screen
     output = None#OutputFileName
-    system = EquationSolver.from_params(eqns, output_filename=output, log_deductions=False)
+    system = EquationSolver.from_params(eqns, output_filename=output, 
+                                        log_deductions=False)
     system.solve_equations(verbose=True)
-    try:
-        coef_filename = OutputFileName.replace('.txt', '_coef.txt')
-        system.objective_function_to_file(coef_filename)
-    except:
-        print 'Failed to write the coefficient'
+    system.print_summary()
+    print 'Solved in {}s'.format(time() - s)
+#    try:
+#        coef_filename = OutputFileName.replace('.txt', '_coef.txt')
+#        system.objective_function_to_file(coef_filename)
+#    except:
+#        print 'Failed to write the coefficient'
 
     check_solutions(product, system.solutions.copy(), verbose=True)
 

@@ -18,7 +18,7 @@ from sympy_helper_fns import (max_value, min_value, is_equation,
                               cancel_constant_factor, is_constant,
                               num_add_terms, parity, is_monic, is_one_or_zero,
                               remove_binary_squares)
-from objective_function_helper import equations_to_coef_string, objective_function_from_equations
+from objective_function_helper import equations_to_vanilla_coef_string, equations_to_vanilla_objective_function
 
 __author__ = "Richard Tanburn"
 __credits__ = ["Richard Tanburn", "Nathaniel Bryans", "Nikesh Dattani"]
@@ -62,13 +62,6 @@ class EquationSolver(object):
         # And keep a nested dictionary of who made them, if we want
         self.log_deductions = log_deductions
         self.deduction_record = defaultdict(lambda : defaultdict(list))
-
-        # Final solutions
-        self.final_equations = None
-        # Final variables
-        self.final_variables = None
-        # Final solutions
-        self.final_solutions = None
 
     def print_(self, output, close=False):
         ''' Print either to screen or a file if given '''
@@ -116,89 +109,95 @@ class EquationSolver(object):
                 ded_str = ', '.join(ded_str)
                 self.print_('{}\t=>\t{}'.format(eqn_str, ded_str))
 
+    @property    
+    def _length_tuple(self):
+        ''' Return a tuple of the lengths of equations, deductions, solutions 
+        '''
+        return len(self.equations), len(self.deductions), len(self.solutions)
+
     def solve_equations(self, max_iter=60, verbose=False):
         ''' Solve a system of equations
         '''
-        len_ded = len(self.deductions)
+        state_summary = self._length_tuple
         # The number of iterations in which we've made no new deductions
         num_constant_iter = 0
 
-        self.print_('Num variables: {}'.format(len(self.variables)))
-        self.print_('Iter\tNum Eqn\tNum Ded\tNum Sol')
+        if verbose:        
+            self.print_('Num variables: {}'.format(len(self.variables)))
+            self.print_('Iter\tNum Eqn\tNum Ded\tNum Sol')
         for i in xrange(max_iter):
             # Clear the cache so that we don't blow up memory when working with
             # large numbers
             clear_cache()
-            self.print_('\t'.join(['{}'] * 4).format(i,
-                                                   len(self.equations),
-                                                   len_ded,
-                                                   len(self.solutions)))
+            if verbose:
+                self.print_('\t'.join(['{}'] * 4).format(i, *state_summary))
 
             self.equations = self.clean_equations(self.equations)
-            self.apply_judgements(self.equations)
+            self.apply_judgements(self.equations + self.deductions_as_equations)
 
-            if len(self.deductions) == len_ded:
+            if self._length_tuple == state_summary:
                 num_constant_iter += 1
 
                 # Here lets apply some slower, complex judgements to try and
                 # unstick ourselves
-                if num_constant_iter >= 3:
+                if num_constant_iter >= 2:
                     for eqn in self.equations:
                         self.judgement_n_term(eqn, 4)
+                        
+                        # Only do 1 at a time, so if we have a new deduction
+                        # go round again
+                        if self._length_tuple != state_summary:
+                            num_constant_iter = 0
+                            break
 
-                if num_constant_iter > 5:
+                if num_constant_iter > 4:
                     break
             else:
                 num_constant_iter = 0
-                len_ded = len(self.deductions)
-
-        self.print_('{} iterations reached'.format(i))
+                state_summary = self._length_tuple
 
         # Final clean again, for good luck
         self.equations = self.clean_equations(self.equations)
 
+    def print_summary(self):
+        ''' Print a summary of the information held in the object '''
         final_equations = self.equations + self.deductions_as_equations
-        #final_equations = self.clean_equations(final_equations)
-        final_equations = sorted(set(final_equations), key=lambda x: str(x))
-        unsolved_var = set(self.variables.values()).difference(self.solutions.keys())
-
-        self.final_variables = unsolved_var
-
-        self.final_equations = final_equations
-        self.final_solutions = self.solutions.copy()
-
-
-        if verbose or (self.output_filename is not None):
-
-            if self.log_deductions:
-                self.print_deduction_log()
-
+        final_equations = sorted(set(final_equations), key=str)
+        unsolved_var = self.unsolved_var
 #
-#            self.print_('Unsimplified equations')
-#            for e in self.equations:
-#                self.print_(e)
-#            self.print_('Deductions')
-#            for e in self.deductions_as_equations:
-#                self.print_(e)
+#        self.final_variables = unsolved_var
+#
+#        self.final_equations = final_equations
+#        self.final_solutions = self.solutions.copy()
 
-#            self.print_('Solns')
-#            for k in sorted(self.final_solutions.keys(), key=str):
-#                self.print_('{} = {}'.format(k, self.final_solutions[k]))
-#            self.print_(self.final_solutions)
+        if self.log_deductions:
+            self.print_deduction_log()
 
-            self.print_('Final Variables')
-            self.print_(self.final_variables)
+        self.print_('Unsimplified equations')
+        for e in self.equations:
+            self.print_(e)
+        self.print_('Deductions')
+        for e in self.deductions_as_equations:
+            self.print_(e)
+
+#        self.print_('Solns')
+#        for k in sorted(self.solutions.keys(), key=str):
+#            self.print_('{} = {}'.format(k, self.solutions[k]))
+#        self.print_(self.solutions)
+
+        self.print_('Final Variables')
+        self.print_(unsolved_var)
 
 
-            self.print_('Final Equations')
-            for e in sorted(self.final_equations, key=str):
-                self.print_(e)
+        self.print_('Final Equations')
+        for e in sorted(final_equations, key=str):
+            self.print_(e)
 
-            self.print_('Num Qubits Start: {}'.format(self.num_qubits_start))
-            self.print_('Num Qubits End: {}'.format(len(self.final_variables)), close=True)
+        self.print_('Num Qubits Start: {}'.format(self.num_qubits_start))
+        self.print_('Num Qubits End: {}'.format(len(unsolved_var)), close=True)
 
-            self.print_('Final coefficients')
-            self.print_(equations_to_coef_string(self.final_equations), close=True)
+#        self.print_('Final coefficients')
+#        self.print_(equations_to_coef_string(self.final_equations), close=True)
 
 
     def reformulate_equations(self):
@@ -259,12 +258,17 @@ class EquationSolver(object):
         self.final_solutions = solved_var
 
     @property
+    def unsolved_var(self):
+        ''' Return a set of variables we haven't managed to eliminate '''
+        return set(self.variables.values()).difference(self.solutions.keys())
+
+    @property
     def objective_function(self):
         ''' Return the final objective function, using self.final_equations '''
         if self.final_equations is None:
             return None
 
-        return objective_function_from_equations(self.final_equations)
+        return equations_to_vanilla_objective_function(self.final_equations)
 
     def objective_function_to_file(self, filename=None):
         ''' Write the objective function to a file, or printing if None.
@@ -273,7 +277,7 @@ class EquationSolver(object):
         if self.final_equations is None:
             return
 
-        out = equations_to_coef_string(self.final_equations)
+        out = equations_to_vanilla_coef_string(self.final_equations)
 
         if filename is None:
             self.print_(out)

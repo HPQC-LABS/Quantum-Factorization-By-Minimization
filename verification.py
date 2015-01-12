@@ -12,7 +12,9 @@ from sympy_helper_fns import is_constant
 from rsa_constants import RSA100, RSA100_F1, RSA100_F2
 
 KNOWN_FACTORISATIONS = {
-        RSA100: (RSA100_F1, RSA100_F2)
+        RSA100: (RSA100_F1, RSA100_F2),
+        1267650600228508624673600186743: (1125899906842679, 1125899906842817),
+        309485009821943203050291389: (17592186044423, 17592186044443),
 
 }
 BRUTE_FORCE_FACTORISATION_LIMIT = 10**16
@@ -112,16 +114,38 @@ def check_solutions(product, solutions, verbose=False):
 
 
 def factorise(n):
-    ''' Return list of factors '''
+    ''' Return list of factors 
+    
+        >>> for i in xrange(10): print factorise(i)
+        None
+        [1]
+        [2]
+        [3]
+        [2, 2]
+        [5]
+        [3, 2]
+        [7]
+        [2, 2, 2]
+        [3, 3]
+    '''
+    if n == 1:
+        return [1]
+    if n < 1:
+        return None
     factors = []
-    i = 2
+    
+    while not n % 2:
+        factors.append(2)
+        n /= 2
+
+    i = 3
     while True:
         if n == 1:
             break
         while not n % i:
             factors.append(i)
             n /= i
-        i += 1
+        i += 2
     factors.reverse()
     return factors
 
