@@ -8,6 +8,7 @@ Created on Wed Dec 31 18:35:14 2014
 import itertools
 import sympy
 
+from contradiction_exception import ContradictionException
 from sympy_helper_fns import is_constant
 from rsa_constants import RSA100, RSA100_F1, RSA100_F2
 
@@ -15,8 +16,16 @@ KNOWN_FACTORISATIONS = {
         RSA100: (RSA100_F1, RSA100_F2),
         1267650600228508624673600186743: (1125899906842679, 1125899906842817),
         309485009821943203050291389: (17592186044423, 17592186044443),
+        # exp 15        
+        1267650600228508624673600186743: (1125899906842679,1125899906842817),
+            
 
 }
+
+for product, (f1, f2) in KNOWN_FACTORISATIONS.iteritems():
+    assert product == f1 * f2
+    assert f1 <= f2
+
 BRUTE_FORCE_FACTORISATION_LIMIT = 10**16
 
 def _extract_solutions(solutions, max_digits):
@@ -54,9 +63,21 @@ def check_solutions(product, solutions, verbose=False):
         their factors
 
         >>> p1, p2, p3, p10, p160, q1, q3, q164 = sympy.var('p1 p2 p3 p10 p160 q1 q3 q164')
+        >>> q1, q2, q3, q10, q160, p1, p3, p164 = sympy.var('q1 q2 q3 q10 q160 p1 p3 p164')
+
         >>> soln = {p1: 0, p2: 1, p3: 1, p10: 1, p160: 1, q1: 1, q3: 0, q164: 1}
         >>> check_solutions(RSA100, soln, verbose=True)
         All assertions passed.
+
+        >>> soln = {q1: 0, q2: 1, q3: 1, q10: 1, q160: 1, p1: 1, p3: 0, p164: 1}
+        >>> check_solutions(RSA100, soln, verbose=True)
+        All assertions passed.
+        
+        >>> soln = {q1: 1, q2: 1, q3: 1, q10: 1, q160: 1, p1: 1, p3: 0, p164: 1}
+        >>> check_solutions(RSA100, soln, verbose=True)
+        Traceback (most recent call last):
+            ...
+        ContradictionException
     '''
 
     # Get the target factors, turn them into binary and do some checks
@@ -76,7 +97,23 @@ def check_solutions(product, solutions, verbose=False):
     target_factors = [map(int, fact) for fact in target_factors]
     for fact in target_factors:
         assert fact[0] == fact[-1] == 1
-    target_p, target_q = target_factors
+    
+    for perm in itertools.permutations(target_factors):
+        try:
+            _check_solutions_for_targets(perm, solutions, verbose=verbose)
+            return
+        except ContradictionException:
+            continue
+    
+    raise ContradictionException()
+
+
+def _check_solutions_for_targets(targets, solutions, verbose=False):
+    ''' Inner helper function to try different permutations of factors so that we don't have a nasty
+        for loop
+    '''
+    assert len(targets) == 2
+    target_p, target_q = targets
 
     # Now extract a similar list from the given solutions dict
     digits_in_multiplicand = len(target_p)
@@ -91,7 +128,8 @@ def check_solutions(product, solutions, verbose=False):
             continue
         # If constant, we can check that easily
         if is_constant(sol):
-            assert sol == target
+            if sol != target:
+                raise ContradictionException()
         else:
             symbolic_pairs.append((sol, target))
 
@@ -103,8 +141,8 @@ def check_solutions(product, solutions, verbose=False):
         prev_tar = symbolic_map.get(sol)
         if prev_tar is None:
             symbolic_map[sol] = tar
-        else:
-            assert tar == prev_tar
+        elif tar != prev_tar:
+            raise ContradictionException()
 
     if verbose:
         print 'All assertions passed.'
