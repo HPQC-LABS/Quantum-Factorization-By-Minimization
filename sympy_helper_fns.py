@@ -10,6 +10,7 @@ import fractions
 import re
 import sympy
 
+from contradiction_exception import ContradictionException
 
 ## Helper functions
 
@@ -84,7 +85,9 @@ def is_monic(expr):
     return all(coef == 1 for coef in expr.as_coefficients_dict().itervalues())
 
 def is_equation(eqn):
-    ''' Return True if it is an equation rather than a boolean value
+    ''' Return True if it is an equation rather than a boolean value.
+        If it is False, raise a ContradictionException. We never want anything
+        that might be False
 
         >>> x, y = sympy.symbols('x y')
         >>> eq1 = sympy.Eq(x, y)
@@ -97,7 +100,17 @@ def is_equation(eqn):
         False
         >>> is_equation(eq3)
         False
+        
+        Now check that it raises exceptions for the right things
+        >>> is_equation(0)
+        False
+        >>> is_equation(False)
+        Traceback (most recent call last):
+            ...
+        ContradictionException: False equation
     '''
+    if isinstance(eqn, sympy.boolalg.BooleanFalse) or (eqn is False):
+        raise ContradictionException('False equation')
     return isinstance(eqn, sympy.Equality)
 
 def parity(expr):
@@ -381,6 +394,17 @@ def remove_binary_squares(expr):
 #    p = sympy.Wild('p')
 #    expr = expr.replace(w ** p, w, exact=True)
 #    return expr
+
+def expressions_to_variables(exprs):
+    ''' Take a list of equations and return a set of variables 
+
+        >>> eqn = sympy.Eq(sympy.sympify('x*a + 1'))
+        >>> to_test = [sympy.sympify('x + y*z + 2*a^b'), eqn]
+        >>> expressions_to_variables(to_test)
+        set([x, z, a, b, y])
+    '''
+    assert all(map(lambda x: isinstance(x, sympy.Basic), exprs))
+    return set.union(*[expr.atoms(sympy.Symbol) for expr in exprs])
 
 if __name__ == "__main__":
     import doctest
