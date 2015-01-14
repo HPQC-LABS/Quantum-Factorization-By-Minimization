@@ -13,12 +13,14 @@ import sympy
 from sympy.core.cache import clear_cache
 
 import ReHandler
+from contradiction_exception import ContradictionException
 from sympy_helper_fns import (max_value, min_value, is_equation,
                               remove_binary_squares_eqn, balance_terms,
                               cancel_constant_factor, is_constant,
                               num_add_terms, parity, is_monic, is_one_or_zero,
-                              remove_binary_squares)
-from objective_function_helper import equations_to_vanilla_coef_string, equations_to_vanilla_objective_function
+                              remove_binary_squares, expressions_to_variables)
+from objective_function_helper import (equations_to_vanilla_coef_str, 
+                                       equations_to_vanilla_objective_function)
 
 __author__ = "Richard Tanburn"
 __credits__ = ["Richard Tanburn", "Nathaniel Bryans", "Nikesh Dattani"]
@@ -26,9 +28,6 @@ __version__ = "0.0.1"
 __status__ = "Prototype"
 
 
-class ContradictionException(Exception):
-    ''' Raised when conflicting values are found '''
-    pass
 
 # Parent equation
 
@@ -37,10 +36,13 @@ class EquationSolver(object):
 
     def __init__(self, equations=None, variables=None, log_deductions=False,
                  output_filename=None):
+        if variables is None:
+            if equations is None:
+                variables = {}
+            else:
+                variables = {str(v): v for v in expressions_to_variables(equations)}
         if equations is None:
             equations = []
-        if variables is None:
-            variables = {}
 
         # Number of variables at the start
         self.num_qubits_start = len(variables)
@@ -77,9 +79,16 @@ class EquationSolver(object):
 
     def copy(self):
         ''' Return a new instance of itself '''
-        copy = EquationSolver(deepcopy(self.equations), deepcopy(self.variables))
+        copy = EquationSolver(deepcopy(self.equations), 
+                              deepcopy(self.variables),
+                              log_deductions=self.log_deductions, 
+                              output_filename=self.output_filename)
+                              
+        # Now use deepcopy to copy everything else
+        copy.num_qubits_start = self.num_qubits_start
         copy.deductions = deepcopy(self.deductions)
         copy.solutions = deepcopy(self.solutions)
+        copy.deduction_record = deepcopy(self.deduction_record)
         return copy
 
     @classmethod
@@ -90,6 +99,30 @@ class EquationSolver(object):
         '''
         equations, variables = parse_equations(params)
         return cls(equations, variables, **kwargs)
+
+    # Pickling
+    # This isn't mature/finished, but manages to write equations, deductions and
+    # solutions to disk
+    def __getstate__(self):
+        return (self.equations, self.deductions, self.solutions)
+        
+    def __setstate__(self, state):
+        self.equations, self.deductions, self.solutions = state
+
+    def to_disk(self, filename):
+        ''' Write a state to disk '''
+        import pickle
+        pickle.dump(self, open(filename, 'w'))
+    
+    @staticmethod
+    def from_disk(filename, **kwargs):
+        ''' Load from disk '''
+        import pickle
+        data = pickle.load(open(filename, 'r'))
+        instance = EquationSolver(equations=data.equations, **kwargs)
+        instance.deductions, instance.solutions = data.deductions, data.solutions
+        return instance
+        
 
     @property
     def deductions_as_equations(self):
@@ -183,7 +216,6 @@ class EquationSolver(object):
 #        self.print_('Solns')
 #        for k in sorted(self.solutions.keys(), key=str):
 #            self.print_('{} = {}'.format(k, self.solutions[k]))
-#        self.print_(self.solutions)
 
         self.print_('Final Variables')
         self.print_(unsolved_var)
@@ -277,7 +309,7 @@ class EquationSolver(object):
         if self.final_equations is None:
             return
 
-        out = equations_to_vanilla_coef_string(self.final_equations)
+        out = equations_to_vanilla_coef_str(self.final_equations)
 
         if filename is None:
             self.print_(out)
@@ -294,7 +326,7 @@ class EquationSolver(object):
 
         # Extract only the atoms we would like to try and find
         if len(cleaned):
-            cleaned_atoms = set.union(*[eqn.atoms(sympy.Symbol) for eqn in cleaned])
+            cleaned_atoms = expressions_to_variables(cleaned)
             cleaned_sol = ((var, self.solutions.get(var)) for var in cleaned_atoms)
             cleaned_sol = filter(lambda x: x[1] is not None, cleaned_sol)
             cleaned_sol = {x[0]: x[1] for x in cleaned_sol}
@@ -325,6 +357,7 @@ class EquationSolver(object):
             _helper(eqn1, sympy.Eq(eqn2.rhs, eqn2.lhs), to_add)
             _helper(sympy.Eq(eqn1.rhs, eqn1.lhs), sympy.Eq(eqn2.rhs, eqn2.lhs),
                     to_add)
+        to_add = filter(is_equation, to_add)
         cleaned.extend(to_add)
 
         ### Old code
@@ -406,7 +439,8 @@ class EquationSolver(object):
                     if is_constant(curr_sol):
                         # Both are constant and unequal
                         if is_constant(val):
-                            raise ContradictionException()
+                            err_str = 'clean_deductions: {} = {} != {}'.format(expr, curr_sol, val)
+                            raise ContradictionException(err_str)
                         else:
                             # We have a variable and constant
                             self.update_value(val, curr_sol)
@@ -421,14 +455,26 @@ class EquationSolver(object):
                     if is_monic(expr):
                         self.solutions[expr] = val
 
-            elif (len(val.atoms(sympy.Symbol)) == 1) and (len(latoms) != 1):
+            # If the RHS of a deduction is monic, then go again!
+            elif (len(val.atoms(sympy.Symbol)) == 1) and is_monic(val):
                 self.deductions.pop(expr)
                 curr_sol = self.solutions.get(val)
 
+                # We might have some disagreement
                 if (curr_sol is not None) and (curr_sol != expr):
-                    raise ContradictionException()
-
-                self.solutions[val] = expr
+                    # But if they're both symbolic that is ok!
+                    if is_constant(curr_sol) and is_constant(expr):
+                        err_str = 'clean_deductions: {} = {} != {}'.format(expr, curr_sol, val)
+                        raise ContradictionException(err_str)
+                    
+                    elif is_constant(curr_sol):
+                        self.update_value(val, curr_sol)
+                    else:
+                        # The new val is constant
+                        self.solutions[expr] = val
+                        self.update_value(curr_sol, val)
+                else:
+                    self.solutions[val] = expr
 
         # Now clean up the solutions before we plug them in
         self.clean_solutions()
@@ -478,7 +524,8 @@ class EquationSolver(object):
                 if is_equation(eqn) and (not eqn):
                     raise ContradictionException('Subbing solutions raised contradiction in deductions')
 
-                if expr != 0:
+                if not is_constant(expr):
+                    assert not is_constant(val)
                     self.print_('Dropping deduction {} = {}'.format(expr, val))
 
     def clean_solutions(self):
@@ -489,11 +536,11 @@ class EquationSolver(object):
             >>> system = EquationSolver()
             >>> a, b, c, x, y, z = sympy.symbols('a b c x y z')
             >>> ZERO, ONE = sympy.sympify(0), sympy.sympify(1)
-            >>> soln = {a: ONE, b: a, c: a + b, x: ONE, z: ONE - x + y}
+            >>> soln = {a: ONE, b: a, c: a + b - ONE, x: ONE, z: ONE - x + y}
             >>> system.solutions = soln
             >>> system.clean_solutions()
             >>> system.solutions
-            {c: 2, x: 1, b: 1, a: 1, z: y}
+            {c: 1, x: 1, b: 1, a: 1, z: y}
 
             Dealing with cyclic solutions
             >>> system = EquationSolver()
@@ -558,6 +605,9 @@ class EquationSolver(object):
             # If value is a constant, skip
             if is_constant(value):
                 assert len(variable.atoms()) == 1
+                if not is_one_or_zero(value):
+                    err_str = '{} must be binary, not {}'.format(variable, value)
+                    raise ContradictionException(err_str)
                 new_solutions[variable] = value
                 continue
             # If x == x, remove it as it as there is no new information in there
@@ -792,10 +842,9 @@ class EquationSolver(object):
             self.judgement_9(eqn)
             self.judgement_10(eqn)
             self.judgement_11(eqn)
-
-            # This is now implemented as a special case of 11
-            #self.judgement_two_term(eqn)
-
+            
+            # Now look for contradictions
+            self.judgement_20(eqn)
 
     def judgement_0(self, eqn):
         ''' Add x=y to deductions '''
@@ -816,9 +865,25 @@ class EquationSolver(object):
             >>> system.judgement_sq(eqn)
             >>> system.deductions
             {x: 1, z: 1, y: 1}
+
+            >>> eqn = sympy.Eq(2*x*y*z - 2)
+            >>> system = EquationSolver(equations=[eqn])
+            >>> system.solve_equations()
+            >>> system.solutions
+            {x: 1, z: 1, y: 1}
+            
+            >>> eqn = sympy.Eq(2*x*y*z - 1)
+            >>> system = EquationSolver(equations=[eqn])
+            >>> system.solve_equations()
+            Traceback (most recent call last):
+                ...
+            ContradictionException: judgement_sq: 2*x*y*z == 1
         '''
         if eqn.rhs == 1:
             if len(eqn.lhs.as_ordered_terms()) == 1:
+                if eqn.lhs.as_coeff_mul()[0] != 1:
+                    err_str = 'judgement_sq: {}'.format(str(eqn))
+                    raise ContradictionException(err_str)
                 for var in eqn.lhs.atoms(sympy.Symbol):
                     self.update_value(var, 1)
 
@@ -995,6 +1060,13 @@ class EquationSolver(object):
             >>> system.judgement_1(eqn)
             >>> system.deductions
             {x*z: 0, z*z2: 0, y*z2: 0, x*z2: 0, y*z: 0, x*y: 0}
+            
+            >>> system = EquationSolver()
+            >>> x, y, z, z2 = sympy.symbols('x y z z2')
+            >>> eqn = sympy.Eq(x + y + z*z2, 1)
+            >>> system.judgement_1(eqn)
+            >>> system.deductions
+            {x*y: 0, x*z*z2: 0, y*z*z2: 0}
         '''
         if eqn.rhs != 1:
             return
@@ -1058,9 +1130,11 @@ class EquationSolver(object):
             {x: 0, z: 0, y: 0}
         '''
         lhs, rhs = eqn.lhs, eqn.rhs
-        if (max_value(lhs) == max_value(rhs)) and is_constant(rhs):
+        if not is_constant(rhs):
+            return
+        elif (max_value(lhs) == max_value(rhs)):
             self.set_to_max(lhs)
-        if (min_value(lhs) == min_value(rhs)) and is_constant(rhs):
+        elif (min_value(lhs) == min_value(rhs)):
             self.set_to_min(lhs)
 
 
@@ -1114,7 +1188,7 @@ class EquationSolver(object):
             lhs_max = max_value(lhs)
 
             rhs_terms = rhs.as_ordered_terms()
-            if rhs_terms[-1].is_constant():
+            if is_constant(rhs_terms[-1]):
                 rhs_const = rhs_terms.pop()
             else:
                 rhs_const = 0
@@ -1201,7 +1275,7 @@ class EquationSolver(object):
             >>> eqn = sympy.Eq(x + 2*y + 3*z, 2 * z2)
             >>> system.judgement_10(eqn)
             >>> system.deductions
-            {x: 3*z}
+            {x: z}
         '''
 
         def _helper(lhs, rhs):
@@ -1211,7 +1285,7 @@ class EquationSolver(object):
 
             odd_terms = []
             for term in lhs.as_ordered_terms():
-                term_coef = term.as_coeff_mul()[0]
+                term_coef, term = term.as_coeff_Mul()
                 if (term_coef % 2):
                     if len(odd_terms) > 2:
                         return
@@ -1233,23 +1307,22 @@ class EquationSolver(object):
             the LHS.
 
             >>> system = EquationSolver()
-            >>> x, y, z, z2 = sympy.symbols('x y z z2')
-            >>> eqn = sympy.Eq(x + 2*y + z, 2*z2)
-            >>> system.judgement_10(eqn)
+            >>> x, y, z, z2, z3 = sympy.symbols('x y z z2, z3')
+            >>> eqn = sympy.Eq(x + 2*y + z + z2, 2*z3)
+            >>> system.judgement_10i(eqn)
             >>> system.deductions
-            {x: z}
+            {x*z2 + z*z2: 0, x*z + x*z2: 0, x*z + z*z2: 0}
 
             >>> system = EquationSolver()
-            >>> x, y, z, z2 = sympy.symbols('x y z z2')
-            >>> eqn = sympy.Eq(x + 2*y + 3*z, 2 * z2)
-            >>> system.judgement_10(eqn)
+            >>> eqn = sympy.Eq(x + 2*y + 3*z + 7 * z2, 4*z3)
+            >>> system.judgement_10i(eqn)
             >>> system.deductions
-            {x: 3*z}
+            {x*z2 + z*z2: 0, x*z + x*z2: 0, x*z + z*z2: 0}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + 1, 2 * z)
-            >>> system.judgement_10(eqn)
+            >>> system.judgement_10i(eqn)
             >>> system.deductions
             {}
         '''
@@ -1261,7 +1334,7 @@ class EquationSolver(object):
 
             odd_terms = []
             for term in lhs.as_ordered_terms():
-                term_coef = term.as_coeff_mul()[0]
+                term_coef, term = term.as_coeff_Mul()
                 if (term_coef % 2):
                     if len(odd_terms) > 3:
                         return
@@ -1313,16 +1386,39 @@ class EquationSolver(object):
             if len(odd_terms) == 2:
                 self.judgement_two_term(sympy.Eq(sum(odd_terms), 1))
 
-    ## Simulation
+    ## Look for contradictions
+    def judgement_20(self, eqn):
+        ''' Check the values could be equal 
+        
+        >>> x, y, z = sympy.symbols('x y z')
 
+        >>> eqn = sympy.Eq(x*y*z - 2)
+        >>> system = EquationSolver(equations=[eqn])
+        >>> system.solve_equations()
+        Traceback (most recent call last):
+            ...
+        ContradictionException: judgement20: x*y*z == 2
 
-    def simplified_system(self):
-        ''' Return a new EquationSolver with the same parameters, with new
-            deductions
+        >>> eqn = sympy.Eq(x*y*z)
+        >>> system = EquationSolver(equations=[eqn])
+        >>> system.solve_equations()
+        >>> system.solutions
+        {}
+        
+        This would have been anot
+        >>> eqn = sympy.Eq(x*y*z + 1)
+        >>> system = EquationSolver()
+        >>> system.judgement_20(eqn)
+        Traceback (most recent call last):
+            ...
+        ContradictionException: judgement20: x*y*z + 1 == 0
         '''
-        new_equations = self.final_equations[:]
-        new_variables = {str(v) : v for v in self.final_variables}
-        return EquationSolver(new_equations, new_variables)
+        def _helper(self, lhs, rhs):
+            if min_value(lhs) > max_value(rhs):
+                raise ContradictionException('judgement20: {}'.format(eqn))
+
+        _helper(self, eqn.lhs, eqn.rhs)
+        _helper(self, eqn.rhs, eqn.lhs)
 
 ## Parsing and set up
 

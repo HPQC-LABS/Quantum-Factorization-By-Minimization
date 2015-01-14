@@ -11,6 +11,7 @@ import itertools
 import sympy
 
 
+
 ## Groebner stuff
 def _equations_to_groebner_exprs(eqns):
     ''' Take a bunch of equations, square them, add the equations that binarize
@@ -149,7 +150,7 @@ def equations_to_vanilla_objective_function(equations):
     term_dict = sum_term_dicts(tds)
     return sum([k*v for k, v in term_dict.iteritems()])
 
-def equations_to_vanilla_coef_string(equations):
+def equations_to_vanilla_coef_str(equations):
     ''' Return the coefficient string of the objective function of some equations
         Also include the dictionary of variable number to original variable
 
@@ -257,7 +258,25 @@ def expression_to_coef_string(expr):
 ## Introduce auxilary variables
 def scholler((ab, s)):
     ''' Change (ab-s)**2 to (ab - sa - sb + s), which has minimums at exactly
-        the point ab = s    
+        the point ab = s
+        
+        >>> vars_ = sympy.symbols('a b s')
+        >>> a, b, s = vars_
+        >>> orig_expr = (a*b - s)**2
+        >>> scholler_expr = scholler((a*b, s))
+        
+        >>> print scholler_expr
+        a*b - a*s - b*s + s
+        
+        >>> abss = itertools.product(range(2), repeat=3)
+        >>> for abs in abss:
+        ...     to_sub = dict(zip(vars_, abs))
+        ...     print to_sub
+        ...     print orig_expr.subs(to_sub), scholler_expr.subs(to_sub)
+        ...     #if orig_expr.subs(to_sub) == 0:
+        ...     #    assert scholler_expr.subs(to_sub) == 0
+        ...     #else:
+        ...     #    assert scholler_expr.subs(to_sub) != 0
     '''
     a, b = ab.atoms(sympy.Symbol)
     return a*b - s*a - s*b + s
@@ -303,7 +322,7 @@ def exprs_to_auxillary_term_dict(exprs):
     
     return term_dict
     
-def equations_to_2_qbt_obj_func_coef_str(eqns):
+def equations_to_auxillary_coef_str(eqns):
     ''' Take equations and make the objective function nice 
     
         >>> a, b, c, d, e = sympy.symbols('a b c d e')
