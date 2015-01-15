@@ -57,7 +57,7 @@ def get_next_important_variable(equation_solver):
     for eqn in equation_solver.equations:
         for term, coef in (eqn.lhs + eqn.rhs).as_coefficients_dict().iteritems():
             for atom in term.atoms(sympy.Symbol):
-                var_score[atom] += abs(coef)
+                var_score[atom] += 1#abs(coef)
     
     # If we have no variables, return None
     if not len(var_score):
@@ -78,7 +78,7 @@ def get_next_important_variable(equation_solver):
 
 def make_assumptions(equation_solver, num_assumptions=3, 
                      assumed_variables=None, count_determined=False,
-                     var_getter=get_next_lexographical_variable):
+                     var_getter=get_next_important_variable):
     ''' Given a system of equations, make a number of assumptions and see if we
         reach a contradiction or not.
         Returns a list of EquationSolver systems representing each possible
@@ -88,13 +88,16 @@ def make_assumptions(equation_solver, num_assumptions=3,
         one way but not the other, then it doesn't count as an assumption.
         If True, a fixed number of iterations occurs
         
+        >>> test_kwargs = {'var_getter': get_next_lexographical_variable,
+        ...                'count_determined': True}        
+        
         1.
         >>> equations = ['x+y']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
         >>> system = EquationSolver(equations)
         >>> assumed_variables = set()
-        >>> sols = make_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, count_determined=True)
+        >>> sols = make_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
         
         >>> assumed_variables
         set([x])
@@ -107,7 +110,7 @@ def make_assumptions(equation_solver, num_assumptions=3,
         >>> equations = map(sympy.Eq, equations)
         >>> system = EquationSolver(equations)
         >>> assumed_variables = set()
-        >>> sols = make_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, count_determined=True)
+        >>> sols = make_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
         >>> assumed_variables
         set([x])
         >>> for sol in sols: print sol.solutions
@@ -120,7 +123,7 @@ def make_assumptions(equation_solver, num_assumptions=3,
         >>> equations = map(sympy.Eq, equations)
         >>> system = EquationSolver(equations)
         >>> assumed_variables = set()
-        >>> sols = make_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, count_determined=True)
+        >>> sols = make_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
         Traceback (most recent call last):
             ...
         ContradictionException: Contradiction either way when substituting x
@@ -133,7 +136,7 @@ def make_assumptions(equation_solver, num_assumptions=3,
         >>> equations = map(sympy.Eq, equations)
         >>> system = EquationSolver(equations)
         >>> assumed_variables = set()
-        >>> sols = make_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, count_determined=True)
+        >>> sols = make_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, **test_kwargs)
         >>> assumed_variables
         set([x, a])
         
@@ -149,7 +152,7 @@ def make_assumptions(equation_solver, num_assumptions=3,
 
         Now we try the above example with 3 guesses
         >>> assumed_variables = set()
-        >>> sols = make_assumptions(system, num_assumptions=3, assumed_variables=assumed_variables, count_determined=True)
+        >>> sols = make_assumptions(system, num_assumptions=3, assumed_variables=assumed_variables, **test_kwargs)
         >>> assumed_variables
         set([x, y, a])
         
@@ -168,8 +171,10 @@ def make_assumptions(equation_solver, num_assumptions=3,
         
         5.
         Using the same example, we show the fancy count determined feature:
+        >>> alt_kwargs = test_kwargs.copy()
+        >>> alt_kwargs['count_determined'] = False
         >>> assumed_variables = set()
-        >>> sols = make_assumptions(system, num_assumptions=3, assumed_variables=assumed_variables, count_determined=False)
+        >>> sols = make_assumptions(system, num_assumptions=3, assumed_variables=assumed_variables, **alt_kwargs)
         >>> assumed_variables
         set([x, y, a, z1])
         
@@ -195,7 +200,7 @@ def make_assumptions(equation_solver, num_assumptions=3,
         >>> equations = map(sympy.Eq, equations)
         >>> system = EquationSolver(equations)
         >>> assumed_variables = set()
-        >>> sols = make_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, count_determined=True)
+        >>> sols = make_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, **test_kwargs)
         >>> assumed_variables
         set([a])
         >>> for sol in sols: print sol.solutions
@@ -213,6 +218,10 @@ def make_assumptions(equation_solver, num_assumptions=3,
     next_var = var_getter(equation_solver)
     if next_var is None:
         return [equation_solver]
+
+    # Now we know we want to do some work, pass down the arguments
+    kwargs = {'var_getter': var_getter,
+              'count_determined': count_determined}
 
     assumed_variables.add(next_var)
     
@@ -244,27 +253,32 @@ def make_assumptions(equation_solver, num_assumptions=3,
             try:
                 path_0 = make_assumptions(eqnsol0, 
                                           num_assumptions=num_assumptions - 1,
-                                          assumed_variables=assumed_variables)
+                                          assumed_variables=assumed_variables,
+                                          **kwargs)
             except ContradictionException:
                 return make_assumptions(eqnsol1, 
                                         num_assumptions=num_assumptions - int(count_determined),
-                                        assumed_variables=assumed_variables)
+                                        assumed_variables=assumed_variables,
+                                        **kwargs)
             
             try:
                 path_1 = make_assumptions(eqnsol1, 
                                           num_assumptions=num_assumptions - 1,
-                                          assumed_variables=assumed_variables)
+                                          assumed_variables=assumed_variables,
+                                          **kwargs)
             except ContradictionException:
                 return make_assumptions(eqnsol0, 
                                         num_assumptions=num_assumptions - int(count_determined),
-                                        assumed_variables=assumed_variables)
+                                        assumed_variables=assumed_variables,
+                                        **kwargs)
             return path_0 + path_1
     
         # It's not 1, but it could be 0
         else:
             return make_assumptions(eqnsol0, 
                                     num_assumptions=num_assumptions-int(count_determined),
-                                    assumed_variables=assumed_variables)
+                                    assumed_variables=assumed_variables,
+                                    **kwargs)
     
     # The variable cannot be 0
     else:
@@ -272,7 +286,8 @@ def make_assumptions(equation_solver, num_assumptions=3,
         if could_be_1:
             return make_assumptions(eqnsol1, 
                                     num_assumptions=num_assumptions-int(count_determined),
-                                    assumed_variables=assumed_variables)
+                                    assumed_variables=assumed_variables,
+                                    **kwargs)
             
     
         # If it can't be either, then we must have done something wrong
