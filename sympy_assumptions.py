@@ -7,6 +7,8 @@ Created on Mon Jan 12 17:33:23 2015
 
 from collections import defaultdict
 
+import sympy
+
 from contradiction_exception import ContradictionException
 
 def get_next_lexographical_variable(equation_solver):
