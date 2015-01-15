@@ -315,7 +315,7 @@ def exprs_to_auxillary_term_dict(exprs):
     term_dict = sum_term_dicts(tds)
     
     # Now use the funky formula to provide equality for the auxillary variables
-    aux_exprs = map(tanbur, aux_s.iteritems())
+    aux_exprs = map(schaller, aux_s.iteritems())
     for term, coef in expressions_to_term_dict(aux_exprs).iteritems():     
         term_dict[term] += coef
     
