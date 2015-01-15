@@ -236,12 +236,12 @@ class EquationSolver(object):
         if self.log_deductions:
             self.print_deduction_log()
 
-        self.print_('Unsimplified equations')
-        for e in self.equations:
-            self.print_(e)
-        self.print_('Deductions')
-        for e in self.deductions_as_equations:
-            self.print_(e)
+#        self.print_('Unsimplified equations')
+#        for e in self.equations:
+#            self.print_(e)
+#        self.print_('Deductions')
+#        for e in self.deductions_as_equations:
+#            self.print_(e)
 
 #        self.print_('Solns')
 #        for k in sorted(self.solutions.keys(), key=str):
