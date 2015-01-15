@@ -157,7 +157,7 @@ def equations_to_vanilla_coef_str(equations):
         >>> lhs = 'x'
         >>> rhs = '1'
         >>> eqns = [sympy.Eq(sympy.sympify(lhs), sympy.sympify(rhs))]
-        >>> print equations_to_vanilla_coef_string(eqns)
+        >>> print equations_to_vanilla_coef_str(eqns)
         1
         1 -1
         <BLANKLINE>
@@ -166,7 +166,7 @@ def equations_to_vanilla_coef_str(equations):
         >>> lhs = 'x + y'
         >>> rhs = 'x*y'
         >>> eqns = [sympy.Eq(sympy.sympify(lhs), sympy.sympify(rhs))]
-        >>> print equations_to_vanilla_coef_string(eqns)
+        >>> print equations_to_vanilla_coef_str(eqns)
         1 2 -1
         1 1
         2 1
@@ -268,9 +268,10 @@ def scholler((ab, s)):
         >>> print scholler_expr
         a*b - a*s - b*s + s
         
-        >>> abss = itertools.product(range(2), repeat=3)
-        >>> for abs in abss:
-        ...     to_sub = dict(zip(vars_, abs))
+        This test is disabled
+        s>>> abss = itertools.product(range(2), repeat=3)
+        s>>> for abs in abss:
+        s...     to_sub = dict(zip(vars_, abs))
         ...     print to_sub
         ...     print orig_expr.subs(to_sub), scholler_expr.subs(to_sub)
         ...     #if orig_expr.subs(to_sub) == 0:
@@ -280,6 +281,29 @@ def scholler((ab, s)):
     '''
     a, b = ab.atoms(sympy.Symbol)
     return a*b - s*a - s*b + s
+    
+def tanbur((ab, s)):
+    ''' Change (ab-s)**2 to ab - 2as - 2bs + 3s, which has minimums at exactly
+        the point ab = s
+        
+        >>> vars_ = sympy.symbols('a b s')
+        >>> a, b, s = vars_
+        >>> orig_expr = (a*b - s)**2
+        >>> tanbur_expr = tanbur((a*b, s))
+        
+        >>> print tanbur_expr
+        a*b - 2*a*s - 2*b*s + 3*s
+        
+        >>> abss = itertools.product(range(2), repeat=3)
+        >>> for abs in abss:
+        ...     to_sub = dict(zip(vars_, abs))
+        ...     if orig_expr.subs(to_sub) == 0:
+        ...         assert tanbur_expr.subs(to_sub) == 0
+        ...     else:
+        ...         assert tanbur_expr.subs(to_sub) > 0
+    '''
+    a, b = ab.atoms(sympy.Symbol)
+    return a*b - 2*a*s - 2*b*s + 3*s
 
 def exprs_to_auxillary_term_dict(exprs):
     ''' Take equations and replace 2-qubit interactions with new variables 
@@ -288,7 +312,7 @@ def exprs_to_auxillary_term_dict(exprs):
         >>> eqns = [sympy.Eq(a, b), sympy.Eq(c*d, e)]
         >>> exprs = map(lambda x: x.lhs - x.rhs, eqns)
         >>> exprs_to_auxillary_term_dict(exprs)
-        defaultdict(<type 'int'>, {a*b: -2, c*d: 1, c_d: 1, 1: 0, a: 1, c_d*e: -2, e: 1, b: 1, c_d*d: -1, c*c_d: -1})
+        defaultdict(<type 'int'>, {a*b: -2, c*c_d: -2, c_d: 4, 1: 0, a: 1, c_d*e: -2, e: 1, b: 1, c_d*d: -2, c*d: 1})
     '''
     # First replace all 2 qubit terms with new variables and sub them in
     aux_s = {}
@@ -317,8 +341,9 @@ def exprs_to_auxillary_term_dict(exprs):
     term_dict = sum_term_dicts(tds)
     
     # Now use the funky formula to provide equality for the auxillary variables
-    aux_exprs = map(scholler, aux_s.iteritems())
-    term_dict.update(expressions_to_term_dict(aux_exprs))
+    aux_exprs = map(tanbur, aux_s.iteritems())
+    for term, coef in expressions_to_term_dict(aux_exprs).iteritems():     
+        term_dict[term] += coef
     
     return term_dict
     
@@ -327,16 +352,16 @@ def equations_to_auxillary_coef_str(eqns):
     
         >>> a, b, c, d, e = sympy.symbols('a b c d e')
         >>> eqns = [sympy.Eq(a, b), sympy.Eq(c*d, e)]
-        >>> print equations_to_2_qbt_obj_func_coef_str(eqns)
+        >>> print equations_to_auxillary_coef_str(eqns)
         1 2 -2
-        3 5 1
-        4 1
+        3 4 -2
+        4 4
         1 1
         4 6 -2
         6 1
         2 1
-        4 5 -1
-        3 4 -1
+        4 5 -2
+        3 5 1
         <BLANKLINE>
         {c: 3, d: 5, a: 1, e: 6, c_d: 4, b: 2}
     '''
