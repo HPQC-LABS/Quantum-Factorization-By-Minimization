@@ -256,51 +256,25 @@ def expression_to_coef_string(expr):
     return term_dict_to_coef_string(expr.as_coefficients_dict())
 
 ## Introduce auxilary variables
-def scholler((ab, s)):
+def schaller((ab, s)):
     ''' Change (ab-s)**2 to (ab - sa - sb + s), which has minimums at exactly
         the point ab = s
         
         >>> vars_ = sympy.symbols('a b s')
         >>> a, b, s = vars_
         >>> orig_expr = (a*b - s)**2
-        >>> scholler_expr = scholler((a*b, s))
+        >>> schaller_expr = schaller((a*b, s))
         
-        >>> print scholler_expr
-        a*b - a*s - b*s + s
-        
-        This test is disabled
-        s>>> abss = itertools.product(range(2), repeat=3)
-        s>>> for abs in abss:
-        s...     to_sub = dict(zip(vars_, abs))
-        ...     print to_sub
-        ...     print orig_expr.subs(to_sub), scholler_expr.subs(to_sub)
-        ...     #if orig_expr.subs(to_sub) == 0:
-        ...     #    assert scholler_expr.subs(to_sub) == 0
-        ...     #else:
-        ...     #    assert scholler_expr.subs(to_sub) != 0
-    '''
-    a, b = ab.atoms(sympy.Symbol)
-    return a*b - s*a - s*b + s
-    
-def tanbur((ab, s)):
-    ''' Change (ab-s)**2 to ab - 2as - 2bs + 3s, which has minimums at exactly
-        the point ab = s
-        
-        >>> vars_ = sympy.symbols('a b s')
-        >>> a, b, s = vars_
-        >>> orig_expr = (a*b - s)**2
-        >>> tanbur_expr = tanbur((a*b, s))
-        
-        >>> print tanbur_expr
+        >>> print schaller_expr
         a*b - 2*a*s - 2*b*s + 3*s
         
         >>> abss = itertools.product(range(2), repeat=3)
         >>> for abs in abss:
         ...     to_sub = dict(zip(vars_, abs))
         ...     if orig_expr.subs(to_sub) == 0:
-        ...         assert tanbur_expr.subs(to_sub) == 0
+        ...         assert schaller_expr.subs(to_sub) == 0
         ...     else:
-        ...         assert tanbur_expr.subs(to_sub) > 0
+        ...         assert schaller_expr.subs(to_sub) > 0
     '''
     a, b = ab.atoms(sympy.Symbol)
     return a*b - 2*a*s - 2*b*s + 3*s
@@ -372,7 +346,7 @@ def equations_to_auxillary_coef_str(eqns):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-    
+
     a, b, c, d, e, f = sympy.symbols('a b c d e f')
     syms = [a, b, c, d, e, f]
     exprs = [a + b,
