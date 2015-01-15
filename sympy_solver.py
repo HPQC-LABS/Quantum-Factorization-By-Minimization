@@ -124,13 +124,31 @@ class EquationSolver(object):
         return instance
         
 
+    @staticmethod
+    def _dict_as_equations(dict_):
+        ''' Return deductions as a list of equations '''
+        new_equations = []
+        for lhs, rhs in dict_.iteritems():
+            new_equations.append(sympy.Eq(lhs, rhs))
+        
+#        new_equations = filter(is_equation, new_equations)        
+#        new_equations = [eqn.expand() for eqn in new_equations]
+#        new_equations = map(remove_binary_squares_eqn, new_equations)
+#        new_equations = map(balance_terms, new_equations)
+#        new_equations = map(cancel_constant_factor, new_equations)
+#        new_equations = filter(is_equation, new_equations)
+
+        return sorted(new_equations, key=lambda x: str(x))
+    
     @property
     def deductions_as_equations(self):
         ''' Return deductions as a list of equations '''
-        new_equations = []
-        for lhs, rhs in self.deductions.iteritems():
-            new_equations.append(sympy.Eq(lhs, rhs))
-        return sorted(new_equations, key=lambda x: str(x))
+        return EquationSolver._dict_as_equations(self.deductions)
+    
+    @property
+    def solutions_as_equations(self):
+        ''' Return solutions as a list of equations '''
+        return EquationSolver._dict_as_equations(self.solutions)
 
     def print_deduction_log(self):
         ''' Print the judgements and the deductions they have made '''
@@ -166,7 +184,19 @@ class EquationSolver(object):
                 self.print_('\t'.join(['{}'] * 4).format(i, *state_summary))
 
             self.equations = self.clean_equations(self.equations)
-            self.apply_judgements(self.equations + self.deductions_as_equations)
+            self.apply_judgements(self.equations + 
+                                  self.deductions_as_equations)
+            
+            # Now apply judgements to non-trivial solutions
+            non_trivial_soln = []
+            for variable, soln in self.solutions.iteritems():
+                if len(soln.atoms()) > 2:
+                    non_trivial_soln.append(sympy.Eq(variable, soln))
+            non_trivial_soln = map(remove_binary_squares_eqn, non_trivial_soln)
+            non_trivial_soln = map(balance_terms, non_trivial_soln)
+            non_trivial_soln = map(cancel_constant_factor, non_trivial_soln)
+            non_trivial_soln = filter(is_equation, non_trivial_soln)            
+            self.apply_judgements(non_trivial_soln)
 
             if self._length_tuple == state_summary:
                 num_constant_iter += 1
@@ -227,6 +257,19 @@ class EquationSolver(object):
 
         self.print_('Num Qubits Start: {}'.format(self.num_qubits_start))
         self.print_('Num Qubits End: {}'.format(len(unsolved_var)), close=True)
+
+        # Print the p and q solution
+        pqs = {}
+        zs = {}
+        self.print_('p, q Solutions')
+        for var, sol in self.solutions.iteritems():
+            svar = str(var)
+            if svar.startswith('p') or svar.startswith('q'):
+                pqs[var] = sol
+            else:
+                zs[var] = sol
+        for k in sorted(pqs.keys(), key=str):
+            self.print_('{} = {}'.format(k, pqs[k].subs(zs)))
 
 #        self.print_('Final coefficients')
 #        self.print_(equations_to_coef_string(self.final_equations), close=True)
@@ -297,19 +340,13 @@ class EquationSolver(object):
     @property
     def objective_function(self):
         ''' Return the final objective function, using self.final_equations '''
-        if self.final_equations is None:
-            return None
-
-        return equations_to_vanilla_objective_function(self.final_equations)
+        return equations_to_vanilla_objective_function(self.equations)
 
     def objective_function_to_file(self, filename=None):
         ''' Write the objective function to a file, or printing if None.
             Also include the dictionary of variable number to original variable
         '''
-        if self.final_equations is None:
-            return
-
-        out = equations_to_vanilla_coef_str(self.final_equations)
+        out = equations_to_vanilla_coef_str(self.equations)
 
         if filename is None:
             self.print_(out)
@@ -597,6 +634,13 @@ class EquationSolver(object):
                     rhs *= -1
                 self.solutions.pop(expr)
                 self.solutions[variable] = rhs
+        
+        # Now make sure every value in the dict can be binary, throwing if
+        # not
+        for variable, value in self.solutions.iteritems():
+            if (max_value(value) < 0) or (min_value(value) > 1):
+                err_str = 'clean_solutions: {} != {}'.format(variable, value)
+                raise ContradictionException(err_str)
 
         changes = False
         new_solutions = {}
