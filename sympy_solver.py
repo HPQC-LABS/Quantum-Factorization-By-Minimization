@@ -889,6 +889,7 @@ class EquationSolver(object):
             
             # Now look for contradictions
             self.judgement_20(eqn)
+            self.judgement_21(eqn)
 
     def judgement_0(self, eqn):
         ''' Add x=y to deductions '''
@@ -1441,7 +1442,7 @@ class EquationSolver(object):
         >>> system.solve_equations()
         Traceback (most recent call last):
             ...
-        ContradictionException: judgement20: x*y*z == 2
+        ContradictionException: judgement_20: x*y*z == 2
 
         >>> eqn = sympy.Eq(x*y*z)
         >>> system = EquationSolver(equations=[eqn])
@@ -1449,20 +1450,46 @@ class EquationSolver(object):
         >>> system.solutions
         {}
         
-        This would have been anot
+
         >>> eqn = sympy.Eq(x*y*z + 1)
         >>> system = EquationSolver()
         >>> system.judgement_20(eqn)
         Traceback (most recent call last):
             ...
-        ContradictionException: judgement20: x*y*z + 1 == 0
+        ContradictionException: judgement_20: x*y*z + 1 == 0
         '''
         def _helper(self, lhs, rhs):
             if min_value(lhs) > max_value(rhs):
-                raise ContradictionException('judgement20: {}'.format(eqn))
+                raise ContradictionException('judgement_20: {}'.format(eqn))
 
         _helper(self, eqn.lhs, eqn.rhs)
         _helper(self, eqn.rhs, eqn.lhs)
+    
+    def judgement_21(self, eqn):
+        ''' Check the parity 
+        
+        >>> x, y, z = sympy.symbols('x y z')
+        
+        >>> eqn = sympy.Eq(2*x*y + 4*z + 1)
+        >>> system = EquationSolver()
+        >>> system.judgement_21(eqn)
+        Traceback (most recent call last):
+            ...
+        ContradictionException: judgement_21: 2*x*y + 4*z + 1 == 0
+        
+        >>> eqn = sympy.Eq(2*x*y * 4*z - 2)
+        >>> system = EquationSolver()
+        >>> system.judgement_21(eqn)
+
+        >>> eqn = sympy.Eq(2*x*y + z - 1)
+        >>> system = EquationSolver()
+        >>> system.judgement_21(eqn)
+        '''
+        l_parity = parity(eqn.lhs)
+        if l_parity is not None:
+            r_parity = parity(eqn.rhs)
+            if (r_parity is not None) and (l_parity != r_parity):
+                raise ContradictionException('judgement_21: {}'.format(eqn))
 
 ## Parsing and set up
 
