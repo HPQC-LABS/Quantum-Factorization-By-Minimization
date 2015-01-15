@@ -127,7 +127,7 @@ if exp == 100:
     digitsInMultiplicand2 = 165
     product = 1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139
 
-num_assumptions = 4
+num_assumptions = 2
 
 #We can override the digit and product values above using arguments
 if len(sys.argv) > 2:
@@ -213,28 +213,34 @@ else:
     system = EquationSolver.from_params(eqns, output_filename=output, 
                                         log_deductions=False)
     system.solve_equations(verbose=True)
+    #system.to_disk('_state_{}'.format(str(product)[-6:]))
     system.print_summary()
-    print 'Solved in {}s'.format(time() - s)
+    print '\nSolved in {}s'.format(time() - s)
 
     try:
         coef_filename = OutputFileName.replace('.txt', '_coef.txt')
         system.objective_function_to_file(coef_filename)
-    except:
+    except Exception as e:
         print 'Failed to write the coefficient'
+        print e
 
 
     check_solutions(product, system.solutions.copy(), verbose=True)
 
     ## Now lets do the assumptions stuff
-    if len(system.unsolved_var):    
+    if len(system.unsolved_var) and num_assumptions:    
         var = set()
+        s = time()
         solns = make_assumptions(system, num_assumptions=num_assumptions, 
                                  assumed_variables=var, count_determined=True)
+        print '{} assumptions in {}s'.format(num_assumptions, time() - s)
         
         for i, sol in enumerate(solns):
-            print '\n' * 3 + 'Case {}'.format(i)
+            print '\n' * 3 + 'Case {}'.format(i + 1)
             sol.print_summary()
             try:
                 check_solutions(product, sol.solutions.copy(), verbose=True)
             except ContradictionException:
                 print '*** Assertions failed. Solution incorrect ***'
+        
+        print 'Substituted variables: {}'.format(var)
