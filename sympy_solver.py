@@ -20,14 +20,15 @@ from sympy_helper_fns import (max_value, min_value, is_equation,
                               num_add_terms, parity, is_monic, is_one_or_zero,
                               remove_binary_squares, expressions_to_variables)
 from objective_function_helper import (equations_to_vanilla_coef_str, 
-                                       equations_to_vanilla_objective_function)
+                                       equations_to_vanilla_objective_function,
+                                       equations_to_auxillary_coef_str)
 
 __author__ = "Richard Tanburn"
 __credits__ = ["Richard Tanburn", "Nathaniel Bryans", "Nikesh Dattani"]
 __version__ = "0.0.1"
 __status__ = "Prototype"
 
-
+EQUATION_EQUAL_CHECK_LIMIT = 350
 
 # Parent equation
 
@@ -111,12 +112,16 @@ class EquationSolver(object):
 
     def to_disk(self, filename):
         ''' Write a state to disk '''
+        if filename is None:
+            return
         import pickle
         pickle.dump(self, open(filename, 'w'))
     
     @staticmethod
     def from_disk(filename, **kwargs):
         ''' Load from disk '''
+        if filename is None:
+            raise ValueError('Cannot load from filename None')
         import pickle
         data = pickle.load(open(filename, 'r'))
         instance = EquationSolver(equations=data.equations, **kwargs)
@@ -347,6 +352,7 @@ class EquationSolver(object):
             Also include the dictionary of variable number to original variable
         '''
         out = equations_to_vanilla_coef_str(self.equations)
+        #out = equations_to_auxillary_coef_str(self.equations)
 
         if filename is None:
             self.print_(out)
@@ -376,26 +382,27 @@ class EquationSolver(object):
         cleaned = map(cancel_constant_factor, cleaned)
         cleaned = filter(is_equation, cleaned)
 
-        to_add = []
-        # Now add any equations where LHS = RHS1, LHS = RHS2 and permutations
-        def _helper(eqn1, eqn2, to_add):
-            if ((eqn1.lhs == eqn2.lhs) and
-                (eqn1.rhs != eqn2.rhs) and
-                (not is_constant(eqn1.lhs))):
-                new_eq = sympy.Eq(eqn1.rhs, eqn2.rhs)
-                new_eq = balance_terms(new_eq)
-                to_add.append(new_eq)
-                #self.print_('Equation added! {}, {}'.format(eqn1, eqn2))
-
-        all_equations = itertools.chain(cleaned, self.deductions_as_equations)
-        for eqn1, eqn2 in itertools.combinations(all_equations, 2):
-            _helper(eqn1, eqn2, to_add)
-            _helper(sympy.Eq(eqn1.rhs, eqn1.lhs), eqn2, to_add)
-            _helper(eqn1, sympy.Eq(eqn2.rhs, eqn2.lhs), to_add)
-            _helper(sympy.Eq(eqn1.rhs, eqn1.lhs), sympy.Eq(eqn2.rhs, eqn2.lhs),
-                    to_add)
-        to_add = filter(is_equation, to_add)
-        cleaned.extend(to_add)
+        if len(cleaned) < EQUATION_EQUAL_CHECK_LIMIT:
+            to_add = []
+            # Now add any equations where LHS = RHS1, LHS = RHS2 and permutations
+            def _helper(eqn1, eqn2, to_add):
+                if ((eqn1.lhs == eqn2.lhs) and
+                    (eqn1.rhs != eqn2.rhs) and
+                    (not is_constant(eqn1.lhs))):
+                    new_eq = sympy.Eq(eqn1.rhs, eqn2.rhs)
+                    new_eq = balance_terms(new_eq)
+                    to_add.append(new_eq)
+                    #self.print_('Equation added! {}, {}'.format(eqn1, eqn2))
+    
+            all_equations = itertools.chain(cleaned, self.deductions_as_equations)
+            for eqn1, eqn2 in itertools.combinations(all_equations, 2):
+                _helper(eqn1, eqn2, to_add)
+                _helper(sympy.Eq(eqn1.rhs, eqn1.lhs), eqn2, to_add)
+                _helper(eqn1, sympy.Eq(eqn2.rhs, eqn2.lhs), to_add)
+                _helper(sympy.Eq(eqn1.rhs, eqn1.lhs), sympy.Eq(eqn2.rhs, eqn2.lhs),
+                        to_add)
+            to_add = filter(is_equation, to_add)
+            cleaned.extend(to_add)
 
         ### Old code
 #        cleaned = []
