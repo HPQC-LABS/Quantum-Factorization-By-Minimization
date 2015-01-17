@@ -883,30 +883,31 @@ class EquationSolver(object):
         '''
         for eqn in equations:
             self.judgement_0(eqn)
-            self.judgement_sq(eqn)
-            self.judgement_mm(eqn)
+            self.judgement_prod(eqn)
+            self.judgement_min_max(eqn)
             self.judgement_1(eqn)
             self.judgement_2(eqn)
+            self.judgement_3(eqn)
             self.judgement_4(eqn)
-            self.judgement_7i(eqn)
-            self.judgement_7ii(eqn)
-            self.judgement_9(eqn)
-            self.judgement_10(eqn)
-            self.judgement_11(eqn)
+            self.judgement_5(eqn)
+            self.judgement_6(eqn)
+            self.judgement_7(eqn)
             
             # Now look for contradictions
-            self.judgement_20(eqn)
-            self.judgement_21(eqn)
+            self.contradiction_1(eqn)
+            self.contradiction_2(eqn)
 
     def judgement_0(self, eqn):
-        ''' Add x=y to deductions '''
+        ''' Add x=y to deductions. This shouldn't be needed, but it's nice to
+            make sure we're not missing anything obvious        
+        '''
         if len(eqn.lhs.atoms()) == len(eqn.rhs.atoms()) == 1:
             if eqn.lhs.is_constant():
                 self.update_value(eqn.rhs, eqn.lhs)
             else:
                 self.update_value(eqn.lhs, eqn.rhs)
 
-    def judgement_sq(self, eqn):
+    def judgement_prod(self, eqn):
         ''' If RHS is a non-zero constant and the LHS is a product of variables,
             then the variables must all be 1
             x*y*z=1 => x = y = 1
@@ -914,19 +915,19 @@ class EquationSolver(object):
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x * y * z, 1)
-            >>> system.judgement_sq(eqn)
+            >>> system.judgement_prod(eqn)
             >>> system.deductions
             {x: 1, z: 1, y: 1}
 
-            >>> eqn = sympy.Eq(2*x*y*z - 2)
-            >>> system = EquationSolver(equations=[eqn])
+            >>> eqn = sympy.Eq(2*x*y*z, 2)
+            >>> system = EquationSolver([eqn])
             >>> system.solve_equations()
             >>> system.solutions
             {x: 1, z: 1, y: 1}
             
-            >>> eqn = sympy.Eq(2*x*y*z - 1)
-            >>> system = EquationSolver(equations=[eqn])
-            >>> system.solve_equations()
+            >>> eqn = sympy.Eq(2*x*y*z, 1)
+            >>> system = EquationSolver()
+            >>> system.judgement_prod(eqn)
             Traceback (most recent call last):
                 ...
             ContradictionException: judgement_sq: 2*x*y*z == 1
@@ -942,8 +943,11 @@ class EquationSolver(object):
     def judgement_two_term(self, eqn):
         ''' If an expression has 2 variable terms, sub it in!
             This adds lots of complexity so the infrastructure, which is
-            why we don't do it with 3 or 4 term sums
-
+            why we don't do it with 3 or 4 term sums.
+            
+            Note this isn't applied to the equations directly, but is called
+            via the parity judgement
+            
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y*z, 1)
@@ -1069,20 +1073,20 @@ class EquationSolver(object):
                 self.update_value(term_to_sub, rhs - lhs + term_to_sub)
 
 
-    def judgement_mm(self, eqn):
+    def judgement_min_max(self, eqn):
         ''' If min(rhs) == max(lhs), then we know what to do
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + z, 3)
-            >>> system.judgement_mm(eqn)
+            >>> system.judgement_min_max(eqn)
             >>> system.deductions
             {x: 1, z: 1, y: 1}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 2*y, 5 - 2*z)
-            >>> system.judgement_mm(eqn)
+            >>> system.judgement_min_max(eqn)
             >>> system.deductions
             {x: 1, z: 1, y: 1}
         '''
@@ -1115,7 +1119,7 @@ class EquationSolver(object):
             
             >>> system = EquationSolver()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
-            >>> eqn = sympy.Eq(x + y + z*z2, 1)
+            >>> eqn = sympy.Eq(x + 2*y + z*z2, 1)
             >>> system.judgement_1(eqn)
             >>> system.deductions
             {x*y: 0, x*z*z2: 0, y*z*z2: 0}
@@ -1144,87 +1148,41 @@ class EquationSolver(object):
 #                for v in itertools.permutations(variables, 2):
 #                    self.update_value(v[0] * v[1], 0)
 
-
     def judgement_2(self, eqn):
-        ''' If max(lhs) < max(rhs) and there is only 1 variable term
-            in the RHS, then this term must be 1
-
-            >>> system = EquationSolver()
-            >>> x, y, z = sympy.symbols('x y z')
-            >>> eqn = sympy.Eq(x+y, 2*z + 1)
-            >>> system.judgement_2(eqn)
-            >>> system.deductions
-            {z: 0}
-        '''
-        lhs, rhs = eqn.lhs, eqn.rhs
-        if (max_value(lhs) < max_value(rhs)):
-            terms = rhs.as_ordered_terms()
-            if (len(terms) == 2) and terms[-1].is_constant():
-                self.set_to_min(rhs)
-
-    def judgement_4(self, eqn):
-        ''' If max(lhs) = max(rhs) and rhs is constant, then every term on the
-            left is 1.
-            Similarly for minimum
-
-            >>> system = EquationSolver()
-            >>> x, y, z = sympy.symbols('x y z')
-            >>> eqn = sympy.Eq(x + y, 2)
-            >>> system.judgement_4(eqn)
-            >>> system.deductions
-            {x: 1, y: 1}
-
-            >>> system = EquationSolver()
-            >>> x, y, z = sympy.symbols('x y z')
-            >>> eqn = sympy.Eq(x + y + z, 0)
-            >>> system.judgement_4(eqn)
-            >>> system.deductions
-            {x: 0, z: 0, y: 0}
-        '''
-        lhs, rhs = eqn.lhs, eqn.rhs
-        if not is_constant(rhs):
-            return
-        elif (max_value(lhs) == max_value(rhs)):
-            self.set_to_max(lhs)
-        elif (min_value(lhs) == min_value(rhs)):
-            self.set_to_min(lhs)
-
-
-    def judgement_7i(self, eqn):
         ''' If a term being 1 would tip max(rhs) > max(lhs), then it must be 0
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2 + z)
-            >>> system.judgement_7i(eqn)
+            >>> system.judgement_2(eqn)
             >>> system.deductions
             {z: 0}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2 + z)
-            >>> system.judgement_7i(eqn)
+            >>> system.judgement_2(eqn)
             >>> system.deductions
             {z: 0}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 3 * y, 2 + z)
-            >>> system.judgement_7i(eqn)
+            >>> system.judgement_2(eqn)
             >>> system.deductions
             {}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 5 * y, 2 + z)
-            >>> system.judgement_7i(eqn)
+            >>> system.judgement_2(eqn)
             >>> system.deductions
             {y: 0}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 1 + z)
-            >>> system.judgement_7i(eqn)
+            >>> system.judgement_2(eqn)
             >>> system.deductions
             {}
 
@@ -1232,9 +1190,16 @@ class EquationSolver(object):
             >>> lhs = sympy.sympify('q3 + q4')
             >>> rhs = sympy.sympify('2*q3*q4 + 2*z78 + 4*z79')
             >>> eqn = sympy.Eq(lhs, rhs)
-            >>> system.judgement_7i(eqn)
+            >>> system.judgement_2(eqn)
             >>> system.deductions
             {z79: 0}
+            
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x+y, 2*z + 1)
+            >>> system.judgement_2(eqn)
+            >>> system.deductions
+            {z: 0}
         '''
         def _helper(lhs, rhs):
             lhs_max = max_value(lhs)
@@ -1252,88 +1217,134 @@ class EquationSolver(object):
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
-    def judgement_7ii(self, eqn):
-        ''' x + 1 = 2y -> y = 1
+
+    def _judgement_2_old(self, eqn):
+        ''' If max(lhs) < max(rhs) and there is only 1 variable term
+            in the RHS, then this term must be 1
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x+y, 2*z + 1)
+            >>> system._judgement_2_old(eqn)
+            >>> system.deductions
+            {z: 0}
+        '''
+        lhs, rhs = eqn.lhs, eqn.rhs
+        if (max_value(lhs) < max_value(rhs)):
+            terms = rhs.as_ordered_terms()
+            if (len(terms) == 2) and terms[-1].is_constant():
+                self.set_to_min(rhs)
+
+    def judgement_3(self, eqn):
+        ''' If max(lhs) = max(rhs) and rhs is constant, then every term on the
+            left is 1.
+            Similarly for minimum
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y, 2)
+            >>> system.judgement_3(eqn)
+            >>> system.deductions
+            {x: 1, y: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y + z, 0)
+            >>> system.judgement_3(eqn)
+            >>> system.deductions
+            {x: 0, z: 0, y: 0}
+        '''
+        def _helper(lhs, rhs):
+            if not is_constant(rhs):
+                return
+            elif (max_value(lhs) == max_value(rhs)):
+                self.set_to_max(lhs)
+            elif (min_value(lhs) == min_value(rhs)):
+                self.set_to_min(lhs)
+
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
+
+
+    def judgement_4(self, eqn):
+        ''' If min(LHS) > min(RHS) and we only have one variable term on the
+            RHS, this must be 1
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 1, 2*z)
-            >>> system.judgement_7ii(eqn)
+            >>> system.judgement_4(eqn)
+            >>> system.deductions
+            {z: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 1, z)
+            >>> system.judgement_4(eqn)
             >>> system.deductions
             {z: 1}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x * y + 1, 2 * z)
-            >>> system.judgement_7ii(eqn)
+            >>> system.judgement_4(eqn)
             >>> system.deductions
             {z: 1}
 
             >>> system = EquationSolver()
+            >>> x, y, z, z2 = sympy.symbols('x y z z2')
+            >>> eqn = sympy.Eq(x + 3 * y + 1, 2 * z + z2)
+            >>> system.judgement_4(eqn)
+            >>> system.deductions
+            {}
+            
+            >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
-            >>> eqn = sympy.Eq(x + 3 * y + 1, 2 * z + 1)
-            >>> system.judgement_7ii(eqn)
+            >>> eqn = sympy.Eq(x + 3 * y + 4, 5 * z)
+            >>> system.judgement_4(eqn)
+            >>> system.deductions
+            {z: 1}
+            
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 3 * y + 4, 5)
+            >>> system.judgement_4(eqn)
             >>> system.deductions
             {}
         '''
-        if ((eqn.lhs.as_coeff_add()[0] == 1) and
-            (len(eqn.lhs.as_ordered_terms()) > 1) and
-            (eqn.rhs.as_coeff_mul()[0] == 2) and
-            (len(eqn.rhs.as_ordered_terms()) == 1)):
-            self.set_to_max(eqn.rhs)
+        def _helper(lhs, rhs):
+            if (min_value(lhs) > min_value(rhs)):
+                if (num_add_terms(rhs) == 1) and (not is_constant(rhs)):
+                        self.update_value(rhs.as_coeff_Mul()[1], 1)
+        
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
 
-    def judgement_9(self, eqn):
-        ''' x + y = 2z -> x = y = z
-
-            >>> system = EquationSolver()
-            >>> x, y, z = sympy.symbols('x y z')
-            >>> eqn = sympy.Eq(x + y, 2*z)
-            >>> system.judgement_9(eqn)
-            >>> system.deductions
-            {z: x, y: x}
-
-            >>> system = EquationSolver()
-            >>> x, y, z = sympy.symbols('x y z')
-            >>> eqn = sympy.Eq(x * y + x, 2 * z)
-            >>> system.judgement_9(eqn)
-            >>> system.deductions
-            {x: x*y, z: x*y}
-        '''
-        lhs, rhs = eqn.lhs, eqn.rhs
-        if len(lhs.as_ordered_terms()) == 2:
-            t1, t2 = lhs.as_ordered_terms()
-            if ((t1.as_coeff_mul()[0] == 1) and
-                (not t1.is_constant()) and
-                (t2.as_coeff_mul()[0] == 1) and
-                (not t2.is_constant()) and
-                (rhs.as_coeff_mul()[0] == 2)):
-                self.update_value(t2, t1)
-                self.update_value(rhs / 2, t1)
-
-    def judgement_10(self, eqn):
-        ''' x + 2y + z = 4z2 -> x = z
+    def judgement_5(self, eqn):
+        ''' Parity argument. If the RHS is always even and the LHS has 2 odd
+            terms, then the variable parts of these terms must be equal.
+            x + 2y + z = 4z2 -> x = z
             Also works with any even RHS and any number of even variables on
             the LHS.
 
             >>> system = EquationSolver()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
             >>> eqn = sympy.Eq(x + 2*y + z, 2*z2)
-            >>> system.judgement_10(eqn)
+            >>> system.judgement_5(eqn)
             >>> system.deductions
             {x: z}
 
             >>> system = EquationSolver()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
             >>> eqn = sympy.Eq(x + 2*y + 3*z, 2 * z2)
-            >>> system.judgement_10(eqn)
+            >>> system.judgement_5(eqn)
             >>> system.deductions
             {x: z}
         '''
 
         def _helper(lhs, rhs):
-            for term in rhs.as_ordered_terms():
-                if term.as_coeff_mul()[0] % 2:
-                    return
+            if parity(rhs) != 0:
+                return
 
             odd_terms = []
             for term in lhs.as_ordered_terms():
@@ -1353,7 +1364,76 @@ class EquationSolver(object):
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
-    def judgement_10i(self, eqn):
+    def judgement_6(self, eqn):
+        ''' Parity argument. If RHS is always odd and the LHS has 2 monic terms
+            then the sum must be 1.
+            Also make sure we don't replicate judgement_two_term
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y + 2*x*y, 2 * z + 1)
+            >>> system.judgement_6(eqn)
+            >>> system.deductions
+            {x: -y + 1}
+
+            >>> system = EquationSolver()
+            >>> x, y = sympy.symbols('x y')
+            >>> eqn = sympy.Eq(x + y, 1)
+            >>> system.judgement_6(eqn)
+            >>> system.deductions
+            {x: -y + 1}
+            
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y + 2*z, 3)
+            >>> system.judgement_6(eqn)
+            >>> system.deductions
+            {x: -y + 1}
+        '''
+        lhs, rhs = eqn.lhs, eqn.rhs
+        if parity(rhs) == 1:
+            odd_terms = []
+            for term, term_coef in lhs.as_coefficients_dict().iteritems():
+                if (term_coef % 2):
+                    if term.is_constant():
+                        return
+                    odd_terms.append(term)
+
+            if len(odd_terms) == 2:
+                self.judgement_two_term(sympy.Eq(sum(odd_terms), 1))
+
+    def judgement_7(self, eqn):
+        ''' Special case of judgement_5
+            x + y = 2z -> x = y = z
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y, 2*z)
+            >>> system.judgement_7(eqn)
+            >>> system.deductions
+            {z: x, y: x}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x * y + x, 2 * z)
+            >>> system.judgement_7(eqn)
+            >>> system.deductions
+            {x: x*y, z: x*y}
+        '''
+        lhs, rhs = eqn.lhs, eqn.rhs
+        if len(lhs.as_ordered_terms()) == 2:
+            t1, t2 = lhs.as_ordered_terms()
+            if ((t1.as_coeff_mul()[0] == 1) and
+                (not t1.is_constant()) and
+                (t2.as_coeff_mul()[0] == 1) and
+                (not t2.is_constant()) and
+                (rhs.as_coeff_mul()[0] == 2)):
+                self.update_value(t2, t1)
+                self.update_value(rhs / 2, t1)
+
+
+
+    def _judgement_10i(self, eqn):
         ''' x + y + z + 2a = 2b -> xy + xz = yx + yz = zx + zy = 0
             Also works with any even RHS and any number of even variables on
             the LHS.
@@ -1378,6 +1458,7 @@ class EquationSolver(object):
             >>> system.deductions
             {}
         '''
+        raise DeprecationWarning()
 
         def _helper(lhs, rhs):
             for term in rhs.as_ordered_terms():
@@ -1406,40 +1487,10 @@ class EquationSolver(object):
         _helper(eqn.rhs, eqn.lhs)
 
 
-    def judgement_11(self, eqn):
-        ''' Parity argument. If RHS is always odd and the LHS has 2 monic terms
-            then the sum must be 1.
-            Also make sure we don't replicate judgement_two_term
 
-            >>> system = EquationSolver()
-            >>> x, y, z = sympy.symbols('x y z')
-            >>> eqn = sympy.Eq(x + y + 2*x*y, 2 * z + 1)
-            >>> system.judgement_11(eqn)
-            >>> system.deductions
-            {x: -y + 1}
-
-            >>> system = EquationSolver()
-            >>> x, y = sympy.symbols('x y')
-            >>> eqn = sympy.Eq(x + y, 1)
-            >>> system.judgement_11(eqn)
-            >>> system.deductions
-            {x: -y + 1}
-        '''
-        lhs, rhs = eqn.lhs, eqn.rhs
-        if (parity(rhs) == 1) and (rhs.as_coeff_Add()[0] == 1):
-            odd_terms = []
-            for term in lhs.as_ordered_terms():
-                term_coef = term.as_coeff_mul()[0]
-                if (term_coef % 2):
-                    if term.is_constant():
-                        return
-                    odd_terms.append(term)
-
-            if len(odd_terms) == 2:
-                self.judgement_two_term(sympy.Eq(sum(odd_terms), 1))
 
     ## Look for contradictions
-    def judgement_20(self, eqn):
+    def contradiction_1(self, eqn):
         ''' Check the values could be equal 
         
         >>> x, y, z = sympy.symbols('x y z')
@@ -1449,7 +1500,7 @@ class EquationSolver(object):
         >>> system.solve_equations()
         Traceback (most recent call last):
             ...
-        ContradictionException: judgement_20: x*y*z == 2
+        ContradictionException: contradiction_1: x*y*z == 2
 
         >>> eqn = sympy.Eq(x*y*z)
         >>> system = EquationSolver(equations=[eqn])
@@ -1460,43 +1511,43 @@ class EquationSolver(object):
 
         >>> eqn = sympy.Eq(x*y*z + 1)
         >>> system = EquationSolver()
-        >>> system.judgement_20(eqn)
+        >>> system.contradiction_1(eqn)
         Traceback (most recent call last):
             ...
-        ContradictionException: judgement_20: x*y*z + 1 == 0
+        ContradictionException: contradiction_1: x*y*z + 1 == 0
         '''
         def _helper(self, lhs, rhs):
             if min_value(lhs) > max_value(rhs):
-                raise ContradictionException('judgement_20: {}'.format(eqn))
+                raise ContradictionException('contradiction_1: {}'.format(eqn))
 
         _helper(self, eqn.lhs, eqn.rhs)
         _helper(self, eqn.rhs, eqn.lhs)
     
-    def judgement_21(self, eqn):
+    def contradiction_2(self, eqn):
         ''' Check the parity 
         
         >>> x, y, z = sympy.symbols('x y z')
         
         >>> eqn = sympy.Eq(2*x*y + 4*z + 1)
         >>> system = EquationSolver()
-        >>> system.judgement_21(eqn)
+        >>> system.contradiction_2(eqn)
         Traceback (most recent call last):
             ...
-        ContradictionException: judgement_21: 2*x*y + 4*z + 1 == 0
+        ContradictionException: contradiction_2: 2*x*y + 4*z + 1 == 0
         
         >>> eqn = sympy.Eq(2*x*y * 4*z - 2)
         >>> system = EquationSolver()
-        >>> system.judgement_21(eqn)
+        >>> system.contradiction_2(eqn)
 
         >>> eqn = sympy.Eq(2*x*y + z - 1)
         >>> system = EquationSolver()
-        >>> system.judgement_21(eqn)
+        >>> system.contradiction_2(eqn)
         '''
         l_parity = parity(eqn.lhs)
         if l_parity is not None:
             r_parity = parity(eqn.rhs)
             if (r_parity is not None) and (l_parity != r_parity):
-                raise ContradictionException('judgement_21: {}'.format(eqn))
+                raise ContradictionException('contradiction_2: {}'.format(eqn))
 
 ## Parsing and set up
 
