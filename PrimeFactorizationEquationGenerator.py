@@ -6,7 +6,7 @@ import EquationHandler
 import sys
 
 from sympy_assumptions import make_assumptions
-from verification import print_binary_factorisation, check_solutions
+from verification import check_solutions
 
 
 __author__ = "Nathaniel Bryans"
@@ -210,10 +210,27 @@ else:
     s = time()
     # None means the result will be printed to screen
     output = None#OutputFileName
-    system = EquationSolver.from_params(eqns, output_filename=output, 
-                                        log_deductions=False)
-    system.solve_equations(verbose=True)
-    #system.to_disk('_state_{}'.format(str(product)[-6:]))
+    
+    
+    # We can use the handy state caching    
+    cache_name = None#'_state_{}'.format(str(product)[-6:])
+    if cache_name is not None:
+        try:
+            system = EquationSolver.from_disk(cache_name)
+        except Exception as e:
+            print e
+            system = EquationSolver.from_params(eqns, output_filename=output, 
+                                                log_deductions=True)
+            system.solve_equations(verbose=True)
+            system.to_disk(cache_name)
+    
+    # Do it normally
+    else:
+        system = EquationSolver.from_params(eqns, output_filename=output, 
+                                            log_deductions=False)
+        system.solve_equations(verbose=True)
+        
+    
     system.print_summary()
     print '\nSolved in {}s'.format(time() - s)
 
