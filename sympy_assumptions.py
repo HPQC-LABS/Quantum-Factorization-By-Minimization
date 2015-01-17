@@ -72,8 +72,8 @@ def get_next_important_variable(equation_solver):
         if score > biggest_score:
             biggest_score = score
             biggest = var
-    if biggest is not None:
-        assert var in vars_
+#    if biggest is not None:
+#        assert var in vars_
     return biggest
 
 
