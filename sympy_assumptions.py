@@ -155,9 +155,12 @@ def max_coef_rank_variables(equation_solver,
     return var_score
 
 def get_variables_to_substitute(num_variables, equation_solver,
-                                rank_func=weighted_frequency_rank_variables):
+                                rank_func=weighted_frequency_rank_variables,
+                                limit_permutations=1):
     ''' Call the ranking function to rank all of the possible substitutions
-        and then return the top results
+        and then return the top results.
+        Returns a nested array, where each array represents a list of variables
+        to substitute simultaneously.
     '''
     var_score = rank_func(equation_solver)
 
@@ -172,20 +175,29 @@ def get_variables_to_substitute(num_variables, equation_solver,
 #    if biggest is not None:
 #        assert var in vars_
 
-    return map(itemgetter(0), ranked[:num_variables])
+    sorted_var = itertools.imap(itemgetter(0), ranked)
+    vars_to_sub = list(itertools.combinations(sorted_var, num_variables))
+    if limit_permutations is None:
+        return vars_to_sub
+    else:
+        return vars_to_sub[:limit_permutations]
 
 
 def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
                      rank_func=weighted_frequency_rank_variables,
+                     limit_permutations=1,
                      verbose=True):
     ''' Given a system of equations, make a number of assumptions and see if we
         reach a contradiction or not.
         Returns a list of EquationSolver systems representing each possible
         system
-        Assumed variables is a list of variables that have been chosen
+        limit_permutations decides whether we just substitute the best
+        num_assumptions variables, or every combination of num_assumptions
+        variables.
     
         >>> test_kwargs = {'rank_func': lexographical_rank_variable,
-        ...                'verbose': False}        
+        ...                'verbose': False,
+        ...                'limit_permutations': 1}        
         
         1.
         >>> equations = ['x+y']
@@ -225,35 +237,104 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         Traceback (most recent call last):
             ...
         ContradictionException: No substitution is consistent
+
+
+        4. Test making 2 simultaneous substitutions
+        Make the equation really long so judgement_n_term doesn't make anything
+        too ugly
+        >>> equations = ['x1 + x2 + x3 + x4 + x5 + x6 + x7 - 2']
+        >>> equations = map(sympy.sympify, equations)
+        >>> equations = map(sympy.Eq, equations)
+        >>> system = EquationSolver(equations)
+        >>> sols = make_simultaneous_assumptions(system, 
+        ...                                      num_assumptions=2,
+        ...                                      **test_kwargs)
+        >>> for sol in sols: print sol.solutions
+        {x1: 0, x2: 0}
+        {x1: 0, x2: 1}
+        {x1: 1, x2: 0}
+        {x3: 0, x7: 0, x2: 1, x6: 0, x4: 0, x1: 1, x5: 0}
+
+
+        5. Test making all the different combinations of 1 variable
+        >>> alt_kwargs = test_kwargs.copy()
+        >>> alt_kwargs['limit_permutations'] = None
+
+        Make the equation really long so judgement_n_term doesn't make anything
+        too ugly
+        >>> equations = ['x1 + x2 + x3 + x4 + x5 + x6 + x7 - 2']
+        >>> equations = map(sympy.sympify, equations)
+        >>> equations = map(sympy.Eq, equations)
+        >>> system = EquationSolver(equations)
+        >>> sols = make_simultaneous_assumptions(system, 
+        ...                                      num_assumptions=1,
+        ...                                      **alt_kwargs)
+        >>> for sol in sols: print sol.solutions
+        {x1: 0}
+        {x1: 1}
+        {x2: 0}
+        {x2: 1}
+        {x3: 0}
+        {x3: 1}
+        {x4: 0}
+        {x4: 1}
+        {x5: 0}
+        {x5: 1}
+        {x6: 0}
+        {x6: 1}
+        {x7: 0}
+        {x7: 1}
+
+        6. Test making all the different combinations of 2 variables
+        NOTE: Uses 5's EquationSolver
+
+        >>> sols = make_simultaneous_assumptions(system, 
+        ...                                      num_assumptions=2,
+        ...                                      **alt_kwargs)
+        >>> for sol in sols[:10]: print sol.solutions
+        {x1: 0, x2: 0}
+        {x1: 0, x2: 1}
+        {x1: 1, x2: 0}
+        {x3: 0, x7: 0, x2: 1, x6: 0, x4: 0, x1: 1, x5: 0}
+        {x3: 0, x1: 0}
+        {x3: 1, x1: 0}
+        {x3: 0, x1: 1}
+        {x3: 1, x7: 0, x2: 0, x6: 0, x4: 0, x1: 1, x5: 0}
+        {x4: 0, x1: 0}
+        {x4: 1, x1: 0}
     '''
+
     vars_to_sub = get_variables_to_substitute(num_variables=num_assumptions,
                                               equation_solver=equation_solver,
-                                              rank_func=rank_func)
+                                              rank_func=rank_func,
+                                              limit_permutations=limit_permutations)
     
     if verbose:
         print 'Substituting: ' + ', '.join(map(str, vars_to_sub))
     
     equation_solvers = []
     times = []
-    for sub_values in itertools.product(xrange(2), repeat=num_assumptions):
-        start = time()        
-        try:
-            solver = equation_solver.copy()
-            for var, val in itertools.izip(vars_to_sub, sub_values):
-                solver.update_value(var, val)
-            solver.solve_equations()
-            equation_solvers.append(solver)
-            end = time()
-            time_taken = end - start
-            times.append(time_taken)
-            if verbose:
-                print 'Substitution completed in\t{:.2f}s'.format(time_taken)
-        except ContradictionException:
-            end = time()
-            time_taken = end - start
-            times.append(time_taken)
-            if verbose:
-                print 'Contradiction reached in\t{:.2f}s'.format(time_taken)
+    
+    for var_combination in vars_to_sub:
+        for sub_values in itertools.product(xrange(2), repeat=num_assumptions):
+            start = time()        
+            try:
+                solver = equation_solver.copy()
+                for var, val in itertools.izip(var_combination, sub_values):
+                    solver.update_value(var, val)
+                solver.solve_equations()
+                equation_solvers.append(solver)
+                end = time()
+                time_taken = end - start
+                times.append(time_taken)
+                if verbose:
+                    print 'Substitution completed in\t{:.2f}s'.format(time_taken)
+            except ContradictionException:
+                end = time()
+                time_taken = end - start
+                times.append(time_taken)
+                if verbose:
+                    print 'Contradiction reached in\t{:.2f}s'.format(time_taken)
     
     if not len(equation_solvers):
         raise ContradictionException('No substitution is consistent')
@@ -404,11 +485,14 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
         assumed_variables = set()
     
     next_var = get_variables_to_substitute(1, equation_solver, 
-                                           rank_func=rank_func)
+                                           rank_func=rank_func,
+                                           limit_permutations=1)
     if next_var is None:
         return [equation_solver]
     else:
-        next_var = next_var[0]
+        # Now next_var is a nested list of groups of variables to substitute.
+        # For sequential substitution we only want 1 variable, so extract it
+        next_var = next_var[0][0]
 
     # Now we know we want to do some work, pass down the arguments
     kwargs = {'rank_func': rank_func,
