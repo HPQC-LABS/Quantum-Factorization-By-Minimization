@@ -5,7 +5,10 @@ import GenerateCarry
 import EquationHandler
 import sys
 
-from sympy_assumptions import make_assumptions
+from sympy_assumptions import (make_simultaneous_assumptions, 
+                               frequency_rank_variables,
+                               weighted_frequency_rank_variables,
+                               max_coef_rank_variables)
 from verification import check_solutions
 
 
@@ -214,20 +217,21 @@ else:
     
     # We can use the handy state caching    
     cache_name = None#'_state_{}'.format(str(product)[-6:])
+    log_deductions = False
     if cache_name is not None:
         try:
             system = EquationSolver.from_disk(cache_name)
         except Exception as e:
             print e
             system = EquationSolver.from_params(eqns, output_filename=output, 
-                                                log_deductions=True)
+                                                log_deductions=log_deductions)
             system.solve_equations(verbose=True)
             system.to_disk(cache_name)
     
     # Do it normally
     else:
         system = EquationSolver.from_params(eqns, output_filename=output, 
-                                            log_deductions=False)
+                                            log_deductions=log_deductions)
         system.solve_equations(verbose=True)
         
     
@@ -246,18 +250,15 @@ else:
 
     ## Now lets do the assumptions stuff
     if len(system.unsolved_var) and num_assumptions:    
-        var = set()
-        s = time()
-        solns = make_assumptions(system, num_assumptions=num_assumptions, 
-                                 assumed_variables=var, count_determined=True)
-        print '{} assumptions in {}s'.format(num_assumptions, time() - s)
+
+        solns = make_simultaneous_assumptions(system, 
+                                              num_assumptions=num_assumptions,
+                                              verbose=True,
+                                              rank_func=max_coef_rank_variables)
         
         for i, sol in enumerate(solns):
-            print '\n' * 3 + 'Case {}'.format(i + 1)
-            sol.print_summary()
-            try:
-                check_solutions(product, sol.solutions.copy(), verbose=True)
-            except ContradictionException:
-                print '*** Assertions failed. Solution incorrect ***'
-        
-        print 'Substituted variables: {}'.format(var)
+            print '\n' * 2 + 'Case {}'.format(i + 1)
+            #sol.print_summary()
+            print 'Num Qubits End: {}'.format(len(sol.unsolved_var))
+            
+            correct = check_solutions(product, sol.solutions.copy(), verbose=True)
