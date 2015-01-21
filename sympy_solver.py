@@ -684,7 +684,7 @@ class EquationSolver(object):
                     seen_before.append(value)
 
                 if value is None:
-                    value = old_value.subs(self.solutions, simultaneous=True)
+                    value = old_value.subs(self.solutions, simultaneous=True).expand()
                     break
                 elif isinstance(value, int):
                     break
@@ -1441,24 +1441,23 @@ class EquationSolver(object):
             >>> system = EquationSolver()
             >>> x, y, z, z2, z3 = sympy.symbols('x y z z2, z3')
             >>> eqn = sympy.Eq(x + 2*y + z + z2, 2*z3)
-            >>> system.judgement_10i(eqn)
+            >>> system._judgement_10i(eqn)
             >>> system.deductions
             {x*z2 + z*z2: 0, x*z + x*z2: 0, x*z + z*z2: 0}
 
             >>> system = EquationSolver()
             >>> eqn = sympy.Eq(x + 2*y + 3*z + 7 * z2, 4*z3)
-            >>> system.judgement_10i(eqn)
+            >>> system._judgement_10i(eqn)
             >>> system.deductions
             {x*z2 + z*z2: 0, x*z + x*z2: 0, x*z + z*z2: 0}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + 1, 2 * z)
-            >>> system.judgement_10i(eqn)
+            >>> system._judgement_10i(eqn)
             >>> system.deductions
             {}
         '''
-        raise DeprecationWarning()
 
         def _helper(lhs, rhs):
             for term in rhs.as_ordered_terms():
