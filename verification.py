@@ -9,7 +9,7 @@ import itertools
 import sympy
 
 from contradiction_exception import ContradictionException
-from sympy_helper_fns import is_constant
+from sympy_helper_fns import is_constant, max_value, min_value
 from rsa_constants import RSA100, RSA100_F1, RSA100_F2
 
 KNOWN_FACTORISATIONS = {
@@ -68,16 +68,22 @@ def check_solutions(product, solutions, verbose=False):
         >>> soln = {p1: 0, p2: 1, p3: 1, p10: 1, p160: 1, q1: 1, q3: 0, q164: 1}
         >>> check_solutions(RSA100, soln, verbose=True)
         All assertions passed.
+        True
 
         >>> soln = {q1: 0, q2: 1, q3: 1, q10: 1, q160: 1, p1: 1, p3: 0, p164: 1}
         >>> check_solutions(RSA100, soln, verbose=True)
         All assertions passed.
+        True
         
         >>> soln = {q1: 1, q2: 1, q3: 1, q10: 1, q160: 1, p1: 1, p3: 0, p164: 1}
         >>> check_solutions(RSA100, soln, verbose=True)
-        Traceback (most recent call last):
-            ...
-        ContradictionException
+        *** Assertions failed. Solution incorrect ***
+        False
+        
+        >>> soln = {q1: 1, q2: -1}
+        >>> check_solutions(RSA100, soln, verbose=True)
+        *** Assertions failed. Solution incorrect ***
+        False
     '''
 
     # Get the target factors, turn them into binary and do some checks
@@ -101,11 +107,14 @@ def check_solutions(product, solutions, verbose=False):
     for perm in itertools.permutations(target_factors):
         try:
             _check_solutions_for_targets(perm, solutions, verbose=verbose)
-            return
+            return True
         except ContradictionException:
             continue
     
-    raise ContradictionException()
+    if verbose:
+        print '*** Assertions failed. Solution incorrect ***'
+    
+    return False
 
 
 def _check_solutions_for_targets(targets, solutions, verbose=False):
@@ -144,12 +153,12 @@ def _check_solutions_for_targets(targets, solutions, verbose=False):
         elif tar != prev_tar:
             raise ContradictionException()
 
+    # Now just check all of the symbolic stuff has the value in the range
+    for sol, tar in symbolic_map.iteritems():
+        if not (min_value(sol) <= tar <= max_value(sol)):
+            raise ContradictionException('verification: {} != {}'.format(sol, tar))
     if verbose:
         print 'All assertions passed.'
-        if symbolic_map:
-            print 'Check the below are consistent'
-            print symbolic_map
-
 
 def factorise(n):
     ''' Return list of factors 
