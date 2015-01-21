@@ -8,7 +8,8 @@ import sys
 from sympy_assumptions import (make_simultaneous_assumptions, 
                                frequency_rank_variables,
                                weighted_frequency_rank_variables,
-                               max_coef_rank_variables)
+                               max_coef_rank_variables,
+                               lexographical_rank_variable)
 from verification import check_solutions
 
 
@@ -48,7 +49,7 @@ OutputFileName = "output.txt"
 #digitsInMultiplicand2 = 4
 #product = 403
 
-exp = 6
+exp = 2
 if exp == 1:
     digitsInMultiplicand1 = 4
     digitsInMultiplicand2 = 4
@@ -247,6 +248,8 @@ else:
 
 
     check_solutions(product, system.solutions.copy(), verbose=True)
+
+    print '\n' * 2
 
     ## Now lets do the assumptions stuff
     if len(system.unsolved_var) and num_assumptions:    
