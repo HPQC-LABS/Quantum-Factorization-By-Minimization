@@ -131,7 +131,7 @@ if exp == 100:
     digitsInMultiplicand2 = 165
     product = 1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139
 
-num_assumptions = 2
+num_assumptions = 3
 
 #We can override the digit and product values above using arguments
 if len(sys.argv) > 2:
@@ -249,18 +249,22 @@ else:
 
     check_solutions(product, system.solutions.copy(), verbose=True)
 
-    print '\n' * 2
+    print
 
     ## Now lets do the assumptions stuff
     if len(system.unsolved_var) and num_assumptions:    
 
-        solns = make_simultaneous_assumptions(system, 
+        solns = zip(*make_simultaneous_assumptions(system, 
                                               num_assumptions=num_assumptions,
                                               verbose=True,
-                                              rank_func=max_coef_rank_variables)
+                                              rank_func=max_coef_rank_variables,
+                                              return_variables=True,
+                                              limit_permutations=1))
         
         for i, sol in enumerate(solns):
-            print '\n' * 2 + 'Case {}'.format(i + 1)
+            sol, sub = sol
+            print '\n' + 'Case {}'.format(i + 1)
+            print sub
             #sol.print_summary()
             print 'Num Qubits End: {}'.format(len(sol.unsolved_var))
             

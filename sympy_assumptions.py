@@ -9,6 +9,7 @@ from collections import defaultdict
 from operator import itemgetter
 from time import time
 import itertools
+import math
 import sympy
 
 from contradiction_exception import ContradictionException
@@ -25,11 +26,11 @@ def lexographical_rank_variable(equation_solver):
         >>> test1 = {str(v): v for v in [a, b]}
         >>> test2 = {str(v): v for v in [p1, p2, q4]}
         >>> lexographical_rank_variable(EquationSolver(variables=test1))
-        {b: 1, a: 0}
+        {b: 0, a: 1}
         >>> lexographical_rank_variable(EquationSolver(variables=test2))
-        {p1: 0, p2: 1, q4: 2}
+        {p1: 2, p2: 1, q4: 0}
     '''
-    vars_ = sorted(equation_solver.unsolved_var, key=str)
+    vars_ = sorted(equation_solver.unsolved_var, key=str, reverse=True)
     return {var: i for i, var in enumerate(vars_)}
 
 
@@ -153,6 +154,22 @@ def max_coef_rank_variables(equation_solver,
                     var_score[term] += max(abs(coef), var_score[term])
     
     return var_score
+    
+def _rank_dict(term_to_score):
+    ''' Given a dict of scores, transform them into a rank 
+    
+        >>> x1, x2, x3, x4 = sympy.symbols('x1 x2 x3 x4')
+        >>> _rank_dict({x1: 2, x2: -1, x3: 5, x4: 2})
+        {x3: 1, x4: 2, x1: 3, x2: 4}
+    '''
+    # Now extract the biggest score
+    ranked = sorted(term_to_score.iteritems(), key=itemgetter(1), reverse=True)
+    sorted_var = itertools.imap(itemgetter(0), ranked)
+    return dict(((term, rank + 1) for rank, term in enumerate(sorted_var)))
+
+def _comb_rank_func((vars_, scores)):
+    ''' Transform a (variables, scores) tuple into a single sortable value '''
+    return sum([math.pow(score, 0.9) for score in scores])
 
 def get_variables_to_substitute(num_variables, equation_solver,
                                 rank_func=weighted_frequency_rank_variables,
@@ -161,6 +178,46 @@ def get_variables_to_substitute(num_variables, equation_solver,
         and then return the top results.
         Returns a nested array, where each array represents a list of variables
         to substitute simultaneously.
+        
+        >>> equations = ['4*x1 + 3*x2 + 2*x3 + 2*x4 + x5 + x6 + x7 - 6']
+        >>> equations = map(sympy.sympify, equations)
+        >>> equations = map(sympy.Eq, equations)
+        >>> system = EquationSolver(equations)
+
+        >>> subs = get_variables_to_substitute(1, system, limit_permutations=None)
+        >>> for s in subs: print s
+        (x1,)
+        (x2,)
+        (x3,)
+        (x4,)
+        (x7,)
+        (x6,)
+        (x5,)
+        
+        
+        >>> subs = get_variables_to_substitute(2, system, limit_permutations=None)
+        >>> for s in subs: print s
+        (x2, x1)
+        (x3, x1)
+        (x4, x1)
+        (x3, x2)
+        (x7, x1)
+        (x2, x4)
+        (x6, x1)
+        (x7, x2)
+        (x3, x4)
+        (x1, x5)
+        (x2, x6)
+        (x3, x7)
+        (x2, x5)
+        (x3, x6)
+        (x7, x4)
+        (x3, x5)
+        (x6, x4)
+        (x4, x5)
+        (x7, x6)
+        (x7, x5)
+        (x6, x5)
     '''
     var_score = rank_func(equation_solver)
 
@@ -168,25 +225,31 @@ def get_variables_to_substitute(num_variables, equation_solver,
     if not len(var_score):
         return None
 
-    # Now extract the biggest score
-    ranked = sorted(var_score.iteritems(), key=itemgetter(1))
+    # Base it off of variables ranks
+    var_score = _rank_dict(var_score)
+    
+    # Now take the dictionary to a numpy array for fast ranking etc.
+    var_score = var_score.items()
+    
+    # Now make tuples of ((x1, x2, ...), (score1, score2, ...))
+    combs_to_sub = list(itertools.combinations(var_score, num_variables))
+    combs_to_sub = [zip(*comb) for comb in combs_to_sub]
+    
+    # Now sort based on the combined score of (score1, score2, score3...)
+    combs_to_sub = sorted(combs_to_sub, key=_comb_rank_func)
+    combs_to_sub = map(itemgetter(0), combs_to_sub)
 
-#    vars_ = equation_solver.unsolved_var
-#    if biggest is not None:
-#        assert var in vars_
 
-    sorted_var = itertools.imap(itemgetter(0), ranked)
-    vars_to_sub = list(itertools.combinations(sorted_var, num_variables))
     if limit_permutations is None:
-        return vars_to_sub
+        return combs_to_sub
     else:
-        return vars_to_sub[:limit_permutations]
-
+        return combs_to_sub[:limit_permutations]
 
 def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
                      rank_func=weighted_frequency_rank_variables,
                      limit_permutations=1,
-                     verbose=True):
+                     verbose=True,
+                     return_variables=False):
     ''' Given a system of equations, make a number of assumptions and see if we
         reach a contradiction or not.
         Returns a list of EquationSolver systems representing each possible
@@ -194,7 +257,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         limit_permutations decides whether we just substitute the best
         num_assumptions variables, or every combination of num_assumptions
         variables.
-    
+
         >>> test_kwargs = {'rank_func': lexographical_rank_variable,
         ...                'verbose': False,
         ...                'limit_permutations': 1}        
@@ -251,8 +314,8 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         ...                                      **test_kwargs)
         >>> for sol in sols: print sol.solutions
         {x1: 0, x2: 0}
-        {x1: 0, x2: 1}
         {x1: 1, x2: 0}
+        {x1: 0, x2: 1}
         {x3: 0, x7: 0, x2: 1, x6: 0, x4: 0, x1: 1, x5: 0}
 
 
@@ -291,31 +354,40 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         >>> sols = make_simultaneous_assumptions(system, 
         ...                                      num_assumptions=2,
         ...                                      **alt_kwargs)
-        >>> for sol in sols[:10]: print sol.solutions
+        >>> for sol in sols[:15]: print sol.solutions
         {x1: 0, x2: 0}
-        {x1: 0, x2: 1}
         {x1: 1, x2: 0}
+        {x1: 0, x2: 1}
         {x3: 0, x7: 0, x2: 1, x6: 0, x4: 0, x1: 1, x5: 0}
         {x3: 0, x1: 0}
-        {x3: 1, x1: 0}
         {x3: 0, x1: 1}
+        {x3: 1, x1: 0}
         {x3: 1, x7: 0, x2: 0, x6: 0, x4: 0, x1: 1, x5: 0}
         {x4: 0, x1: 0}
+        {x4: 0, x1: 1}
         {x4: 1, x1: 0}
+        {x3: 0, x7: 0, x2: 0, x6: 0, x4: 1, x1: 1, x5: 0}
+        {x3: 0, x2: 0}
+        {x3: 0, x2: 1}
+        {x3: 1, x2: 0}
     '''
 
     vars_to_sub = get_variables_to_substitute(num_variables=num_assumptions,
                                               equation_solver=equation_solver,
                                               rank_func=rank_func,
                                               limit_permutations=limit_permutations)
-    
-    if verbose:
-        print 'Substituting: ' + ', '.join(map(str, vars_to_sub))
-    
+
     equation_solvers = []
     times = []
     
+    # Keep a record of what we're doing
+    subs_record = []
+    
     for var_combination in vars_to_sub:
+
+        if verbose:
+            print '\nSubstituting: ' + ', '.join(map(str, var_combination))
+        
         for sub_values in itertools.product(xrange(2), repeat=num_assumptions):
             start = time()        
             try:
@@ -329,6 +401,9 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
                 times.append(time_taken)
                 if verbose:
                     print 'Substitution completed in\t{:.2f}s'.format(time_taken)
+                
+                # Now add to the log
+                subs_record.append(dict(zip(var_combination, sub_values)))
             except ContradictionException:
                 end = time()
                 time_taken = end - start
@@ -342,7 +417,10 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
     if verbose:
         print '{} substitutions made in {:.2f}s'.format(len(times), sum(times))
     
-    return equation_solvers
+    if return_variables:
+        return equation_solvers, subs_record
+    else:
+        return equation_solvers
 
 
 def make_sequential_assumptions(equation_solver, num_assumptions=3, 
