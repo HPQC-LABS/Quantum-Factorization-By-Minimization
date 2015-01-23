@@ -416,6 +416,34 @@ def expressions_to_variables(exprs):
     assert all(map(lambda x: isinstance(x, sympy.Basic), exprs))
     return set.union(*[expr.atoms(sympy.Symbol) for expr in exprs])
 
+def gather_monic_terms(eqn):
+    ''' Take an equation and put all monic terms on the LHS, all non
+        monic terms + constants on the RHS
+        
+        >>> eqns = ['x + y + 2*x*y + 3',
+        ...         'x + y - z - 1']
+        >>> eqns = map(sympy.sympify, eqns)
+        >>> eqns = map(sympy.Eq, eqns)
+        >>> eqns = map(balance_terms, eqns)
+        >>> eqns = map(gather_monic_terms, eqns)
+        >>> for eqn in eqns: print eqn
+        x + y == -2*x*y - 3
+        x + y - z == 1
+    '''
+    lhs = []
+    rhs = []
+    expr = eqn.lhs - eqn.rhs
+    for term, coef in expr.as_coefficients_dict().iteritems():
+        if is_constant(term):
+            rhs.append(- term * coef)
+            continue
+
+        if abs(coef) != 1:
+            rhs.append(- term * coef)
+        else:
+            lhs.append(term * coef)
+    return sympy.Eq(sum(lhs), sum(rhs))
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
