@@ -58,7 +58,7 @@ def is_constant(expr):
         return True
     return len(expr.atoms(sympy.Symbol)) == 0
 
-def is_monic(expr):
+def is_monic(expr, allow_negative_monic=False):
     ''' Determine whether an expression is monic
         >>> expr = 'x + 2*y'
         >>> is_monic(sympy.sympify(expr))
@@ -81,8 +81,18 @@ def is_monic(expr):
         >>> expr = 'x*y + z**2 + 1'
         >>> is_monic(sympy.sympify(expr))
         True
+
+        >>> expr = '-x'
+        >>> is_monic(sympy.sympify(expr), allow_negative_monic=False)
+        False
+        >>> expr = '-x'
+        >>> is_monic(sympy.sympify(expr), allow_negative_monic=True)
+        True
     '''
-    return all(coef == 1 for coef in expr.as_coefficients_dict().itervalues())
+    if allow_negative_monic:
+        return all(abs(coef) == 1 for coef in expr.as_coefficients_dict().itervalues())
+    else:
+        return all(coef == 1 for coef in expr.as_coefficients_dict().itervalues())
 
 def is_equation(eqn):
     ''' Return True if it is an equation rather than a boolean value.
