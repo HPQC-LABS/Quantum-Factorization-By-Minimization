@@ -443,6 +443,59 @@ def gather_monic_terms(eqn):
         else:
             lhs.append(term * coef)
     return sympy.Eq(sum(lhs), sum(rhs))
+    
+    
+def square_equations(equations, term_limit=10, method=2):
+    ''' Take a bunch of equations and square them, depending on the method:
+        1: lhs^2 = rhs^2
+        2: (lhs - rhs)^2=0
+        
+        >>> eqns = ['x + y + 2*x*y + 3',
+        ...         'x + y - z - 1']
+        >>> eqns = map(sympy.sympify, eqns)
+        >>> eqns = map(sympy.Eq, eqns)
+        >>> eqns = map(balance_terms, eqns)
+
+        >>> eqns1 = square_equations(eqns, method=1, term_limit=None)
+        >>> for eqn in eqns1: print eqn
+        26*x*y + 7*x + 7*y + 9 == 0
+        2*x*y + x + y == 3*z + 1
+
+        >>> eqns2 = square_equations(eqns, method=2)
+        >>> for eqn in eqns2: print eqn
+        26*x*y + 7*x + 7*y + 9 == 0
+        2*x*y + 3*z + 1 == 2*x*z + x + 2*y*z + y
+    '''
+    squared = []
+    for eqn in equations:
+        if not is_equation(eqn):
+            continue
+        
+        # More than this and we'll grind to a halt
+        if ((term_limit is not None) and 
+            (num_add_terms(eqn.lhs) + num_add_terms(eqn.rhs) > term_limit)):
+            continue
+        
+        if method == 1:
+            eqn_sq = sympy.Eq((eqn.lhs ** 2).expand(), (eqn.rhs ** 2).expand())
+        elif method == 2:
+            eqn_sq = (eqn.lhs - eqn.rhs) ** 2
+            eqn_sq = sympy.Eq(eqn_sq.expand())
+
+        eqn_sq = remove_binary_squares_eqn(eqn_sq)
+        eqn_sq = balance_terms(eqn_sq)            
+        squared.append(eqn_sq)
+    
+    return squared
+
+def min_atoms(expr1, expr2):
+    ''' Given 2 expressions, return the simplest one, as defined by number of
+        atoms
+    '''
+    if expr1.atoms() > expr2.atoms():
+        return expr2
+    else:
+        return expr1
 
 if __name__ == "__main__":
     import doctest
