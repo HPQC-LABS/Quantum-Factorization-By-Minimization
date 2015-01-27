@@ -18,7 +18,8 @@ from sympy_helper_fns import (max_value, min_value, is_equation,
                               remove_binary_squares_eqn, balance_terms,
                               cancel_constant_factor, is_constant,
                               num_add_terms, parity, is_monic, is_one_or_zero,
-                              remove_binary_squares, expressions_to_variables)
+                              remove_binary_squares, expressions_to_variables,
+                              gather_monic_terms, square_equations)
 from objective_function_helper import (equations_to_vanilla_coef_str, 
                                        equations_to_vanilla_objective_function,
                                        equations_to_auxillary_coef_str)
@@ -217,6 +218,9 @@ class EquationSolver(object):
                         if self._length_tuple != state_summary:
                             num_constant_iter = 0
                             break
+                    
+                    # Now apply judgements to the squares of the equations
+#                    self.apply_judgements_square(self.equations)
 
                 if num_constant_iter > 4:
                     break
@@ -876,6 +880,25 @@ class EquationSolver(object):
                 self.update_value(var, 1)
             elif coef > 0:
                 self.update_value(var, 0)
+
+    def apply_judgements_square(self, equations):
+        ''' Pick out equations that we can square in a reasonable amount of
+            time and apply the judgements to them
+        '''
+        eqn_sq = square_equations(equations, term_limit=20, method=1)
+        
+        pre = self._length_tuple
+        pre_ded = self.deductions.copy()
+        self.apply_judgements(eqn_sq)
+        post = self._length_tuple
+        post_ded = self.deductions.copy()
+        
+        if pre != post:
+            pre_ded = set(pre_ded.iteritems())
+            post_ded = set(post_ded.iteritems())
+            
+            print '{} -> {} after square application'.format(pre, post)
+            print post_ded.symmetric_difference(pre_ded)
 
     def apply_judgements(self, equations):
         ''' Apply judgements to a list of sympy equations and directly update
