@@ -390,7 +390,7 @@ def remove_binary_squares(expr):
         >>> remove_binary_squares(x ** 3) is x
         True
     '''
-    exp_match = re.compile('[a-zA-Z][0-9]*\*\*[0-9]*')
+    exp_match = re.compile('[a-zA-Z][0-9_]*\*\*[0-9]*')
     matches = re.findall(exp_match, str(expr))
     for match in matches:
         var, exp = match.split('**')
