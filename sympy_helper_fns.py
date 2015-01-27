@@ -183,6 +183,12 @@ def cancel_constant_factor(eqn, maintain_sign=False):
         >>> lhs = sympy.sympify('15*x + 3')
         >>> cancel_constant_factor(sympy.Eq(lhs))
         5*x + 1 == 0
+        
+        Don't cancel variables!
+        >>> lhs = sympy.sympify('x*y')
+        >>> rhs = sympy.sympify('x*z + z*z1')
+        >>> cancel_constant_factor(sympy.Eq(lhs, rhs))
+        x*y == x*z + z*z1
 
         Negative equations
         >>> lhs = sympy.sympify('-3*x - 6')
