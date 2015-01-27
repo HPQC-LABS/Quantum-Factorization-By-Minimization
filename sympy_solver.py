@@ -149,7 +149,14 @@ class EquationSolver(object):
     @property
     def deductions_as_equations(self):
         ''' Return deductions as a list of equations '''
-        return EquationSolver._dict_as_equations(self.deductions)
+        new_equations = EquationSolver._dict_as_equations(self.deductions)
+        new_equations = filter(is_equation, new_equations)        
+        new_equations = [eqn.expand() for eqn in new_equations]
+        new_equations = map(remove_binary_squares_eqn, new_equations)
+        new_equations = map(balance_terms, new_equations)
+        new_equations = map(cancel_constant_factor, new_equations)
+        new_equations = filter(is_equation, new_equations)
+        return new_equations
     
     @property
     def solutions_as_equations(self):
@@ -172,7 +179,7 @@ class EquationSolver(object):
         '''
         return len(self.equations), len(self.deductions), len(self.solutions)
 
-    def solve_equations(self, max_iter=60, verbose=False):
+    def solve_equations(self, max_iter=100, verbose=False):
         ''' Solve a system of equations
         '''
         state_summary = self._length_tuple
@@ -186,6 +193,7 @@ class EquationSolver(object):
             # Clear the cache so that we don't blow up memory when working with
             # large numbers
             clear_cache()
+
             if verbose:
                 self.print_('\t'.join(['{}'] * 4).format(i, *state_summary))
 
@@ -396,7 +404,7 @@ class EquationSolver(object):
                     new_eq = sympy.Eq(eqn1.rhs, eqn2.rhs)
                     new_eq = balance_terms(new_eq)
                     to_add.append(new_eq)
-                    #self.print_('Equation added! {}, {}'.format(eqn1, eqn2))
+#                    self.print_('Equation added! {}, {}'.format(eqn1, eqn2))
     
             all_equations = itertools.chain(cleaned, self.deductions_as_equations)
             for eqn1, eqn2 in itertools.combinations(all_equations, 2):
@@ -407,33 +415,6 @@ class EquationSolver(object):
                         to_add)
             to_add = filter(is_equation, to_add)
             cleaned.extend(to_add)
-
-        ### Old code
-#        cleaned = []
-#        for eqn in eqns + to_add:
-#
-#            clean = balance_constant(eqn) #sympy.simplify(eqn)
-#            clean = cancel_constant_factor(clean)
-#
-#            if clean == True:
-#                continue
-#
-#            # Substitute in all values
-#            clean = clean.subs(self.deductions)
-#
-#            if clean != True:
-#                clean = clean.expand()
-#
-#            # every square is itself
-#            clean = remove_binary_squares_eqn(clean)
-#
-#            if clean == True:
-#                continue
-#
-#            cleaned.append(clean)
-#
-#        # Clean any negative terms that might creep in
-#        cleaned = map(balance_terms, cleaned)
 
         # Finally clean up the deductions now we're finished with them
         self.clean_deductions()
@@ -478,7 +459,7 @@ class EquationSolver(object):
                         self.update_value(expr, possible_other_value)
                 continue
 
-            if len(latoms) == 1:
+            if (len(latoms) == 1) and is_monic(expr):
                 self.deductions.pop(expr)
                 curr_sol = self.solutions.get(expr)
 
@@ -498,13 +479,13 @@ class EquationSolver(object):
                             self.update_value(curr_sol, val)
                         # Both are symbolic
                         else:
-                            self.update_value(curr_sol, val)
+                            self.update_value(curr_sol, _simplest(curr_sol, val))
                 else:
                     if is_monic(expr):
                         self.solutions[expr] = val
 
             # If the RHS of a deduction is monic, then go again!
-            elif (len(val.atoms(sympy.Symbol)) == 1) and is_monic(val):
+            elif (len(ratoms) == 1) and is_monic(val):
                 self.deductions.pop(expr)
                 curr_sol = self.solutions.get(val)
 
@@ -519,7 +500,7 @@ class EquationSolver(object):
                         self.update_value(val, curr_sol)
                     else:
                         # The new val is constant
-                        self.solutions[expr] = val
+                        self.solutions[val] = _simplest(curr_sol, expr)
                         self.update_value(curr_sol, val)
                 else:
                     self.solutions[val] = expr
@@ -539,12 +520,24 @@ class EquationSolver(object):
             cleaned_sol = ((var, self.solutions.get(var)) for var in cleaned_atoms)
             cleaned_sol = filter(lambda x: x[1] is not None, cleaned_sol)
             cleaned_sol = {x[0]: x[1] for x in cleaned_sol}
+        else:
+            cleaned_sol = self.solutions.copy()
 
         old_deductions = self.deductions.copy()
         self.deductions = {}
         for expr, val in old_deductions.iteritems():
-#        for expr, val in itertools.chain(old_deductions.iteritems(),
-#                                         self.solutions.copy().iteritems()):
+            
+            # If we have something like x = xy + xz, we don't want to expand
+            # up to something harder to deal with
+            # Note here we want to break the convention of simplest, as in
+            # the event of a tie, the first value is returned. In this case,
+            # we want to err on the side of caution and not throw away
+            # deductions
+            # 
+            # Actually, don't get rid of anything we don't *need* to, so that
+            # we don't miss possible contradictions in the assumption stages.
+#            if latoms.intersection(ratoms) and (_simplest(val, expr) == expr):
+#                continue
 
             # Substitute all of the solved variables
             expr = expr.subs(cleaned_sol).expand()
@@ -553,6 +546,7 @@ class EquationSolver(object):
             ratoms = set([val]) if isinstance(val, int) else val.atoms()
             if (len(latoms.intersection(unsolved_var)) or
                 len(ratoms.intersection(unsolved_var))):
+
                 eqn = sympy.Eq(expr, val)
 
                 if eqn == True:
@@ -817,8 +811,9 @@ class EquationSolver(object):
                     self._update_log(expr, value)
 
                 else:
-                    self.deductions[expr] = current_val
-                    self._update_log(expr, current_val)
+                    simple = _simplest(current_val, value)
+                    self.deductions[expr] = simple
+                    self._update_log(expr, simple)
                     if value != current_val:
                         self.deductions[current_val] = value
                         self._update_log(current_val, value)
@@ -1610,6 +1605,18 @@ def _parse_term(term, variables):
             variables[v] = instance
         var_instances.append(instance)
     return coef * sympy.prod(var_instances)
+
+## Conflict resolution
+def _simplest(expr1, expr2):
+    ''' Return the simplest of expr1 and expr2, giving precedence to expr1.
+        Used by the solver when we have 2 different symbolic values and we
+        want to determine which to assign.
+        ASSUMES THE FIRST ARGUMENT IS THE OLD VALUE
+    '''
+    if len(expr2.atoms()) > len(expr1.atoms()):
+        return expr2
+    else:
+        return expr1
 
 # Inspection
 def _get_judgement():
