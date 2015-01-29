@@ -445,6 +445,19 @@ class EquationSolver(object):
             >>> system.clean_deductions()
             >>> system.solutions
             {a: b}
+            
+            Sort out the x = xy case
+            >>> a, b, c, x, y, z = sympy.symbols('a b c x y z')
+            >>> variables = [a, b, c, x, y, z]
+            >>> system = EquationSolver([], {str(v) : v for v in variables})
+            >>> ZERO, ONE = sympy.sympify(0), sympy.sympify(1)
+            >>> deductions = {a: a*b, x:x*y + y*z}
+            >>> system.deductions = deductions
+            >>> system.clean_deductions()
+            >>> system.solutions
+            {}
+            >>> system.deductions
+            {a*b: a, x: x*y + y*z}
         '''
         # First trawl through the deductions for definite solutions
         for expr, val in self.deductions.copy().iteritems():
@@ -736,17 +749,22 @@ class EquationSolver(object):
 
             >>> system = EquationSolver()
             >>> x = sympy.symbols('x')
-            >>> system.update_value(-x, 1)
-            >>> system.deductions
-            {x: -1}
-
-            >>> system = EquationSolver()
-            >>> x = sympy.symbols('x')
             >>> system.update_value(2*x, 0)
             >>> system.deductions
             {x: 0}
+
+            x = x*y case
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> system = EquationSolver()
+            >>> system.update_value(x, x*y)
+            >>> system.deductions
+            {x*y: x}
+            >>> system = EquationSolver()
+            >>> system.update_value(y*z, x*y*z)
+            >>> system.deductions
+            {x*y*z: y*z}
         '''
-        # If expr = 2*x and value ==0, then we can get rid of the 2
+        # If expr = 2*x and value == 0, then we can get rid of the 2
         if value == 0:
             expr = expr.as_coeff_Mul()[1]
 
@@ -763,6 +781,16 @@ class EquationSolver(object):
 
         # If value already maps to expr, avoid the cycle!
         if self.deductions.get(value) == expr:
+            return
+
+        # If we have the nasty case where x = x*y, then we want to flip the
+        # values round
+        # Actually we do this whenever the lhs is a factor of the rhs
+        expr_atoms = expr.atoms(sympy.Symbol)
+        lhs_simpler = all(expr_atoms.issubset(term.atoms(sympy.Symbol)) 
+                      for term in value.as_coefficients_dict().iterkeys())
+        if lhs_simpler and len(expr_atoms) < len(value.atoms(sympy.Symbol)):
+            self.update_value(value, expr)
             return
 
         # No possible conflict
@@ -1436,7 +1464,7 @@ class EquationSolver(object):
             >>> eqn = sympy.Eq(x * y + x, 2 * z)
             >>> system.judgement_7(eqn)
             >>> system.deductions
-            {x: x*y, z: x*y}
+            {x*y: x, z: x*y}
         '''
         lhs, rhs = eqn.lhs, eqn.rhs
         if len(lhs.as_ordered_terms()) == 2:
