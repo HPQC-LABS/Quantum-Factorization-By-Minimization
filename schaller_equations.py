@@ -71,6 +71,9 @@ def generate_schaller_equations(num_digits_multiplicand_1,
     n = num_digits_multiplicand_1 + num_digits_multiplicand_2
     k = num_digits_multiplicand_1
     
+    if len(target_digits) < n:
+        target_digits = target_digits.rjust(n, '0')
+    
     equations = []
     edge_subs = {}
     
@@ -82,28 +85,15 @@ def generate_schaller_equations(num_digits_multiplicand_1,
     edge_subs['p{k}'.format(k=k)] = 1
     edge_subs['q{nmk}'.format(nmk=n - k)] = 1
         
-    
+    # Loop over and create the edge cases
     for i in xrange(1, k + 1):
         for j in xrange(1, n - k + 1):
-            # Add the multiplicand term
-            a = 'p{i}'.format(i=i)
-            b = 'q{j}'.format(j=j)
-            
-            s = 'S{i}_{j} + z{i}_{j} - S{ip1}_{jm1} - 2*z{im1}_{j}'
-            s = s.format(i=i, j=j, ip1=i + 1, jm1=j - 1, im1=i - 1)
-            
-            a = sympy.sympify(a)
-            b = sympy.sympify(b)
-            s = sympy.sympify(s)
-            
-            equations.append(schaller_transform(a, b, s))
-    
             # Now add in the edge cases
             if i == 1:
                 edge_subs['z0_{j}'.format(j=j)] = 'S1_{jm1}'.format(jm1=j - 1)
             
             if j == 1:
-                # We want i + 1 as the digit indices start at 1
+                # We want i - 1 as the digit indices start at 1
                 edge_subs['S{i}_0'.format(i=i)] = target_digits[i - 1]
             
             if i == k:
@@ -119,10 +109,47 @@ def generate_schaller_equations(num_digits_multiplicand_1,
             if i == 1:
                 edge_subs['S1_{nmkm1}'.format(nmkm1=n - k - 1)] = 0
     
-    edge_subs = _sympify_dict(edge_subs)
+    for i in xrange(1, k + 1):
+        for j in xrange(1, n - k + 1):
+            
+            formatter = {'i': i, 'j': j, 'ip1': i + 1, 'jm1': j - 1, 
+                         'im1': i - 1}
+
+            a = 'p{i}'.format(**formatter)
+            a_sub = edge_subs.get(a)
+            if a_sub is not None:
+                a = a_sub
+            a = sympy.sympify(a)
+            
+            b = 'q{j}'.format(**formatter)
+            b_sub = edge_subs.get(b)
+            if b_sub is not None:
+                b = b_sub
+            b = sympy.sympify(b)
+            
+            s = 0 
+            lterms = ['S{i}_{j}', 'z{i}_{j}']
+            for term in lterms:
+                term = term.format(**formatter)
+                sub = edge_subs.get(term)
+                if sub is not None:
+                    term = sub
+                term = sympy.sympify(term)
+                s += term
+            
+
+            rterms = ['S{ip1}_{jm1}', 'z{im1}_{j}']
+            for coef, term in enumerate(rterms):
+                term = term.format(**formatter)
+                sub = edge_subs.get(term)
+                if sub is not None:
+                    term = sub
+                term = sympy.sympify(term)
+                s -= (coef + 1) * term
+            
+            equations.append(schaller_transform(a, b, s))
     
-    equations = map(remove_binary_squares, equations)
-    equations = [eqn.subs(edge_subs) for eqn in equations]
+    #equations = map(remove_binary_squares, equations)
     equations = map(sympy.Eq, equations)
     equations = map(balance_terms, equations)
     equations = filter(is_equation, equations)
