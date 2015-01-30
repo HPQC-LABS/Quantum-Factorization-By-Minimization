@@ -4,6 +4,7 @@ import GenerateTableOutput
 import GenerateCarry
 import EquationHandler
 import sys
+from time import time
 
 from sympy_assumptions import (make_simultaneous_assumptions, 
                                frequency_rank_variables,
@@ -12,6 +13,8 @@ from sympy_assumptions import (make_simultaneous_assumptions,
                                lexographical_rank_variable)
 from verification import check_solutions
 from sympy_helper_fns import square_equations
+from sympy_solver import EquationSolver
+from contradiction_exception import ContradictionException
 
 
 __author__ = "Nathaniel Bryans"
@@ -206,14 +209,7 @@ myParams = [formattedCols, carry]
 eqns = EquationHandler.GenerateEquations(myParams)
 
 
-if 0:
-    import EquationSolver
-    myParams = [eqns, carry, strP, strQ, product, OutputFileName]
-    EquationSolver.SolveEquation(myParams)
-else:
-    from sympy_solver import EquationSolver
-    from contradiction_exception import ContradictionException
-    from time import time
+
     s = time()
     # None means the result will be printed to screen
     output = None#OutputFileName
