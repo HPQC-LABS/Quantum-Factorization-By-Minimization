@@ -255,6 +255,38 @@ def expression_to_coef_string(expr):
 
     return term_dict_to_coef_string(expr.as_coefficients_dict())
 
+def coef_str_to_file(coef_str, filename=None):
+    ''' Write the objective function to a file, or printing if None.
+        Also include the dictionary of variable number to original variable
+    '''
+    if filename is None:
+        print coef_str
+    else:
+        f = open(filename, 'a')
+        f.write(coef_str)
+        f.close()
+
+## Original Schaller implementation when the equations come transformed, we
+## just need to add them up
+def equations_to_sum_coef_str(eqns):
+    ''' Take equations and sum them up
+        >>> equations = ['a + b - c*d - 1', 'x1*x2 + 3*x2*x3 - 2']
+        >>> equations = map(sympy.sympify, equations)
+        >>> equations = map(sympy.Eq, equations)
+        >>> print equations_to_sum_coef_str(equations)
+        3 4 -1
+        6 7 3
+        -3
+        1 1
+        2 1
+        5 6 1
+        <BLANKLINE>
+        {x3: 7, c: 3, x2: 6, d: 4, x1: 5, a: 1, b: 2}
+    '''
+    exprs = map(lambda x: x.lhs - x.rhs, eqns)
+    term_dict = expressions_to_term_dict(exprs)
+    return term_dict_to_coef_string(term_dict)
+
 ## Introduce auxilary variables
 def schaller((ab, s)):
     ''' Change (ab-s)**2 to (ab - sa - sb + s), which has minimums at exactly
