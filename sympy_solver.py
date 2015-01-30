@@ -93,15 +93,6 @@ class EquationSolver(object):
         copy.deduction_record = deepcopy(self.deduction_record)
         return copy
 
-    @classmethod
-    def from_params(cls, params, **kwargs):
-        ''' Create an instance from the outpu of whatever came before
-            params[0][i] contains all leftsides
-            params[1][i] contains all rightsides
-        '''
-        equations, variables = parse_equations(params)
-        return cls(equations, variables, **kwargs)
-
     # Pickling
     # This isn't mature/finished, but manages to write equations, deductions and
     # solutions to disk
@@ -1601,45 +1592,6 @@ class EquationSolver(object):
             if (r_parity is not None) and (l_parity != r_parity):
                 raise ContradictionException('contradiction_2: {}'.format(eqn))
 
-## Parsing and set up
-
-def parse_equations(params):
-    '''
-        params[0][i] contains all leftsides
-        params[1][i] contains all rightsides
-    '''
-    eqns = []
-    variables = {}
-    for lhs, rhs in itertools.izip(*params):
-        lhs = _parse_expression(lhs, variables)
-        rhs = _parse_expression(rhs, variables)
-        eqn = sympy.Eq(lhs, rhs)
-        eqns.append(eqn)
-
-    return eqns, variables
-
-def _parse_expression(expr, variables):
-    ''' Take a list of terms, clean them up and return a sympy expression in terms
-        of the global variables '''
-    out = 0
-    for term in expr:
-        if term == '':
-            continue
-        out += _parse_term(term, variables)
-    return out
-
-def _parse_term(term, variables):
-    ''' Take a term and clean it, replacing variables '''
-    coef = int(ReHandler.get_coefficient(term))
-    var = ReHandler.get_variables(term)
-    var_instances = []
-    for v in var:
-        instance = variables.get(v)
-        if instance is None:
-            instance = sympy.symbols(v)
-            variables[v] = instance
-        var_instances.append(instance)
-    return coef * sympy.prod(var_instances)
 
 ## Conflict resolution
 def _simplest(expr1, expr2):

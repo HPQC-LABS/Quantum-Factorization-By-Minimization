@@ -192,8 +192,6 @@ def expressions_to_term_dict(exprs, process_eqn=None):
     '''
     final_terms = defaultdict(int)
     for i, expr in enumerate(exprs):
-#        print '{:.2f}% done'.format(100.0 * i / len(exprs))
-        
         for t, c in expr.as_coefficients_dict().iteritems():
             final_terms[t] += c
     return final_terms
