@@ -239,10 +239,17 @@ class EquationSolver(object):
         # Final clean again, for good luck
         self.equations = self.clean_equations(self.equations)
 
-    def print_summary(self):
-        ''' Print a summary of the information held in the object '''
+    @property
+    def final_equations(self):
+        ''' final_equations are the final filtered equations that also
+            include deductions
+        '''
         final_equations = self.equations + self.deductions_as_equations
         final_equations = sorted(set(final_equations), key=str)
+        return final_equations
+
+    def print_summary(self):
+        ''' Print a summary of the information held in the object '''
         unsolved_var = self.unsolved_var
 #
 #        self.final_variables = unsolved_var
@@ -269,7 +276,7 @@ class EquationSolver(object):
 
 
         self.print_('Final Equations')
-        for e in sorted(final_equations, key=str):
+        for e in self.final_equations:
             self.print_(e)
 
         self.print_('Num Qubits Start: {}'.format(self.num_qubits_start))
