@@ -37,7 +37,7 @@ class EquationSolver(object):
     ''' Solver of equations '''
 
     def __init__(self, equations=None, variables=None, log_deductions=False,
-                 output_filename=None):
+                 output_filename=None, invariant_interactions_on_substitution=True):
         if variables is None:
             if equations is None:
                 variables = {}
@@ -66,6 +66,11 @@ class EquationSolver(object):
         # And keep a nested dictionary of who made them, if we want
         self.log_deductions = log_deductions
         self.deduction_record = defaultdict(lambda : defaultdict(list))
+        
+        # if invariant_interactions_on_substitution is True, then only
+        # substitute x = (1-y + z1) type deductions, where each term on the
+        # RHS has 1 atom
+        self.invariant_interactions_on_substitution = invariant_interactions_on_substitution
 
     def print_(self, output, close=False):
         ''' Print either to screen or a file if given '''
@@ -579,7 +584,8 @@ class EquationSolver(object):
 
                 if not is_constant(expr):
                     assert not is_constant(val)
-                    self.print_('Dropping deduction {} = {}'.format(expr, val))
+                    if expr != val:
+                        self.print_('Dropping deduction {} = {}'.format(expr, val))
 
     def clean_solutions(self):
         ''' Remove cycles and chains in the solutions. Make sure every value is
@@ -992,7 +998,7 @@ class EquationSolver(object):
             Note this isn't applied to the equations directly, but is called
             via the parity judgement
             
-            >>> system = EquationSolver()
+            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y*z, 1)
             >>> system.judgement_two_term(eqn)
@@ -1031,26 +1037,39 @@ class EquationSolver(object):
         if (num_add_terms(lhs) == 2) and is_constant(rhs):
 
             term1, term2 = lhs.as_ordered_terms()
+            
+            term1_atoms = term1.atoms(sympy.Symbol)
+            term2_atoms = term2.atoms(sympy.Symbol)            
+            
+            # max with 1 to avoid ignoring constants
+            if (self.invariant_interactions_on_substitution and 
+                (max((len(term1_atoms), 1)) != max((len(term2_atoms), 1)))):
+                return
 
-            if ((0 < len(term2.atoms(sympy.Symbol)) < len(term1.atoms(sympy.Symbol)))
+            if ((0 < len(term2_atoms) < len(term1_atoms))
                 or is_constant(term1)):
                 self.update_value(term2, rhs - term1)
-#                self.update_value(term1 + term2, rhs)
 
             else:
                 self.update_value(term1, rhs - term2)
-#                self.update_value(term1 + term2, rhs)
 
     def judgement_n_term(self, eqn, max_num_terms=3):
         ''' If an expression has n or fewer variable terms, sub it in!
             Only substitute single atoms terms for the moment
 
-            >>> system = EquationSolver()
+            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y*z, 1)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {x: -y*z + 1}
+
+            >>> system = EquationSolver(invariant_interactions_on_substitution=True)
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y*z, 1)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
@@ -1087,7 +1106,7 @@ class EquationSolver(object):
             >>> system.deductions
             {x: -y - z + 1}
 
-            >>> system = EquationSolver()
+            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
             >>> x, y, z, z2, u, v = sympy.symbols('x y z z2 u v')
             >>> eqn = sympy.Eq(2*x + y + z*z2, u + v)
             >>> system.judgement_n_term(eqn)
@@ -1107,11 +1126,15 @@ class EquationSolver(object):
 
             term_to_sub = None
             for term in lhs.as_ordered_terms():
+                term_atoms = term.atoms(sympy.Symbol)
                 # We want a monic term of 1 variable if we haven't found one yet
-                if ((len(term.atoms(sympy.Symbol)) == 1) and
+                if ((len(term_atoms) == 1) and
                     (term.as_coeff_mul()[0] == 1) and
                     (term_to_sub is None)):
                     term_to_sub = term
+
+                if self.invariant_interactions_on_substitution and (len(term_atoms) > 1):
+                    return
 
             if term_to_sub is not None:
                 self.update_value(term_to_sub, rhs - lhs + term_to_sub)
