@@ -9,11 +9,13 @@ from schaller_equations_generator import generate_schaller_equations
 from carry_equations_generator import generate_carry_equations
 
 from objective_function_helper import (equations_to_vanilla_coef_str, 
-                                       equations_to_sum_coef_str)
+                                       equations_to_sum_coef_str,
+                                       equations_to_recursive_schaller_coef_str)
 
 # Tuples of equation generator, objective function generator
 QUBIT_REDUCTION_ID =   {0: (generate_carry_equations, equations_to_vanilla_coef_str),
                         1: (generate_schaller_equations, equations_to_sum_coef_str),
+                        2: (generate_carry_equations, equations_to_recursive_schaller_coef_str)
                         }
 
 EXPERIMENTS = {
