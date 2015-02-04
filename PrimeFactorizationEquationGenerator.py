@@ -24,7 +24,7 @@ __status__ = "Prototype"
 OutputFileName = "output.txt"
 
 # A default experiment to run
-exp = 3
+exp = 2
 params = EXPERIMENTS[exp]
 digitsInMultiplicand1, digitsInMultiplicand2, product = params
 
@@ -32,7 +32,7 @@ digitsInMultiplicand1, digitsInMultiplicand2, product = params
 num_assumptions = 0
 limit_assumptions = 1
 # Use standard carry equations by default
-qubit_reduction_method = 1
+qubit_reduction_method = 2
 
 #We can override the digit and product values above using arguments
 if len(sys.argv) > 2:
@@ -79,7 +79,7 @@ print '\nSolved in {}s'.format(time() - s)
 try:
     coef_filename = OutputFileName.replace('.txt', '_coef.txt')
     coef_str = coef_str_generator(system.final_equations)
-    coef_str_to_file(coef_str, 'rsa100_solved_schaller_obj_func.txt')
+    coef_str_to_file(coef_str, coef_filename)
 except Exception as e:
     print 'Failed to write the coefficient'
     print e
