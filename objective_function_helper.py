@@ -338,6 +338,10 @@ def recursive_schaller_transform(expr):
         >>> intermed_stage = a*b + 2*a*c*d + 2*a*e - 4*a + 2*b*c*d + 2*b*e - 4*b - c*d - e + 2*(c*d + e - 2)**2 + 2
         >>> recursive_schaller_transform(intermed_stage)
         a*b + 2*a*c*d + 2*a*e - 4*a + 2*b*c*d + 2*b*e - 4*b + c*d + 4*c*e - 8*c + 4*d*e - 8*d - 15*e + 22
+
+        3 term reduction
+        >>> recursive_schaller_transform((a*b*c + s) ** 2)
+        a*b*c + 2*a*b*s + 2*c*s + s
     '''
     return remove_binary_squares(_recursive_schaller_transform(expr))
 
@@ -356,7 +360,6 @@ def _recursive_schaller_transform(expr):
         for term, coef in exp_expr.as_coefficients_dict().iteritems():
             term_atoms = term.atoms(sympy.Symbol)
             if len(term_atoms) > 1:
-                assert len(term_atoms) == 2
                 a = term_atoms.pop()
                 b = reduce(operator.mul, term_atoms, 1)
                 s = exp_expr - coef * term
