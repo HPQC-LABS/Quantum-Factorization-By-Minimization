@@ -503,6 +503,35 @@ def min_atoms(expr1, expr2):
     else:
         return expr1
 
+def str_eqns_to_sympy_eqns(str_eqns):
+    ''' Take string equations and sympify 
+
+        >>> str_eqns = ['x + y == 1', 'x*y*z - 3*a == -3']
+        >>> eqns = str_eqns_to_sympy_eqns(str_eqns)
+        >>> for e in eqns: print e
+        x + y == 1
+        x*y*z + 3 == 3*a
+    '''
+    str_exprs = []
+    for str_eqn in str_eqns:
+        str_exprs.append('{} - ({})'.format(*str_eqn.split('==')))
+    return str_exprs_to_sympy_eqns(str_exprs)
+
+def str_exprs_to_sympy_eqns(str_exprs):
+    ''' Take some strings and return the sympy expressions 
+
+        >>> str_eqns = ['x + y - 1', 'x*y*z - 3*a + 3']
+        >>> eqns = str_exprs_to_sympy_eqns(str_eqns)
+        >>> for e in eqns: print e
+        x + y == 1
+        x*y*z + 3 == 3*a
+    '''
+    exprs = map(sympy.sympify, str_exprs)
+    exprs = map(sympy.Eq, exprs)
+    return map(balance_terms, exprs)
+
+
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
