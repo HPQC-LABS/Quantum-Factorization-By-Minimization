@@ -265,7 +265,7 @@ def _check_solutions_for_targets(targets, solutions, verbose=False):
     if verbose:
         print VERIFICATION_SUCCESS_MESSAGE
 
-def verify_term_dict(product, term_dict):
+def evaluate_term_dict(product, term_dict):
     ''' Given a term dict, check that it evaluates to 0 
     
         >>> params = EXPERIMENTS[1]
@@ -275,8 +275,8 @@ def verify_term_dict(product, term_dict):
         >>> system = EquationSolver(eqns)
         >>> system.solve_equations()
         >>> term_dict = equations_to_vanilla_term_dict(system.equations)
-        >>> verify_term_dict(prod, term_dict)
-        True
+        >>> evaluate_term_dict(prod, term_dict)
+        0
     
         >>> params = EXPERIMENTS[2]
         
@@ -285,8 +285,8 @@ def verify_term_dict(product, term_dict):
         >>> system = EquationSolver(eqns)
         >>> system.solve_equations()
         >>> term_dict = equations_to_vanilla_term_dict(system.equations)
-        >>> verify_term_dict(prod, term_dict)
-        True
+        >>> evaluate_term_dict(prod, term_dict)
+        0
 
         >>> params = EXPERIMENTS[3]
         
@@ -295,8 +295,8 @@ def verify_term_dict(product, term_dict):
         >>> system = EquationSolver(eqns)
         >>> system.solve_equations()
         >>> term_dict = equations_to_recursive_schaller_term_dict(system.equations)
-        >>> verify_term_dict(prod, term_dict)
-        True
+        >>> evaluate_term_dict(prod, term_dict)
+        0
     '''
     target_solns = get_target_solutions(product)
     
@@ -305,7 +305,7 @@ def verify_term_dict(product, term_dict):
     for term, coef in term_dict.iteritems():
         obj_func += term.subs(target_solns) * coef
     
-    return obj_func == 0
+    return obj_func
 
 def factorise(n):
     ''' Return list of factors 
