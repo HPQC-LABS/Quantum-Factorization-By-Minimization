@@ -153,6 +153,29 @@ def equations_to_vanilla_objective_function(equations):
     term_dict = sum_term_dicts(tds)
     return sum([k*v for k, v in term_dict.iteritems()])
 
+
+
+def equations_to_vanilla_term_dict(equations):
+    ''' Return the coefficient string of the objective function of some equations
+        Also include the dictionary of variable number to original variable
+
+        >>> lhs = 'x'
+        >>> rhs = '1'
+        >>> eqns = [sympy.Eq(sympy.sympify(lhs), sympy.sympify(rhs))]
+        >>> print equations_to_vanilla_term_dict(eqns)
+        defaultdict(<type 'int'>, {1: 1, x: -1})
+
+        >>> lhs = 'x + y'
+        >>> rhs = 'x*y'
+        >>> eqns = [sympy.Eq(sympy.sympify(lhs), sympy.sympify(rhs))]
+        >>> print equations_to_vanilla_term_dict(eqns)
+        defaultdict(<type 'int'>, {x*y: -1, x: 1, y: 1})
+    '''
+    tds = map(eqn_to_vanilla_term_dict, equations)
+    term_dict = sum_term_dicts(tds)
+    return term_dict
+
+
 def equations_to_vanilla_coef_str(equations):
     ''' Return the coefficient string of the objective function of some equations
         Also include the dictionary of variable number to original variable
@@ -176,8 +199,7 @@ def equations_to_vanilla_coef_str(equations):
         <BLANKLINE>
         {x: 1, y: 2}
     '''
-    tds = map(eqn_to_vanilla_term_dict, equations)
-    term_dict = sum_term_dicts(tds)
+    term_dict = equations_to_vanilla_term_dict(equations)
     return term_dict_to_coef_string(term_dict)
 
 ## General helpers
@@ -363,18 +385,38 @@ def _recursive_schaller_transform(expr):
                 a = term_atoms.pop()
                 b = reduce(operator.mul, term_atoms, 1)
                 s = exp_expr - coef * term
-                transformed = schaller_transform(a, b, s)
+                transformed = schaller_transform(a, coef * b, s)
                 return _recursive_schaller_transform(transformed) * expr_coef
-        return expr.expand()
-        
+        return expr.expand() * expr_coef
+    
+    # Re-multiply by the constant
+    expr = expr * expr_coef
+    
     new_expr = 0
     for term, coef in expr.as_coefficients_dict().iteritems():
         if isinstance(term, sympy.Pow):
-            new_expr += coef * _recursive_schaller_transform(term)
+            new_expr += _recursive_schaller_transform(coef * term)
         else:
             new_expr += coef * term
     return new_expr
             
+def equations_to_recursive_schaller_term_dict(eqns):
+    ''' Take equations and perform the recursive transform until we're only
+        left with 3-qubit interactions in the objective function
+
+        >>> a, b, c, d, e, s, s1, s2 = sympy.symbols('a b c d e s s1 s2')
+
+        >>> print equations_to_recursive_schaller_term_dict([sympy.Eq(a*b + s)])
+        defaultdict(<type 'int'>, {s: 1, a*b: 1, b*s: 2, a*s: 2})
+
+        >>> print equations_to_recursive_schaller_term_dict([sympy.Eq(a*b + c*d + e, 2)])
+        defaultdict(<type 'int'>, {a*b: 1, b*c*d: 2, a*e: 2, a*c*d: 2, c: -8, d: -8, 1: 22, c*e: 4, b*e: 2, a: -4, d*e: 4, e: -15, b: -4, c*d: 1})
+    '''
+    exprs = map(eqns_to_exprs, eqns)
+    exprs = [expr ** 2 for expr in exprs]
+    exprs = map(recursive_schaller_transform, exprs)
+    term_dict = expressions_to_term_dict(exprs)
+    return term_dict
 
 def equations_to_recursive_schaller_coef_str(eqns):
     ''' Take equations and perform the recursive transform until we're only
@@ -408,10 +450,7 @@ def equations_to_recursive_schaller_coef_str(eqns):
         <BLANKLINE>
         {c: 3, e: 5, b: 2, a: 1, d: 4}
     '''
-    exprs = map(eqns_to_exprs, eqns)
-    exprs = [expr ** 2 for expr in exprs]
-    exprs = map(recursive_schaller_transform, exprs)
-    term_dict = expressions_to_term_dict(exprs)
+    term_dict = equations_to_recursive_schaller_term_dict(eqns)
     coef_str = term_dict_to_coef_string(term_dict)
     return coef_str
     
