@@ -942,6 +942,7 @@ class EquationSolver(object):
             self.judgement_5(eqn)
             self.judgement_6(eqn)
             self.judgement_7(eqn)
+            self.judgement_8(eqn)
             
             # Now look for contradictions
             self.contradiction_1(eqn)
@@ -1269,6 +1270,74 @@ class EquationSolver(object):
             {z: 0}
         '''
         def _helper(lhs, rhs):
+            rhs_term_dict = rhs.as_coefficients_dict()
+#            top_coef = max(map(abs, rhs_term_dict.values()))
+            for term, coef in rhs_term_dict.iteritems():
+#                if abs(coef) != top_coef:
+#                    continue
+                to_subs = {term: 1}                
+                _rhs = rhs.subs(to_subs)
+                _lhs = lhs.subs(to_subs)
+                if max_value(_lhs) < min_value(_rhs):
+                    self.update_value(term, 0)
+
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
+
+    def _judgement_2(self, eqn):
+        ''' If a term being 1 would tip max(rhs) > max(lhs), then it must be 0
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y, 2 + z)
+            >>> system._judgement_2(eqn)
+            >>> system.deductions
+            {z: 0}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y, 2 + z)
+            >>> system._judgement_2(eqn)
+            >>> system.deductions
+            {z: 0}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 3 * y, 2 + z)
+            >>> system._judgement_2(eqn)
+            >>> system.deductions
+            {}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 5 * y, 2 + z)
+            >>> system._judgement_2(eqn)
+            >>> system.deductions
+            {y: 0}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y, 1 + z)
+            >>> system._judgement_2(eqn)
+            >>> system.deductions
+            {}
+
+            >>> system = EquationSolver()
+            >>> lhs = sympy.sympify('q3 + q4')
+            >>> rhs = sympy.sympify('2*q3*q4 + 2*z78 + 4*z79')
+            >>> eqn = sympy.Eq(lhs, rhs)
+            >>> system._judgement_2(eqn)
+            >>> system.deductions
+            {z79: 0}
+            
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x+y, 2*z + 1)
+            >>> system._judgement_2(eqn)
+            >>> system.deductions
+            {z: 0}
+        '''
+        def _helper(lhs, rhs):
             lhs_max = max_value(lhs)
 
             rhs_terms = rhs.as_ordered_terms()
@@ -1287,7 +1356,7 @@ class EquationSolver(object):
 
     def _judgement_2_old(self, eqn):
         ''' If max(lhs) < max(rhs) and there is only 1 variable term
-            in the RHS, then this term must be 1
+            in the RHS, then this term must be 0
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
@@ -1498,7 +1567,67 @@ class EquationSolver(object):
                 self.update_value(t2, t1)
                 self.update_value(rhs / 2, t1)
 
+    def judgement_8(self, eqn):
+        ''' If a term being 0 would tip max(rhs) < min(lhs), then it must be 1
 
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 3, 2 + z)
+            >>> system.judgement_8(eqn)
+            >>> system.deductions
+            {z: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(10, 9*x + y)
+            >>> system.judgement_8(eqn)
+            >>> system.deductions
+            {x: 1, y: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(9, 9*x + y)
+            >>> system.judgement_8(eqn)
+            >>> system.deductions
+            {x: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(4*x*y + z, 3)
+            >>> system.judgement_8(eqn)
+            >>> system.deductions
+            {x*y: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(4*x, 3*z + y)
+            >>> system.judgement_2(eqn)
+            >>> system.deductions
+            {}
+
+            >>> system = EquationSolver()
+            >>> lhs = sympy.sympify('x + y + 2')
+            >>> rhs = sympy.sympify('10*x*y + 2*x')
+            >>> eqn = sympy.Eq(lhs, rhs)
+            >>> system.judgement_8(eqn)
+            >>> system.deductions
+            {x: 1}
+        '''
+        def _helper(lhs, rhs):
+            rhs_term_dict = rhs.as_coefficients_dict()
+#            top_coef = max(map(abs, rhs_term_dict.values()))
+            for term, coef in rhs_term_dict.iteritems():
+#                if abs(coef) != top_coef:
+#                    continue
+                to_subs = {term: 0}                
+                _rhs = rhs.subs(to_subs)
+                _lhs = lhs.subs(to_subs)
+                if max_value(_rhs) < min_value(_lhs):
+                    self.update_value(term, 1)
+                
+                
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
 
     def _judgement_10i(self, eqn):
         ''' x + y + z + 2a = 2b -> xy + xz = yx + yz = zx + zy = 0
