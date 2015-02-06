@@ -101,7 +101,7 @@ def _generate_carry_equations(digitsInMultiplicand1, digitsInMultiplicand2, prod
     	for i in range (0, ((digitsInMultiplicand1 + digitsInMultiplicand2)-len(binPrime))):
     		binPrime = "0" + binPrime
     
-    print binPrime
+#    print binPrime
     
     #Generate multipliers based on digits
     #	They take form 1,p2,p1,1 and 1,q2,q1,1
