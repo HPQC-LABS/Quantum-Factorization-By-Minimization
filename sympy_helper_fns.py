@@ -28,9 +28,10 @@ def num_add_terms(expr, check=False):
         >>> expr = 'x + 2*y + 3*z + 5'
         >>> num_add_terms(sympy.sympify(expr))
         4
-        >>> expr = 'x * 2*y'
+        >>> expr = 'x * 2*y**2'
         >>> num_add_terms(sympy.sympify(expr))
         1
+
         >>> expr = '(x + 2*y) * z'
         >>> num_add_terms(sympy.sympify(expr), check=False)
         1
@@ -405,11 +406,14 @@ def remove_binary_squares(expr):
         expr = expr.subs(var ** exp, var)
     return expr
 
-    # Old, memory hungry implementation
-#    w = sympy.Wild('w')
-#    p = sympy.Wild('p')
-#    expr = expr.replace(w ** p, w, exact=True)
-#    return expr
+def normalise_equation(eqn):
+    ''' Remove binary squares etc '''
+    if not is_equation(eqn):
+        return eqn
+    eqn = remove_binary_squares_eqn(eqn.expand())
+    eqn = balance_terms(eqn)
+    eqn = cancel_constant_factor(eqn)
+    return eqn
 
 def expressions_to_variables(exprs):
     ''' Take a list of equations and return a set of variables 
@@ -428,9 +432,7 @@ def gather_monic_terms(eqn):
         
         >>> eqns = ['x + y + 2*x*y + 3',
         ...         'x + y - z - 1']
-        >>> eqns = map(sympy.sympify, eqns)
-        >>> eqns = map(sympy.Eq, eqns)
-        >>> eqns = map(balance_terms, eqns)
+        >>> eqns = str_exprs_to_sympy_eqns(eqns)
         >>> eqns = map(gather_monic_terms, eqns)
         >>> for eqn in eqns: print eqn
         x + y == -2*x*y - 3
@@ -451,16 +453,15 @@ def gather_monic_terms(eqn):
     return sympy.Eq(sum(lhs), sum(rhs))
     
     
-def square_equations(equations, term_limit=10, method=2):
+def square_equations(equations, term_limit=10, method=3):
     ''' Take a bunch of equations and square them, depending on the method:
         1: lhs^2 = rhs^2
-        2: (lhs - rhs)^2=0
+        2: (lhs - rhs)^2 = 0
+        3: (monic terms)^2 = (other terms)^2
         
         >>> eqns = ['x + y + 2*x*y + 3',
         ...         'x + y - z - 1']
-        >>> eqns = map(sympy.sympify, eqns)
-        >>> eqns = map(sympy.Eq, eqns)
-        >>> eqns = map(balance_terms, eqns)
+        >>> eqns = str_exprs_to_sympy_eqns(eqns)
 
         >>> eqns1 = square_equations(eqns, method=1, term_limit=None)
         >>> for eqn in eqns1: print eqn
@@ -471,6 +472,11 @@ def square_equations(equations, term_limit=10, method=2):
         >>> for eqn in eqns2: print eqn
         26*x*y + 7*x + 7*y + 9 == 0
         2*x*y + 3*z + 1 == 2*x*z + x + 2*y*z + y
+
+        >>> eqns3 = square_equations(eqns, method=3)
+        >>> for eqn in eqns3: print eqn
+        x + y == 14*x*y + 9
+        2*x*y + x + y + z == 2*x*z + 2*y*z + 1
     '''
     squared = []
     for eqn in equations:
@@ -487,6 +493,11 @@ def square_equations(equations, term_limit=10, method=2):
         elif method == 2:
             eqn_sq = (eqn.lhs - eqn.rhs) ** 2
             eqn_sq = sympy.Eq(eqn_sq.expand())
+        elif method == 3:
+            eqn = gather_monic_terms(eqn)
+            eqn_sq = sympy.Eq((eqn.lhs ** 2).expand(), (eqn.rhs ** 2).expand())
+        else:
+            raise NotImplementedError('Unknown method {}'.format(method))
 
         eqn_sq = remove_binary_squares_eqn(eqn_sq)
         eqn_sq = balance_terms(eqn_sq)            
