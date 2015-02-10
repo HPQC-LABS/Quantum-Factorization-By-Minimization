@@ -406,7 +406,7 @@ def remove_binary_squares(expr):
         expr = expr.subs(var ** exp, var)
     return expr
 
-def normalise_equation(eqn):
+def standardise_equation(eqn):
     ''' Remove binary squares etc '''
     if not is_equation(eqn):
         return eqn
