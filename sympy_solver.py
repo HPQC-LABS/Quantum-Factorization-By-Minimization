@@ -657,12 +657,18 @@ class EquationSolver(object):
                 self.solutions.pop(expr)
                 self.solutions[variable] = rhs
         
-        # Now make sure every value in the dict can be binary, throwing if
-        # not
-        for variable, value in self.solutions.iteritems():
+        for variable, value in self.solutions.copy().iteritems():
+            # Now make sure every value in the dict can be binary, throwing if
+            # not
             if (max_value(value) < 0) or (min_value(value) > 1):
                 err_str = 'clean_solutions: {} != {}'.format(variable, value)
                 raise ContradictionException(err_str)
+            # Now add an equation if it is written in terms of more than 3
+            # other variables
+#            if len(value.atoms(sympy.Symbol)) >= 3:
+#                print 'Adding {} = {}'.format(variable, value)
+#                self.update_value(variable, value)
+#                self.solutions.pop(variable)
 
         changes = False
         new_solutions = {}
