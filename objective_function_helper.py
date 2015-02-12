@@ -386,19 +386,24 @@ def _recursive_schaller_transform(expr):
                 b = reduce(operator.mul, term_atoms, 1)
                 s = exp_expr - coef * term
                 transformed = schaller_transform(a, coef * b, s)
-                return _recursive_schaller_transform(transformed) * expr_coef
+                out = _recursive_schaller_transform(transformed) * expr_coef
+#                print transformed * expr_coef
+#                print
+                return out
         return expr.expand() * expr_coef
     
     # Re-multiply by the constant
     expr = expr * expr_coef
     
-    new_expr = 0
+    out = 0
     for term, coef in expr.as_coefficients_dict().iteritems():
         if isinstance(term, sympy.Pow):
-            new_expr += _recursive_schaller_transform(coef * term)
+            out += _recursive_schaller_transform(coef * term)
         else:
-            new_expr += coef * term
-    return new_expr
+            out += coef * term
+#    print out
+#    print
+    return out
             
 def equations_to_recursive_schaller_term_dict(eqns):
     ''' Take equations and perform the recursive transform until we're only
