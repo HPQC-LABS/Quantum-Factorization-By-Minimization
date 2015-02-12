@@ -19,7 +19,8 @@ from sympy_helper_fns import (max_value, min_value, is_equation,
                               cancel_constant_factor, is_constant,
                               num_add_terms, parity, is_monic, is_one_or_zero,
                               remove_binary_squares, expressions_to_variables,
-                              gather_monic_terms, square_equations)
+                              gather_monic_terms, square_equations,
+                              str_eqns_to_sympy_eqns)
 from objective_function_helper import (equations_to_vanilla_coef_str, 
                                        equations_to_vanilla_objective_function,
                                        equations_to_auxillary_coef_str)
@@ -96,6 +97,7 @@ class EquationSolver(object):
         copy.deductions = deepcopy(self.deductions)
         copy.solutions = deepcopy(self.solutions)
         copy.deduction_record = deepcopy(self.deduction_record)
+        copy.invariant_interactions_on_substitution = self.invariant_interactions_on_substitution
         return copy
 
     # Pickling
@@ -379,7 +381,8 @@ class EquationSolver(object):
     def clean_equations(self, eqns):
         ''' Remove True equations and simplify '''
         cleaned = filter(is_equation, eqns[:])
-        cleaned = [eqn.subs(self.deductions) for eqn in cleaned]
+        if len(self.deductions):
+            cleaned = [eqn.subs(self.deductions) for eqn in cleaned]
         cleaned = filter(is_equation, cleaned)
 
         # Extract only the atoms we would like to try and find
@@ -786,6 +789,10 @@ class EquationSolver(object):
         # If value is an int, sympify it
         if isinstance(value, int):
             value = sympy.sympify(value)
+        
+        # Remember, we live in binary land
+        expr = remove_binary_squares(expr)
+        value = remove_binary_squares(value)
 
         current_val = self.deductions.get(expr)
 
