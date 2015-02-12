@@ -104,10 +104,10 @@ class EquationSolver(object):
     # This isn't mature/finished, but manages to write equations, deductions and
     # solutions to disk
     def __getstate__(self):
-        return (self.equations, self.deductions, self.solutions)
+        return (self.equations, self.deductions, self.solutions, self.invariant_interactions_on_substitution)
         
     def __setstate__(self, state):
-        self.equations, self.deductions, self.solutions = state
+        self.equations, self.deductions, self.solutions, self.invariant_interactions_on_substitution = state
 
     def to_disk(self, filename):
         ''' Write a state to disk '''
