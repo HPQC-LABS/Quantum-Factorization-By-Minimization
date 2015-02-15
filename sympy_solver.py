@@ -480,7 +480,7 @@ class EquationSolver(object):
 
         # Now go over the remaining deductions and pick out equations which
         # include an unsolved variables
-        unsolved_var = set(self.variables.values()).difference(self.solutions.keys())
+        unsolved_var = self.unsolved_var
 
         # Clean the solutions so we don't spend so long in subs
         # Extract only the atoms we would like to try and find
@@ -513,7 +513,7 @@ class EquationSolver(object):
             expr = expr.subs(cleaned_sol).expand()
             val = val.subs(cleaned_sol).expand()
             latoms = expr.atoms()
-            ratoms = set([val]) if isinstance(val, int) else val.atoms()
+            ratoms = val.atoms()
             if (len(latoms.intersection(unsolved_var)) or
                 len(ratoms.intersection(unsolved_var))):
 
@@ -611,7 +611,11 @@ class EquationSolver(object):
                 self.solutions.pop(expr)
                 self.solutions[variable] = rhs
         
+        # Now go through and do some standard checks and cleaning
         for variable, value in self.solutions.copy().iteritems():
+            # Remove binary squares
+            self.solutions[variable] = remove_binary_squares(value)            
+            
             # Now make sure every value in the dict can be binary, throwing if
             # not
             if (max_value(value) < 0) or (min_value(value) > 1):
