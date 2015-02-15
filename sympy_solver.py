@@ -1658,9 +1658,9 @@ class EquationSolver(object):
         
         >>> x, y, z = sympy.symbols('x y z')
 
-        >>> eqn = sympy.Eq(x*y*z - 2)
-        >>> system = EquationSolver(equations=[eqn])
-        >>> system.solve_equations()
+        >>> eqn = sympy.Eq(x*y*z, 2)
+        >>> system = EquationSolver()
+        >>> system.contradiction_1(eqn)
         Traceback (most recent call last):
             ...
         ContradictionException: contradiction_1: x*y*z == 2
