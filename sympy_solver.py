@@ -778,7 +778,7 @@ class EquationSolver(object):
         # If we already know a value of this family
         elif is_one_or_zero(current_val):
             # If we've found a numeric value
-            if is_one_or_zero(value):
+            if is_constant(value):
                 if current_val != value:
                     raise ContradictionException('{} is already set to {} != {}'.format(expr,
                                                  current_val, value))
@@ -792,7 +792,7 @@ class EquationSolver(object):
 
         # Current_val is symbolic
         else:
-            if is_one_or_zero(value):
+            if is_constant(value):
                 # Perform another error check
                 cc_val = self.deductions.get(current_val)
                 if is_one_or_zero(cc_val) and (cc_val != value):
