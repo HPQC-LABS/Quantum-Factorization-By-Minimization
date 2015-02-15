@@ -1529,16 +1529,19 @@ class EquationSolver(object):
             >>> system.deductions
             {x*y: x, z: x*y}
         '''
-        lhs, rhs = eqn.lhs, eqn.rhs
-        if len(lhs.as_ordered_terms()) == 2:
-            t1, t2 = lhs.as_ordered_terms()
-            if ((t1.as_coeff_mul()[0] == 1) and
-                (not t1.is_constant()) and
-                (t2.as_coeff_mul()[0] == 1) and
-                (not t2.is_constant()) and
-                (rhs.as_coeff_mul()[0] == 2)):
-                self.update_value(t2, t1)
-                self.update_value(rhs / 2, t1)
+        def _helper(lhs, rhs):
+            if len(lhs.as_ordered_terms()) == 2:
+                t1, t2 = lhs.as_ordered_terms()
+                if ((t1.as_coeff_mul()[0] == 1) and
+                    (not t1.is_constant()) and
+                    (t2.as_coeff_mul()[0] == 1) and
+                    (not t2.is_constant()) and
+                    (rhs.as_coeff_mul()[0] == 2)):
+                    self.update_value(t2, t1)
+                    self.update_value(rhs / 2, t1)
+        
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
 
     def judgement_8(self, eqn):
         ''' If a term being 0 would tip max(rhs) < min(lhs), then it must be 1
