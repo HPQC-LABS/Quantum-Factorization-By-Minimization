@@ -305,64 +305,6 @@ class EquationSolver(object):
 #        self.print_('Final coefficients')
 #        self.print_(equations_to_coef_string(self.final_equations), close=True)
 
-
-    def reformulate_equations(self):
-        ''' Reformulate the final equations from the deductions.
-            Return the final equations and a dictionary of calculated values
-        '''
-        import warnings
-        warnings.warn('reformulate_equations is deprecated!!')
-        solved_var = {}
-
-        # First trawl through the deductions for definite solutions
-        for expr, val in self.deductions.iteritems():
-#            if not is_one_or_zero(val):
-#                continue
-            latoms = expr.atoms()
-            if len(latoms) == 1:
-                solved_var[expr] = val
-
-        # Now trawl through for equations which involve the unsolved variables
-        final_equations = []
-        unsolved_var = set(self.variables.values()).difference(solved_var.keys())
-
-        for eqn in itertools.chain(self.equations,
-                                   self.deductions_as_equations):
-            expr, val = eqn.lhs, eqn.rhs
-            latoms = expr.atoms()
-            ratoms = set([val]) if isinstance(val, int) else val.atoms()
-            if len(latoms.intersection(unsolved_var)) or len(ratoms.intersection(unsolved_var)):
-                eqn = sympy.Eq(expr, val)
-                # Substitute all of the solved variables
-                eqn = eqn.subs(solved_var)
-
-                if eqn == True:
-                    continue
-
-                eqn = remove_binary_squares_eqn(eqn)
-
-                # If the final equation is x=constant, then we're also done!!
-#                if len(eqn.atoms(sympy.Symbol)) == 1:
-#                    assert eqn.rhs.is_constant()
-#                    self.update_value(eqn.lhs, eqn.rhs)
-#                    solved_var[eqn.lhs] = eqn.rhs
-#                    unsolved_var.difference_update([eqn.lhs])
-#                else:
-                final_equations.append(eqn)
-
-#        self.final_variables = set()
-#        for eq in final_equations:
-#            for atom in eq.atoms():
-#                if not is_one_or_zero(atom):
-#                    self.final_variables.add(atom)
-
-        final_equations = sorted(set(final_equations), key=lambda x: str(x))
-
-        self.final_variables = unsolved_var
-
-        self.final_equations = final_equations
-        self.final_solutions = solved_var
-
     @property
     def unsolved_var(self):
         ''' Return a set of variables we haven't managed to eliminate '''
