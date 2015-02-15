@@ -360,6 +360,11 @@ class EquationSolver(object):
                     (not is_constant(eqn1.lhs))):
                     new_eq = sympy.Eq(eqn1.rhs, eqn2.rhs)
                     new_eq = balance_terms(new_eq)
+                    
+                    # Try only adding stuff with more than one additive term
+                    if num_add_terms(new_eq.lhs) == num_add_terms(new_eq.rhs) == 1:
+                        return
+                    
                     to_add.append(new_eq)
 #                    self.print_('Equation added! {}, {}'.format(eqn1, eqn2))
     
