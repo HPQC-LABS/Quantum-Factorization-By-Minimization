@@ -104,10 +104,22 @@ class EquationSolver(object):
     # This isn't mature/finished, but manages to write equations, deductions and
     # solutions to disk
     def __getstate__(self):
-        return (self.equations, self.deductions, self.solutions, self.invariant_interactions_on_substitution)
+        return (self.equations, self.deductions, self.solutions, 
+                self.invariant_interactions_on_substitution, self.log_deductions,
+                # We can't pickle defaultdicts apparently
+                dict(self.deduction_record), self.variables, self.num_qubits_start,
+                self.output_filename, self._file)
         
     def __setstate__(self, state):
-        self.equations, self.deductions, self.solutions, self.invariant_interactions_on_substitution = state
+        (self.equations, self.deductions, self.solutions, 
+         self.invariant_interactions_on_substitution, self.log_deductions,
+         deduction_record, self.variables, self.num_qubits_start,
+         self.output_filename, self._file) = state
+         
+        # Re cast to a defaultdict
+        self.deduction_record = defaultdict(lambda : defaultdict(list))
+        for k, v in deduction_record.iteritems():
+            self.deduction_record[k] = v
 
     def to_disk(self, filename):
         ''' Write a state to disk '''
@@ -123,10 +135,7 @@ class EquationSolver(object):
             raise ValueError('Cannot load from filename None')
         import pickle
         data = pickle.load(open(filename, 'r'))
-        instance = EquationSolver(equations=data.equations, **kwargs)
-        instance.deductions, instance.solutions = data.deductions, data.solutions
-        return instance
-        
+        return data
 
     @staticmethod
     def _dict_as_equations(dict_):
