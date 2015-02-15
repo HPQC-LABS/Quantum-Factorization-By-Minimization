@@ -1504,7 +1504,7 @@ class EquationSolver(object):
             odd_terms = []
             for term, term_coef in lhs.as_coefficients_dict().iteritems():
                 if (term_coef % 2):
-                    if term.is_constant():
+                    if term == 1:
                         return
                     odd_terms.append(term)
 
