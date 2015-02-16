@@ -223,6 +223,10 @@ class EquationSolver(object):
             self.apply_judgements(all_equations)
             self.apply_contradictions(all_equations)
 
+            # Slightly mysterious clean that fixes judgement blow up.
+            # Something to do with the way clean_solutions cleans cycling imports,
+            # cleaning re-updates values in the deductions and such.
+            self.clean_deductions()
 
             if self._length_tuple == state_summary:
                 num_constant_iter += 1
