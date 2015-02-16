@@ -120,9 +120,14 @@ def is_equation(eqn):
             ...
         ContradictionException: False equation
     '''
-    if isinstance(eqn, sympy.boolalg.BooleanFalse) or (eqn is False):
-        raise ContradictionException('False equation')
-    return isinstance(eqn, sympy.Equality)
+    if sympy.__version__ == '0.7.5':
+        if isinstance(eqn, sympy.boolalg.BooleanFalse) or (eqn is False):
+            raise ContradictionException('False equation')
+        return isinstance(eqn, sympy.Equality)
+    else:
+        if eqn is False:
+            raise ContradictionException('False equation')
+        return eqn is True
 
 def parity(expr):
     ''' Return parity:
@@ -423,7 +428,8 @@ def expressions_to_variables(exprs):
         >>> expressions_to_variables(to_test)
         set([x, z, a, b, y])
     '''
-    assert all(map(lambda x: isinstance(x, sympy.Basic), exprs))
+    if sympy.__version__ == '0.7.5':
+        assert all(map(lambda x: isinstance(x, sympy.Basic), exprs))
     return set.union(*[expr.atoms(sympy.Symbol) for expr in exprs])
 
 def gather_monic_terms(eqn):
