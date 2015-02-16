@@ -235,10 +235,11 @@ class EquationSolver(object):
                 # unstick ourselves
                 self.apply_judgements_complex(all_equations, num_constant_iter)
                     
-                    # Now apply judgements to the squares of the equations
-#                    self.apply_judgements_square(self.equations)
+                # Now apply judgements to the squares of the equations
+#                if num_constant_iter > 1:
+#                    self.apply_judgements_square(all_equations)
 
-                if num_constant_iter > 3:
+                if num_constant_iter > 3 or (self._length_tuple[:2] == (0, 0)):
                     break
             else:
                 num_constant_iter = 0
@@ -515,6 +516,7 @@ class EquationSolver(object):
             # Substitute all of the solved variables
             expr = expr.subs(cleaned_sol).expand()
             val = val.subs(cleaned_sol).expand()
+            val = remove_binary_squares(val)
             latoms = expr.atoms()
             ratoms = val.atoms()
             if (len(latoms.intersection(unsolved_var)) or
