@@ -20,7 +20,7 @@ from sympy_helper_fns import (max_value, min_value, is_equation,
                               num_add_terms, parity, is_monic, is_one_or_zero,
                               remove_binary_squares, expressions_to_variables,
                               gather_monic_terms, square_equations,
-                              str_eqns_to_sympy_eqns)
+                              str_eqns_to_sympy_eqns, standardise_equation)
 from objective_function_helper import (equations_to_vanilla_coef_str, 
                                        equations_to_vanilla_objective_function,
                                        equations_to_auxillary_coef_str)
@@ -233,15 +233,7 @@ class EquationSolver(object):
 
                 # Here lets apply some slower, complex judgements to try and
                 # unstick ourselves
-                if num_constant_iter >= 2:
-                    for eqn in self.equations:
-                        self.judgement_n_term(eqn, 4)
-                        
-                        # Only do 1 at a time, so if we have a new deduction
-                        # go round again
-                        if self._length_tuple != state_summary:
-                            num_constant_iter = 0
-                            break
+                self.apply_judgements_complex(all_equations, num_constant_iter)
                     
                     # Now apply judgements to the squares of the equations
 #                    self.apply_judgements_square(self.equations)
@@ -905,6 +897,47 @@ class EquationSolver(object):
             
             print '{} -> {} after square application'.format(pre, post)
             print post_ded.symmetric_difference(pre_ded)
+
+    def apply_judgements_complex(self, equations, num_constant_iter):
+        ''' Apply more complex or slow judgements if we get stuck.
+            num_constant_iter is the number of iterations that we have been
+            stuck for.
+        '''
+        if num_constant_iter == 0:
+            return
+        state_summary = self._length_tuple
+        
+        if num_constant_iter > 0:
+            # Use mini-assumptions
+            for eqn in equations:
+                # Limit the substitutions at 2^6=64
+                num_var = min(2*num_constant_iter + 2, 6)
+                # Rank by number of times each occurs
+                self.judgement_mini_assumption(eqn, num_var=num_var, 
+                                               coef_transform=lambda x: pow(x, 0.01))
+                # Rank by sum of coefficients
+                self.judgement_mini_assumption(eqn, num_var=num_var,
+                                               coef_transform=lambda x: pow(x, 1.01))
+
+        if num_constant_iter > 1:
+            for eqn in equations:
+                # Apply the slow judgement 8 and 2
+                self.judgement_2_slow(eqn)
+                self.judgement_8_slow(eqn)
+
+                # Apply the judgements that may add complexity
+                self.judgement_5(eqn, increase_complexity=True)
+                self.judgement_6(eqn, increase_complexity=True)
+
+
+            for eqn in equations:
+                # Only do 1 at a time, so if we have a new deduction
+                # go round again
+                if self._length_tuple != state_summary:
+                    return
+
+                self.judgement_n_term(eqn, num_constant_iter + 2)
+
 
     def apply_judgements(self, equations):
         ''' Apply judgements to a list of sympy equations and directly update
