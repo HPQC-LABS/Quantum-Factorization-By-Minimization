@@ -491,7 +491,7 @@ class EquationSolver(object):
         # Extract only the atoms we would like to try and find
         ded_as_eqn = self.deductions_as_equations
         if len(ded_as_eqn):
-            cleaned_atoms = set.union(*[eqn.atoms(sympy.Symbol) for eqn in ded_as_eqn])
+            cleaned_atoms = expressions_to_variables(ded_as_eqn)
             cleaned_sol = ((var, self.solutions.get(var)) for var in cleaned_atoms)
             cleaned_sol = filter(lambda x: x[1] is not None, cleaned_sol)
             cleaned_sol = {x[0]: x[1] for x in cleaned_sol}
