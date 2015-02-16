@@ -340,10 +340,10 @@ class EquationSolver(object):
 
     def clean_equations(self, eqns):
         ''' Remove True equations and simplify '''
+        # First clean up the deductions so we can use them
+        self.clean_deductions()
+
         cleaned = filter(is_equation, eqns[:])
-        if len(self.deductions):
-            cleaned = [eqn.subs(self.deductions) for eqn in cleaned]
-        cleaned = filter(is_equation, cleaned)
 
         # Extract only the atoms we would like to try and find
         if len(cleaned):
@@ -352,7 +352,7 @@ class EquationSolver(object):
             cleaned_sol = filter(lambda x: x[1] is not None, cleaned_sol)
             cleaned_sol = {x[0]: x[1] for x in cleaned_sol}
 
-        cleaned = [eqn.subs(cleaned_sol) for eqn in cleaned]
+        cleaned = [eqn.subs(cleaned_sol).subs(self.deductions) for eqn in cleaned]
         cleaned = filter(is_equation, cleaned)
         cleaned = [eqn.expand() for eqn in cleaned]
         cleaned = map(remove_binary_squares_eqn, cleaned)
@@ -375,7 +375,7 @@ class EquationSolver(object):
                         return
                     
                     to_add.append(new_eq)
-#                    self.print_('Equation added! {}, {}'.format(eqn1, eqn2))
+#                    self.print_('Equation added! {}, {}\t=>\t{}'.format(eqn1, eqn2, new_eq))
     
             all_equations = itertools.chain(cleaned, self.deductions_as_equations)
             for eqn1, eqn2 in itertools.combinations(all_equations, 2):
@@ -386,9 +386,6 @@ class EquationSolver(object):
                         to_add)
             to_add = filter(is_equation, to_add)
             cleaned.extend(to_add)
-
-        # Finally clean up the deductions now we're finished with them
-        self.clean_deductions()
 
         return list(set(cleaned))
 
