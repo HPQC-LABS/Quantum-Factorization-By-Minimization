@@ -1761,7 +1761,7 @@ class EquationSolver(object):
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(4*x, 3*z + y)
-            >>> system.judgement_2(eqn)
+            >>> system.judgement_8(eqn)
             >>> system.deductions
             {}
 
@@ -1770,6 +1770,63 @@ class EquationSolver(object):
             >>> rhs = sympy.sympify('10*x*y + 2*x')
             >>> eqn = sympy.Eq(lhs, rhs)
             >>> system.judgement_8(eqn)
+            >>> system.deductions
+            {}
+        '''
+        def _helper(lhs, rhs):
+            lhs_min = min_value(lhs)
+            rhs_max = max_value(rhs)
+
+            for term in rhs.as_ordered_terms():
+                if rhs_max - max_value(term) < lhs_min:
+                    self.set_to_max(term)
+
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
+
+    def judgement_8_slow(self, eqn):
+        ''' If a term being 0 would tip max(rhs) < min(lhs), then it must be 1
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 3, 2 + z)
+            >>> system.judgement_8_slow(eqn)
+            >>> system.deductions
+            {z: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(10, 9*x + y)
+            >>> system.judgement_8_slow(eqn)
+            >>> system.deductions
+            {x: 1, y: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(9, 9*x + y)
+            >>> system.judgement_8_slow(eqn)
+            >>> system.deductions
+            {x: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(4*x*y + z, 3)
+            >>> system.judgement_8_slow(eqn)
+            >>> system.deductions
+            {x*y: 1}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(4*x, 3*z + y)
+            >>> system.judgement_2(eqn)
+            >>> system.deductions
+            {}
+
+            >>> system = EquationSolver()
+            >>> lhs = sympy.sympify('x + y + 2')
+            >>> rhs = sympy.sympify('10*x*y + 2*x')
+            >>> eqn = sympy.Eq(lhs, rhs)
+            >>> system.judgement_8_slow(eqn)
             >>> system.deductions
             {x: 1}
         '''
