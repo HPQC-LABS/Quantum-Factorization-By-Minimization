@@ -44,8 +44,11 @@ class EquationSolver(object):
                 variables = {}
             else:
                 variables = {str(v): v for v in expressions_to_variables(equations)}
+        
         if equations is None:
             equations = []
+        else:
+            equations = filter(is_equation, equations)
 
         # Number of variables at the start
         self.num_qubits_start = len(variables)
