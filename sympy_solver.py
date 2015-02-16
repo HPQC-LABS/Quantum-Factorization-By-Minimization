@@ -918,10 +918,11 @@ class EquationSolver(object):
             self.judgement_2(eqn)
             self.judgement_3(eqn)
             self.judgement_4(eqn)
-            self.judgement_5(eqn)
-            self.judgement_6(eqn)
+            self.judgement_5(eqn, increase_complexity=False)
+            self.judgement_6(eqn, increase_complexity=False)
             self.judgement_7(eqn)
             self.judgement_8(eqn)
+            self.judgement_9(eqn)
             
     def apply_contradictions(self, equations):
         ''' Now look for contradictions in the equations '''
@@ -1132,7 +1133,6 @@ class EquationSolver(object):
         '''
         lhs, rhs = eqn.lhs, eqn.rhs
         if (num_add_terms(lhs) <= max_num_terms):
-
             term_to_sub = None
             for term in lhs.as_ordered_terms():
                 term_atoms = term.atoms(sympy.Symbol)
