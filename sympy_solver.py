@@ -1846,6 +1846,57 @@ class EquationSolver(object):
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
+
+    def judgement_9(self, eqn):
+        ''' Parity argument for when we have 1 variable that determines parity
+            on the LHS.
+            
+            If we have 1 parity-determining variable on the RHS, then preserve
+            parity.
+            
+            >>> eqns = ['3*q5 + 2*z89 == 4*q5*z89 + q7 + 1',
+            ...         'x == y']
+            >>> eqns = str_eqns_to_sympy_eqns(eqns)
+            >>> system = EquationSolver()
+            >>> for eqn in eqns: system.judgement_9(eqn)
+            >>> system.deductions
+            {q5: -q7 + 1}
+        '''
+        if num_add_terms(eqn.lhs) == num_add_terms(eqn.rhs) == 1:
+            return
+
+        def _helper(lhs, rhs):
+            # First find the 1 odd variable on the LHS
+            odd_terms = []
+            for term, term_coef in lhs.as_coefficients_dict().iteritems():
+                if (term_coef % 2):
+                    if term == 1:
+                        return
+                    odd_terms.append(term)
+            if len(odd_terms) != 1:
+                return
+            
+            lhs_determining_var = odd_terms.pop()
+            
+            # Now if we can say something about parity, do it
+            odd_terms = []
+            for term, term_coef in rhs.as_coefficients_dict().iteritems():
+                if (term_coef % 2) and (term != 1):
+                    odd_terms.append(term)
+            
+            if len(odd_terms) == 1:
+                rhs_determining_var = odd_terms.pop()
+                rhs_parity = parity(rhs - rhs_determining_var)
+                if rhs_parity == 0:
+                    self.update_value(lhs_determining_var, rhs_determining_var)
+                elif rhs_parity == 1:
+                    self.update_value(lhs_determining_var, 1 - rhs_determining_var)
+
+        
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
+
+        
     def _judgement_10i(self, eqn):
         ''' x + y + z + 2a = 2b -> xy + xz = yx + yz = zx + zy = 0
             Also works with any even RHS and any number of even variables on
