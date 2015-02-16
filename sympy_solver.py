@@ -205,19 +205,24 @@ class EquationSolver(object):
                 self.print_('\t'.join(['{}'] * 4).format(i, *state_summary))
 
             self.equations = self.clean_equations(self.equations)
-            self.apply_judgements(self.equations + 
-                                  self.deductions_as_equations)
             
-            # Now apply judgements to non-trivial solutions
+            # Extract all the equations from the system
+            all_equations = self.final_equations
+
+            # Now fetch non-trivial solutions
             non_trivial_soln = []
             for variable, soln in self.solutions.iteritems():
-                if len(soln.atoms()) > 2:
+                if len(soln.atoms()) > 3:
                     non_trivial_soln.append(sympy.Eq(variable, soln))
             non_trivial_soln = map(remove_binary_squares_eqn, non_trivial_soln)
             non_trivial_soln = map(balance_terms, non_trivial_soln)
             non_trivial_soln = map(cancel_constant_factor, non_trivial_soln)
             non_trivial_soln = filter(is_equation, non_trivial_soln)            
-            self.apply_judgements(non_trivial_soln)
+            all_equations.extend(non_trivial_soln)
+
+            self.apply_judgements(all_equations)
+            self.apply_contradictions(all_equations)
+
 
             if self._length_tuple == state_summary:
                 num_constant_iter += 1
@@ -237,7 +242,7 @@ class EquationSolver(object):
                     # Now apply judgements to the squares of the equations
 #                    self.apply_judgements_square(self.equations)
 
-                if num_constant_iter > 4:
+                if num_constant_iter > 3:
                     break
             else:
                 num_constant_iter = 0
@@ -917,7 +922,9 @@ class EquationSolver(object):
             self.judgement_7(eqn)
             self.judgement_8(eqn)
             
-            # Now look for contradictions
+    def apply_contradictions(self, equations):
+        ''' Now look for contradictions in the equations '''
+        for eqn in equations:
             self.contradiction_1(eqn)
             self.contradiction_2(eqn)
 
