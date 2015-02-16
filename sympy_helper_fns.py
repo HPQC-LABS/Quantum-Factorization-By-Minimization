@@ -416,7 +416,7 @@ def standardise_equation(eqn):
     return eqn
 
 def expressions_to_variables(exprs):
-    ''' Take a list of equations and return a set of variables 
+    ''' Take a list of equations or expressions and return a set of variables 
 
         >>> eqn = sympy.Eq(sympy.sympify('x*a + 1'))
         >>> to_test = [sympy.sympify('x + y*z + 2*a^b'), eqn]
