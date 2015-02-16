@@ -19,16 +19,19 @@ KNOWN_FACTORISATIONS = {
         RSA100: (RSA100_F1, RSA100_F2),
         1267650600228508624673600186743: (1125899906842679, 1125899906842817),
         309485009821943203050291389: (17592186044423, 17592186044443),
+        # exp 13        
+        309485009822787627980424653: (17592186044443, 17592186044471),
+        # exp 14
+        309485009821943203050291389: (17592186044423, 17592186044443),
         # exp 15        
         1267650600228508624673600186743: (1125899906842679, 1125899906842817),
         # exp 16
-        1267650600228402790082356974917: (1125899906842679, 1125899906842723)
-            
-
+        1267650600228402790082356974917: (1125899906842679, 1125899906842723),
 }
 
 VERIFICATION_FAILURE_MESSAGE = '*** Assertions failed. Solution incorrect ***'
 VERIFICATION_SUCCESS_MESSAGE = 'All assertions passed.'
+FACTORISATION_NOT_FOUND_STEM = 'No factorisation found for {}'
 
 for product, (f1, f2) in KNOWN_FACTORISATIONS.iteritems():
     assert product == f1 * f2
@@ -132,7 +135,7 @@ def get_target_solutions(product, equation_generator=generate_carry_equations):
         pi and qi into an EquationSolver and solving
         
         >>> get_target_solutions(143)
-        {z23: 0, z12: 0, p2: 1, z24: 0, z35: 0, z45: 1, z57: 0, z67: 1, z46: 0, q1: 1, z34: 1, z56: 1, p1: 0, q2: 0}
+        {z56: 1, z12: 0, p2: 1, z24: 0, z35: 0, z45: 1, z57: 0, z67: 1, z46: 0, q1: 1, z34: 1, z23: 0, p1: 0, q2: 0}
     '''
     digitsInMultiplicand1, digitsInMultiplicand2 = get_num_digit_multiplicands(product)    
     
@@ -211,6 +214,10 @@ def check_solutions(product, solutions, verbose=False):
     '''
 
     target_factors = get_target_digits(product)
+    if target_factors is None:
+        if verbose:
+            print FACTORISATION_NOT_FOUND_STEM.format(product)
+        return
     for perm in itertools.permutations(target_factors):
         try:
             _check_solutions_for_targets(perm, solutions, verbose=verbose)
