@@ -1167,6 +1167,69 @@ class EquationSolver(object):
         _helper(self, eqn.lhs, eqn.rhs)
         _helper(self, eqn.rhs, eqn.lhs)
 
+    def judgement_mini_assumption(self, eqn, num_var=4, 
+                                  coef_transform=lambda x: pow(x, 0.01)):
+        ''' Given an equation, assume the most common num_var are 0/1 and see
+            if we can get any contradictions.
+            coef_transform is a function used to rank variables by taking abs(coef)
+            
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 4*y, 5 + 2*z)
+            >>> system.judgement_mini_assumption(eqn, num_var=1)
+            >>> system.deductions
+            {y: 1}
+            
+            >>> system.judgement_mini_assumption(eqn, num_var=3)
+            >>> system.deductions
+            {x: 1, z: 0, y: 1}
+            
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y, 2*x*y + 2*z)
+            >>> system.judgement_mini_assumption(eqn, num_var=2)
+            >>> system.deductions
+            {}
+            
+            >>> system.judgement_mini_assumption(eqn, num_var=3)
+            >>> system.deductions
+            {z: 0}
+        '''
+        var_score = defaultdict(int)
+        for term, coef in (eqn.lhs + eqn.rhs).as_coefficients_dict().iteritems():
+            for atom in term.atoms(sympy.Symbol):
+                var_score[atom] += coef_transform(abs(coef))
+
+        variables = sorted(var_score.items(), key=lambda x: x[1])[-num_var:]
+        variables = [v[0] for v in variables]
+
+        values = itertools.product(xrange(2), repeat=len(variables))
+
+        possible_subs = []
+
+        for vals in values:
+            to_sub = dict(zip(variables, vals))
+            _eqn = eqn.subs(to_sub)
+            try:
+                if is_equation(_eqn):
+                    _eqn = standardise_equation(_eqn)
+                    self.apply_contradictions([_eqn])
+                possible_subs.append(set(to_sub.items()))
+            except ContradictionException:
+                continue
+        
+        if len(possible_subs) == 0:
+            raise ContradictionException()
+
+        deductions = possible_subs.pop()
+        for poss_sub in possible_subs:
+            deductions = deductions.intersection(poss_sub)
+        
+        for var, val in deductions:
+            self.update_value(var, val)
+
+
     def judgement_1(self, eqn):
         ''' If x + y + z = 1 then xy = yz = zx = 0
             Generally true for any number of terms that = 1
