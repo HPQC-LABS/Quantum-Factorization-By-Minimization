@@ -931,13 +931,32 @@ class EquationSolver(object):
 
     def judgement_0(self, eqn):
         ''' Add x=y to deductions. This shouldn't be needed, but it's nice to
-            make sure we're not missing anything obvious        
+            make sure we're not missing anything obvious
+            
+            Also, if a*x = b*y, where a!=b are constants, x, y are variables,
+            then x and y both have to be 0
+            
+            >>> eqns = ['6*p5*q7 == 5*q5*q7',
+            ...         'x == 0']
+            >>> eqns = str_eqns_to_sympy_eqns(eqns)
+            >>> system = EquationSolver()
+            >>> system.judgement_0(eqns[0])
+            >>> system.deductions
+            {p5*q7: 0, q5*q7: 0}
         '''
-        if len(eqn.lhs.atoms()) == len(eqn.rhs.atoms()) == 1:
-            if eqn.lhs.is_constant():
-                self.update_value(eqn.rhs, eqn.lhs)
+        lhs, rhs = eqn.lhs, eqn.rhs
+        if len(lhs.atoms()) == len(rhs.atoms()) == 1:
+            if lhs.is_constant():
+                self.update_value(rhs, lhs)
             else:
-                self.update_value(eqn.lhs, eqn.rhs)
+                self.update_value(lhs, rhs)
+        
+        if num_add_terms(lhs) == num_add_terms(rhs) == 1:
+            l_coef, l_var = lhs.as_coeff_Mul()
+            r_coef, r_var = rhs.as_coeff_Mul()
+            if (l_coef != 0) and (r_coef != 0) and (l_coef != r_coef):
+                self.update_value(l_var, 0)
+                self.update_value(r_var, 0)
 
     def judgement_prod(self, eqn):
         ''' If RHS is a non-zero constant and the LHS is a product of variables,
