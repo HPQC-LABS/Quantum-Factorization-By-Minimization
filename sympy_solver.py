@@ -1121,6 +1121,14 @@ class EquationSolver(object):
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {q2: 2*q2*q3 - q3 + 2*z2021}
+
+            >>> system = EquationSolver()
+            >>> lhs = sympy.sympify('q2 + 4*q3')
+            >>> rhs = sympy.sympify('2*q2*q3 + 2*z2021')
+            >>> eqn = sympy.Eq(lhs, rhs)
+            >>> system.judgement_n_term(eqn)
+            >>> system.deductions
+            {q2: 0}
         '''
         lhs, rhs = eqn.lhs, eqn.rhs
         if (num_add_terms(lhs) <= max_num_terms):
@@ -1138,7 +1146,10 @@ class EquationSolver(object):
                     return
 
             if term_to_sub is not None:
-                self.update_value(term_to_sub, rhs - lhs + term_to_sub)
+                value = rhs - lhs + term_to_sub
+                if parity(value) is not None:
+                    value = parity(value)
+                self.update_value(term_to_sub, value)
 
 
     def judgement_min_max(self, eqn):
