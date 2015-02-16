@@ -939,6 +939,13 @@ class EquationSolver(object):
                     return
 
                 self.judgement_n_term(eqn, num_constant_iter + 2)
+            
+            if not self.invariant_interactions_on_substitution:            
+                for eqn in equations:
+                    self.judgement_5(eqn, increase_complexity=True, 
+                                     invariant_interactions_on_substitution=False)
+                    self.judgement_6(eqn, increase_complexity=True, 
+                                     invariant_interactions_on_substitution=False)
 
 
     def apply_judgements(self, equations):
@@ -1565,7 +1572,8 @@ class EquationSolver(object):
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
-    def judgement_5(self, eqn, increase_complexity=False):
+    def judgement_5(self, eqn, increase_complexity=False, 
+                    invariant_interactions_on_substitution=True):
         ''' Parity argument used when the RHS is always even.
         
             If we have 1 odd term in the LHS, it must be 0.            
@@ -1602,17 +1610,19 @@ class EquationSolver(object):
             >>> system.deductions
             {x: 0}
 
-            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
+            >>> system = EquationSolver()
             >>> x, y, z, u, v = sympy.symbols('x y z u v')
             >>> eqn = sympy.Eq(x + y + z + 2*u, 4*v)
-            >>> system.judgement_5(eqn, increase_complexity=True)
+            >>> system.judgement_5(eqn, increase_complexity=True, 
+            ... invariant_interactions_on_substitution=False)
             >>> system.deductions
             {x: -2*y*z + y + z}
 
             >>> eqns = ['q2 + q3 + 2*z4950 + 1 == 2*q2*q3 + 2*z56 + 4*z57']
             >>> eqn = str_eqns_to_sympy_eqns(eqns)[0]
-            >>> system = EquationSolver(invariant_interactions_on_substitution=True)
-            >>> system.judgement_5(eqn, increase_complexity=True)
+            >>> system = EquationSolver()
+            >>> system.judgement_5(eqn, increase_complexity=True,
+            ... invariant_interactions_on_substitution=True)
             >>> system.deductions
             {q2: -q3 + 1}
         '''
@@ -1639,7 +1649,7 @@ class EquationSolver(object):
                     self.update_value(*odd_terms)
             
             elif (increase_complexity and (len(odd_terms) == 3)):
-                if const or (not self.invariant_interactions_on_substitution):
+                if const or (not invariant_interactions_on_substitution):
                     x, y, z = odd_terms
                     # If we get a 1, permute the variables so it's nicer to play with
                     if x == 1:
@@ -1649,7 +1659,8 @@ class EquationSolver(object):
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
-    def judgement_6(self, eqn, increase_complexity=False):
+    def judgement_6(self, eqn, increase_complexity=False,
+                    invariant_interactions_on_substitution=True):
         ''' Parity argument used if RHS is always odd.
                     
             If we have 1 odd term in the LHS, it must be 1.
@@ -1702,10 +1713,11 @@ class EquationSolver(object):
             >>> system.deductions
             {z1213: 1}
 
-            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
+            >>> system = EquationSolver()
             >>> x, y, z, u, v = sympy.symbols('x y z u v')
             >>> eqn = sympy.Eq(x + y + z + 2*u, 4*v + 1)
-            >>> system.judgement_6(eqn, increase_complexity=True)
+            >>> system.judgement_6(eqn, increase_complexity=True,
+            ... invariant_interactions_on_substitution=False)
             >>> system.deductions
             {x: 2*y*z - y - z + 1}
         '''
@@ -1729,7 +1741,7 @@ class EquationSolver(object):
                 elif increase_complexity:
                     self.judgement_two_term(sympy.Eq(sum(odd_terms), 1))
             elif (increase_complexity and 
-                 ((not self.invariant_interactions_on_substitution) or const) and
+                 ((not invariant_interactions_on_substitution) or const) and
              (len(odd_terms) == 3)):
                 x, y, z = odd_terms
                 # Make another variable 1, so that it plays nicer
