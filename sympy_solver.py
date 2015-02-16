@@ -1519,10 +1519,19 @@ class EquationSolver(object):
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
-    def judgement_5(self, eqn):
-        ''' Parity argument. If the RHS is always even and the LHS has 2 odd
-            terms, then the variable parts of these terms must be equal.
+    def judgement_5(self, eqn, increase_complexity=False):
+        ''' Parity argument used when the RHS is always even.
+        
+            If we have 1 odd term in the LHS, it must be 0.            
+            If we have 2 odd terms in the LHS, they must be equal.            
             x + 2y + z = 4z2 -> x = z
+
+            If we have 3 odd terms and we are allowed to increase complexity,
+            then we can say something more:
+            x + y + z = 0 mod 2
+            =>
+            x = (y-z)^2 = y + z - 2*y*z
+            
             Also works with any even RHS and any number of even variables on
             the LHS.
 
@@ -1539,6 +1548,27 @@ class EquationSolver(object):
             >>> system.judgement_5(eqn)
             >>> system.deductions
             {x: z}
+
+            >>> system = EquationSolver()
+            >>> x, y, z, z2 = sympy.symbols('x y z z2')
+            >>> eqn = sympy.Eq(x + 2*y + 4*z, 2*z2)
+            >>> system.judgement_5(eqn)
+            >>> system.deductions
+            {x: 0}
+
+            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
+            >>> x, y, z, u, v = sympy.symbols('x y z u v')
+            >>> eqn = sympy.Eq(x + y + z + 2*u, 4*v)
+            >>> system.judgement_5(eqn, increase_complexity=True)
+            >>> system.deductions
+            {x: -2*y*z + y + z}
+
+            >>> eqns = ['q2 + q3 + 2*z4950 + 1 == 2*q2*q3 + 2*z56 + 4*z57']
+            >>> eqn = str_eqns_to_sympy_eqns(eqns)[0]
+            >>> system = EquationSolver(invariant_interactions_on_substitution=True)
+            >>> system.judgement_5(eqn, increase_complexity=True)
+            >>> system.deductions
+            {q2: -q3 + 1}
         '''
 
         def _helper(lhs, rhs):
@@ -1546,60 +1576,124 @@ class EquationSolver(object):
                 return
 
             odd_terms = []
-            for term in lhs.as_ordered_terms():
-                term_coef, term = term.as_coeff_Mul()
+            const = 0
+            for term, term_coef in lhs.as_coefficients_dict().iteritems():
                 if (term_coef % 2):
-                    if len(odd_terms) > 2:
-                        return
-                    else:
-                        odd_terms.append(term)
+                    if term == 1:
+                        const = 1
+                    odd_terms.append(term)
 
-            if len(odd_terms) == 2:
+            if len(odd_terms) == 1:
+                self.update_value(odd_terms.pop(), 0)
+
+            elif len(odd_terms) == 2:
                 if is_constant(odd_terms[0]):
                     self.update_value(odd_terms[1], odd_terms[0])
                 else:
                     self.update_value(*odd_terms)
+            
+            elif (increase_complexity and (len(odd_terms) == 3)):
+                if const or (not self.invariant_interactions_on_substitution):
+                    x, y, z = odd_terms
+                    # If we get a 1, permute the variables so it's nicer to play with
+                    if x == 1:
+                        y, z, x = x, y, z
+                    self.update_value(x, y + z - 2*y*z)
 
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
-    def judgement_6(self, eqn):
-        ''' Parity argument. If RHS is always odd and the LHS has 2 monic terms
-            then the sum must be 1.
+    def judgement_6(self, eqn, increase_complexity=False):
+        ''' Parity argument used if RHS is always odd.
+                    
+            If we have 1 odd term in the LHS, it must be 1.
+            If we have 2 odd terms in the LHS, they must sum to 1.            
+            x + 2y + z = 4z2 + 1 -> x = 1 - z
+            
+            If we have 3 odd terms and we are allowed to increase complexity,
+            then we can say something more:
+            x + y + z = 1 mod 2
+            =>
+            x = 1 - (y-z)^2 = 1 - y - z + 2yz
+
+            If we have 
+            and the LHS has 2 monic terms
+            then the sum must be 1. If it has 1 monic term, it must be 1
             Also make sure we don't replicate judgement_two_term
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + 2*x*y, 2 * z + 1)
-            >>> system.judgement_6(eqn)
+            >>> system.judgement_6(eqn, increase_complexity=True)
             >>> system.deductions
             {x: -y + 1}
 
             >>> system = EquationSolver()
             >>> x, y = sympy.symbols('x y')
             >>> eqn = sympy.Eq(x + y, 1)
-            >>> system.judgement_6(eqn)
+            >>> system.judgement_6(eqn, increase_complexity=False)
+            >>> system.deductions
+            {}
+
+            >>> system = EquationSolver()
+            >>> x, y = sympy.symbols('x y')
+            >>> eqn = sympy.Eq(x + y, 1)
+            >>> system.judgement_6(eqn, increase_complexity=True)
             >>> system.deductions
             {x: -y + 1}
             
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + 2*z, 3)
-            >>> system.judgement_6(eqn)
+            >>> system.judgement_6(eqn, increase_complexity=True)
             >>> system.deductions
             {x: -y + 1}
+            
+            >>> system = EquationSolver()
+            >>> eqns = ['2*q5*z1213 + 2*q6*q7 + 1 == z1213 + 2*z89']
+            >>> eqn = str_eqns_to_sympy_eqns(eqns)[0]
+            >>> system.judgement_6(eqn)
+            >>> system.deductions
+            {z1213: 1}
+
+            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
+            >>> x, y, z, u, v = sympy.symbols('x y z u v')
+            >>> eqn = sympy.Eq(x + y + z + 2*u, 4*v + 1)
+            >>> system.judgement_6(eqn, increase_complexity=True)
+            >>> system.deductions
+            {x: 2*y*z - y - z + 1}
         '''
-        lhs, rhs = eqn.lhs, eqn.rhs
-        if parity(rhs) == 1:
+        def _helper(lhs, rhs):        
+            if parity(rhs) != 1:
+                return
+                
             odd_terms = []
+            const = 0
             for term, term_coef in lhs.as_coefficients_dict().iteritems():
                 if (term_coef % 2):
                     if term == 1:
-                        return
+                        const = 1
                     odd_terms.append(term)
 
-            if len(odd_terms) == 2:
-                self.judgement_two_term(sympy.Eq(sum(odd_terms), 1))
+            if len(odd_terms) == 1:
+                self.update_value(odd_terms.pop(), 1)
+            elif (len(odd_terms) == 2):
+                if const:
+                    self.update_value(odd_terms.pop(), 0)
+                elif increase_complexity:
+                    self.judgement_two_term(sympy.Eq(sum(odd_terms), 1))
+            elif (increase_complexity and 
+                 ((not self.invariant_interactions_on_substitution) or const) and
+             (len(odd_terms) == 3)):
+                x, y, z = odd_terms
+                # Make another variable 1, so that it plays nicer
+                if x == 1:
+                    y, z, x = x, y, z
+                self.update_value(x, 1 - y - z + 2*y*z)
+        
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
+
 
     def judgement_7(self, eqn):
         ''' Special case of judgement_5
