@@ -9,6 +9,7 @@ from copy import deepcopy
 from collections import defaultdict
 import inspect
 import itertools
+from random import shuffle
 import sympy
 from sympy.core.cache import clear_cache
 
@@ -1250,6 +1251,14 @@ class EquationSolver(object):
             >>> system.judgement_mini_assumption(eqn, num_var=3)
             >>> system.deductions
             {z: 0}
+
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 10*y, 5 + 2*z)
+            >>> system.judgement_mini_assumption(eqn, num_var=4)
+            Traceback (most recent call last):
+                ...
+            ContradictionException: Assumption judgement contradiction
         '''
         var_score = defaultdict(int)
         for term, coef in (eqn.lhs + eqn.rhs).as_coefficients_dict().iteritems():
@@ -1259,9 +1268,10 @@ class EquationSolver(object):
         variables = sorted(var_score.items(), key=lambda x: x[1])[-num_var:]
         variables = [v[0] for v in variables]
 
-        values = itertools.product(xrange(2), repeat=len(variables))
+        values = list(itertools.product(xrange(2), repeat=len(variables)))
+        shuffle(values)
 
-        possible_subs = []
+        intersection = None
 
         for vals in values:
             to_sub = dict(zip(variables, vals))
@@ -1270,18 +1280,23 @@ class EquationSolver(object):
                 if is_equation(_eqn):
                     _eqn = standardise_equation(_eqn)
                     self.apply_contradictions([_eqn])
-                possible_subs.append(set(to_sub.items()))
+                
+                # If our intersection is empty, then we already know we can't
+                # deduce anything
+                if intersection is None:
+                    intersection = set(to_sub.items())
+                else:
+                    intersection.intersection_update(set(to_sub.items()))
+                    if len(intersection) == 0:
+                        return
+
             except ContradictionException:
                 continue
         
-        if len(possible_subs) == 0:
-            raise ContradictionException()
-
-        deductions = possible_subs.pop()
-        for poss_sub in possible_subs:
-            deductions = deductions.intersection(poss_sub)
+        if intersection is None:
+            raise ContradictionException('Assumption judgement contradiction')
         
-        for var, val in deductions:
+        for var, val in intersection:
             self.update_value(var, val)
 
 
