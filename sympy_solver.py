@@ -237,14 +237,19 @@ class EquationSolver(object):
                 # Here lets apply some slower, complex judgements to try and
                 # unstick ourselves
                 self.apply_judgements_complex(all_equations, num_constant_iter)
-                    
+
                 # Now apply judgements to the squares of the equations
-#                if num_constant_iter > 1:
-#                    self.apply_judgements_square(all_equations)
+                # Since applying judgements to the square of the equations 
+                # doesn't change behaviour as we get stuck, just apply it once
+                if num_constant_iter == 2:
+                    self.apply_judgements_square(all_equations, verbose=verbose)
 
                 if num_constant_iter > 3 or (self._length_tuple[:2] == (0, 0)):
                     break
-            else:
+                
+                self.clean_deductions()
+
+            if self._length_tuple != state_summary:
                 num_constant_iter = 0
                 state_summary = self._length_tuple
 
@@ -886,24 +891,31 @@ class EquationSolver(object):
             elif coef > 0:
                 self.update_value(var, 0)
 
-    def apply_judgements_square(self, equations):
+    def apply_judgements_square(self, equations, verbose=False):
         ''' Pick out equations that we can square in a reasonable amount of
             time and apply the judgements to them
         '''
-        eqn_sq = square_equations(equations, term_limit=20, method=1)
-        
         pre = self._length_tuple
-        pre_ded = self.deductions.copy()
-        self.apply_judgements(eqn_sq)
+        eqn_sq1 = square_equations(equations, term_limit=20, method=1)
+        self.apply_judgements(eqn_sq1)
+
+        eqn_sq2 = square_equations(equations, term_limit=20, method=2)
+        self.apply_judgements(eqn_sq2)
         post = self._length_tuple
-        post_ded = self.deductions.copy()
-        
-        if pre != post:
-            pre_ded = set(pre_ded.iteritems())
-            post_ded = set(post_ded.iteritems())
-            
-            print '{} -> {} after square application'.format(pre, post)
-            print post_ded.symmetric_difference(pre_ded)
+
+        # If we didn't find anything, try the first round of complex judgements        
+        if pre == post:
+            self.apply_judgements_complex(eqn_sq1, num_constant_iter=1)
+            self.apply_judgements_complex(eqn_sq2, num_constant_iter=1)
+
+            post = self._length_tuple
+            if verbose:
+                num_ded = post[1] - pre[1]
+                print '{} deductions made from squaring and complex judgements'.format(num_ded)
+
+        elif verbose:
+            num_ded = post[1] - pre[1]
+            print '{} deductions made from squaring'.format(num_ded)
 
     def apply_judgements_complex(self, equations, num_constant_iter):
         ''' Apply more complex or slow judgements if we get stuck.
