@@ -250,6 +250,8 @@ class EquationSolver(object):
 
         # Final clean again, for good luck
         self.equations = self.clean_equations(self.equations)
+        # and clear the cache for future generations
+        clear_cache()
 
     @property
     def final_equations(self):
