@@ -747,6 +747,8 @@ class EquationSolver(object):
             >>> system.deductions
             {x*y*z: y*z}
         '''
+        # First do some preprocessing to make sure the deduction is in a
+        # reasonably nice form
         # If expr = 2*x and value == 0, then we can get rid of the 2
         if value == 0:
             expr = expr.as_coeff_Mul()[1]
@@ -963,6 +965,8 @@ class EquationSolver(object):
                                      invariant_interactions_on_substitution=False)
                     self.judgement_6(eqn, increase_complexity=True, 
                                      invariant_interactions_on_substitution=False)
+                    self.judgement_9(eqn, increase_complexity=True, 
+                                     invariant_interactions_on_substitution=False)
 
 
     def apply_judgements(self, equations):
@@ -988,7 +992,7 @@ class EquationSolver(object):
         for eqn in equations:
             self.contradiction_1(eqn)
             self.contradiction_2(eqn)
-
+                self.judgement_9(eqn, increase_complexity=True)
     def judgement_0(self, eqn):
         ''' Add x=y to deductions. This shouldn't be needed, but it's nice to
             make sure we're not missing anything obvious
@@ -1936,20 +1940,29 @@ class EquationSolver(object):
         _helper(eqn.rhs, eqn.lhs)
 
 
-    def judgement_9(self, eqn):
+    def judgement_9(self, eqn, increase_complexity=False, 
+                    invariant_interactions_on_substitution=True):
         ''' Parity argument for when we have 1 variable that determines parity
             on the LHS.
             
             If we have 1 parity-determining variable on the RHS, then preserve
             parity.
             
-            >>> eqns = ['3*q5 + 2*z89 == 4*q5*z89 + q7 + 1',
-            ...         'x == y']
+            If we have 2 parity-determining variables on the RHS, then also
+            preserve parity
+            
+            >>> eqns = ['3*q5 + 2*z89 == 4*q5*z89 + 5*q7 + 1',
+            ...         '3*x + 2*a1 == 4*a2*a3 + y + z + 1']
             >>> eqns = str_eqns_to_sympy_eqns(eqns)
             >>> system = EquationSolver()
-            >>> for eqn in eqns: system.judgement_9(eqn)
+            >>> for eqn in eqns: system.judgement_9(eqn, increase_complexity=True)
             >>> system.deductions
             {q5: -q7 + 1}
+
+            >>> for eqn in eqns: system.judgement_9(eqn, increase_complexity=True,
+            ... invariant_interactions_on_substitution=False)
+            >>> system.deductions
+            {q5: -q7 + 1, x: 2*y*z - y - z + 1}
         '''
         if num_add_terms(eqn.lhs) == num_add_terms(eqn.rhs) == 1:
             return
@@ -1971,16 +1984,30 @@ class EquationSolver(object):
             odd_terms = []
             for term, term_coef in rhs.as_coefficients_dict().iteritems():
                 if (term_coef % 2) and (term != 1):
-                    odd_terms.append(term)
+                    odd_terms.append(term_coef * term)
             
             if len(odd_terms) == 1:
                 rhs_determining_var = odd_terms.pop()
                 rhs_parity = parity(rhs - rhs_determining_var)
+                rhs_determining_var = rhs_determining_var.as_coeff_Mul()[1]
                 if rhs_parity == 0:
                     self.update_value(lhs_determining_var, rhs_determining_var)
-                elif rhs_parity == 1:
+                elif (rhs_parity == 1) and (increase_complexity):
                     self.update_value(lhs_determining_var, 1 - rhs_determining_var)
 
+            elif len(odd_terms) == 2:
+                # These judgements only increace complexity
+                if not increase_complexity:
+                    return
+
+                x, y = odd_terms
+                rhs_parity = parity(rhs - x - y)
+                x = x.as_coeff_Mul()[1]
+                y = y.as_coeff_Mul()[1]
+                if rhs_parity == 0:
+                    self.judgement_two_term(sympy.Eq(lhs_determining_var, x + y))
+                elif (rhs_parity == 1) and (not invariant_interactions_on_substitution):
+                    self.update_value(lhs_determining_var, 1 - x - y + 2*x*y)
         
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
