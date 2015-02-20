@@ -968,7 +968,7 @@ class EquationSolver(object):
                     self.judgement_9(eqn, increase_complexity=True, 
                                      invariant_interactions_on_substitution=False)
 
-
+                self.judgement_9(eqn, increase_complexity=True)
     def apply_judgements(self, equations):
         ''' Apply judgements to a list of sympy equations and directly update
             self.deductions
@@ -992,7 +992,7 @@ class EquationSolver(object):
         for eqn in equations:
             self.contradiction_1(eqn)
             self.contradiction_2(eqn)
-                self.judgement_9(eqn, increase_complexity=True)
+
     def judgement_0(self, eqn):
         ''' Add x=y to deductions. This shouldn't be needed, but it's nice to
             make sure we're not missing anything obvious
