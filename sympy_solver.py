@@ -1632,6 +1632,13 @@ class EquationSolver(object):
             {x: z}
 
             >>> system = EquationSolver()
+            >>> x, z1, z2, z3, z4 = sympy.symbols('x z1 z2 z3 z4')
+            >>> eqn = sympy.Eq(x + 2*z1 + 2*z2, 4*z3*z4 + 2)
+            >>> system.judgement_5(eqn)
+            >>> system.deductions
+            {x: 0}
+
+            >>> system = EquationSolver()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
             >>> eqn = sympy.Eq(x + 2*y + 3*z, 2 * z2)
             >>> system.judgement_5(eqn)
