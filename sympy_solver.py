@@ -244,7 +244,7 @@ class EquationSolver(object):
                 if num_constant_iter == 2:
                     self.apply_judgements_square(all_equations, verbose=verbose)
 
-                if num_constant_iter > 3 or (self._length_tuple[:2] == (0, 0)):
+                if num_constant_iter > 4 or (self._length_tuple[:2] == (0, 0)):
                     break
                 
                 self.clean_deductions()
@@ -949,7 +949,9 @@ class EquationSolver(object):
                 # Apply the judgements that may add complexity
                 self.judgement_5(eqn, increase_complexity=True)
                 self.judgement_6(eqn, increase_complexity=True)
+                self.judgement_9(eqn, increase_complexity=True)
 
+        if num_constant_iter > 2:
 
             for eqn in equations:
                 # Only do 1 at a time, so if we have a new deduction
@@ -958,8 +960,9 @@ class EquationSolver(object):
                     return
 
                 self.judgement_n_term(eqn, num_constant_iter + 2)
-            
-            if not self.invariant_interactions_on_substitution:            
+        
+        if num_constant_iter > 3:
+            if (not self.invariant_interactions_on_substitution):
                 for eqn in equations:
                     self.judgement_5(eqn, increase_complexity=True, 
                                      invariant_interactions_on_substitution=False)
@@ -968,7 +971,7 @@ class EquationSolver(object):
                     self.judgement_9(eqn, increase_complexity=True, 
                                      invariant_interactions_on_substitution=False)
 
-                self.judgement_9(eqn, increase_complexity=True)
+
     def apply_judgements(self, equations):
         ''' Apply judgements to a list of sympy equations and directly update
             self.deductions
