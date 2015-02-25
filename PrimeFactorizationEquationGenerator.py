@@ -26,13 +26,13 @@ OutputFileName = "output.txt"
 # A default experiment to run
 exp = 2
 params = EXPERIMENTS[exp]
-digitsInMultiplicand1, digitsInMultiplicand2, product = params
+digitsInMultiplicand1, digitsInMultiplicand2, product = params[:3]
 
 # Default assumption parameters
 num_assumptions = 0
 limit_assumptions = 1
 # Use standard carry equations by default
-qubit_reduction_method = 2
+qubit_reduction_method = 0
 
 #We can override the digit and product values above using arguments
 if len(sys.argv) > 2:
