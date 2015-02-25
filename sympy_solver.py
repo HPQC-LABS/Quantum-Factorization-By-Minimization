@@ -215,12 +215,15 @@ class EquationSolver(object):
             # Now fetch non-trivial solutions
             non_trivial_soln = []
             for variable, soln in self.solutions.iteritems():
-                if len(soln.atoms()) > 3:
-                    non_trivial_soln.append(sympy.Eq(variable, soln))
+                # If we've found the solution, don't bother trying to apply
+                # judgements to it                
+                if is_constant(soln):
+                    continue
+                non_trivial_soln.append(sympy.Eq(variable, soln))
             non_trivial_soln = map(remove_binary_squares_eqn, non_trivial_soln)
             non_trivial_soln = map(balance_terms, non_trivial_soln)
             non_trivial_soln = map(cancel_constant_factor, non_trivial_soln)
-            non_trivial_soln = filter(is_equation, non_trivial_soln)            
+            non_trivial_soln = filter(is_equation, non_trivial_soln)
             all_equations.extend(non_trivial_soln)
 
             self.apply_judgements(all_equations)
