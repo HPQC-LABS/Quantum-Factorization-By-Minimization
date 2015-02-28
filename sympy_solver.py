@@ -935,7 +935,7 @@ class EquationSolver(object):
             # Use mini-assumptions
             for eqn in equations:
                 # Limit the substitutions at 2^6=64
-                num_var = min(2*num_constant_iter + 2, 6)
+                num_var = min(3*num_constant_iter + 2, 6)
                 # Rank by number of times each occurs
                 self.judgement_mini_assumption(eqn, num_var=num_var, 
                                                coef_transform=lambda x: pow(x, 0.01))
@@ -959,14 +959,18 @@ class EquationSolver(object):
             for eqn in equations:
                 # Only do 1 at a time, so if we have a new deduction
                 # go round again
-                if self._length_tuple != state_summary:
-                    return
+#                if self._length_tuple != state_summary:
+#                    return
 
                 self.judgement_n_term(eqn, num_constant_iter + 2)
         
         if num_constant_iter > 3:
             if (not self.invariant_interactions_on_substitution):
                 for eqn in equations:
+
+#                    if self._length_tuple != state_summary:
+#                        return
+
                     self.judgement_5(eqn, increase_complexity=True, 
                                      invariant_interactions_on_substitution=False)
                     self.judgement_6(eqn, increase_complexity=True, 
