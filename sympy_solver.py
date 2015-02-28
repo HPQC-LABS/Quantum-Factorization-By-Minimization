@@ -1007,12 +1007,13 @@ class EquationSolver(object):
             then x and y both have to be 0
             
             >>> eqns = ['6*p5*q7 == 5*q5*q7',
-            ...         'x == 0']
+            ...         'x == 0',
+            ...         'p6 == 2*z2627']
             >>> eqns = str_eqns_to_sympy_eqns(eqns)
             >>> system = EquationSolver()
-            >>> system.judgement_0(eqns[0])
+            >>> for eqn in eqns: system.judgement_0(eqn)
             >>> system.deductions
-            {p5*q7: 0, q5*q7: 0}
+            {p6: 0, x: 0, z2627: 0, p5*q7: 0, q5*q7: 0}
         '''
         lhs, rhs = eqn.lhs, eqn.rhs
         if len(lhs.atoms()) == len(rhs.atoms()) == 1:
