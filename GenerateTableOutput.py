@@ -59,16 +59,16 @@ def FormatOutput(params):
 		startPlace = colToPlace*colWidth
 		answerOutput[0] = answerOutput[0][:startPlace] + strToInsert + answerOutput[0][startPlace+colWidth:]
 	
-	for i in multiplicandsOutput:
-		print i
-	print "-"*colWidth*numCol
-	for i in intermediaryOutput:
-		print i
-	print "-"*colWidth*numCol
-	for i in carryOutput:
-		print i
-	print "-"*colWidth*numCol
-	print answerOutput[0]
+#	for i in multiplicandsOutput:
+#		print i
+#	print "-"*colWidth*numCol
+#	for i in intermediaryOutput:
+#		print i
+#	print "-"*colWidth*numCol
+#	for i in carryOutput:
+#		print i
+#	print "-"*colWidth*numCol
+#	print answerOutput[0]
 	
 	output = []
 	output.append(numCol)

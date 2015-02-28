@@ -6,7 +6,7 @@ def CarryGenerator(params):
 	topDigits = params[0]
 	bottomDigits = params[1]
 
-	print topDigits
+#	print topDigits
 
 	li = []
 	carry = []

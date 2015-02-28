@@ -51,6 +51,6 @@ def GenerateEquations(params):
 			if i:
 				rightStr = rightStr + i + " + "
 		rightStr = rightStr[:-3]
-		print leftStr, " = ", rightStr
+#		print leftStr, " = ", rightStr
 		
 	return [leftsides, rightsides]
