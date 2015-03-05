@@ -277,7 +277,7 @@ def _check_solutions_for_targets(targets, solutions, verbose=False):
 def evaluate_term_dict(product, term_dict):
     ''' Given a term dict, check that it evaluates to 0 
     
-        >>> params = EXPERIMENTS[1]
+        >>> params = EXPERIMENTS[1][:3]
         
         >>> prod = params[-1]
         >>> eqns = generate_carry_equations(*params)
@@ -287,7 +287,7 @@ def evaluate_term_dict(product, term_dict):
         >>> evaluate_term_dict(prod, term_dict)
         0
     
-        >>> params = EXPERIMENTS[2]
+        >>> params = EXPERIMENTS[2][:3]
         
         >>> prod = params[-1]
         >>> eqns = generate_carry_equations(*params)
@@ -297,7 +297,7 @@ def evaluate_term_dict(product, term_dict):
         >>> evaluate_term_dict(prod, term_dict)
         0
 
-        >>> params = EXPERIMENTS[3]
+        >>> params = EXPERIMENTS[3][:3]
         
         >>> prod = params[-1]
         >>> eqns = generate_carry_equations(*params)
