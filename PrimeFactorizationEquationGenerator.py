@@ -4,7 +4,7 @@
 import sys
 from time import time
 
-from cfg_sympy_solver import EXPERIMENTS, QUBIT_REDUCTION_ID
+from cfg_sympy_solver import EXPERIMENTS, QUBIT_REDUCTION_ID, EXPERIMENTS_21
 from objective_function_helper import coef_str_to_file
 from sympy_assumptions import (make_simultaneous_assumptions, 
                                frequency_rank_variables,
@@ -24,8 +24,8 @@ __status__ = "Prototype"
 OutputFileName = "output.txt"
 
 # A default experiment to run
-exp = 2
-params = EXPERIMENTS[exp]
+exp = 13
+params = EXPERIMENTS_21[exp]
 digitsInMultiplicand1, digitsInMultiplicand2, product = params[:3]
 
 # Default assumption parameters
@@ -42,7 +42,7 @@ if len(sys.argv) > 2:
     qubit_reduction_method = int(sys.argv[4])
     num_assumptions = int(sys.argv[5])
     limit_assumptions = int(sys.argv[6])
-    OutputFileName = str(sys.argv[7])
+#    OutputFileName = str(sys.argv[7])
 
 equation_generator, coef_str_generator = QUBIT_REDUCTION_ID[qubit_reduction_method]
 
@@ -56,33 +56,36 @@ output = None#OutputFileName
 # We can use the handy state caching    
 cache_name = None#'_state_{}'.format(str(product)[-6:])
 log_deductions = False
+invariant_interactions_on_substitution = True
 if cache_name is not None:
     try:
         system = EquationSolver.from_disk(cache_name)
     except Exception as e:
         print e
         system = EquationSolver(eqns, output_filename=output, 
-                                            log_deductions=log_deductions)
+                                            log_deductions=log_deductions,
+                                            invariant_interactions_on_substitution=invariant_interactions_on_substitution)
         system.solve_equations(verbose=True)
         system.to_disk(cache_name)
 
 # Do it normally
 else:
     system = EquationSolver(eqns, output_filename=output, 
-                                        log_deductions=log_deductions)
-    system.solve_equations(verbose=True)
+                                        log_deductions=log_deductions,
+                                        invariant_interactions_on_substitution=invariant_interactions_on_substitution)
+    system.solve_equations(verbose=True, max_iter=100)
     
 
 system.print_summary()
-print '\nSolved in {}s'.format(time() - s)
+print '\nSolved in {:.3f}s'.format(time() - s)
 
-try:
-    coef_filename = OutputFileName.replace('.txt', '_coef.txt')
-    coef_str = coef_str_generator(system.final_equations)
-    coef_str_to_file(coef_str, coef_filename)
-except Exception as e:
-    print 'Failed to write the coefficient'
-    print e
+#try:
+#    coef_filename = OutputFileName.replace('.txt', '_coef.txt')
+#    coef_str = coef_str_generator(system.final_equations)
+#    coef_str_to_file(coef_str, coef_filename)
+#except Exception as e:
+#    print 'Failed to write the coefficient'
+#    print e
 
 
 check_solutions(product, system.solutions.copy(), verbose=True)
