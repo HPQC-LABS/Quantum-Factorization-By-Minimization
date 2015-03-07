@@ -137,7 +137,7 @@ if __name__ == '__main__':
         limit_assumptions = int(sys.argv[6])
     #    OutputFileName = str(sys.argv[7])
         factorize(product=product, digitsInMultiplicand1=digitsInMultiplicand1,
-                  ddigitsInMultiplicand2=digitsInMultiplicand2,
+                  digitsInMultiplicand2=digitsInMultiplicand2,
                   num_assumptions=num_assumptions,
                   limit_assumptions=limit_assumptions,
                   qubit_reduction_method=qubit_reduction_method)
