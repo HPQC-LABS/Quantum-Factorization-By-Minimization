@@ -33,7 +33,7 @@ for num in nums:
     num_d1, num_d2 = num_to_factor_num_qubit(num)
     if (num_d1, num_d2) != prev_num_digit:
         if lines:
-            filename = 'batch_experiments_{}x{}.sh'.format(num_d1, num_d2)
+            filename = 'batch_experiments_{}x{}.sh'.format(*prev_num_digit)
             filename = os.path.join(BATCH_FOLDER, filename)
             f = open(filename, 'w')
             f.write('#!/bin/bash\n\n')            
