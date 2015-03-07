@@ -189,7 +189,7 @@ class EquationSolver(object):
         '''
         return len(self.equations), len(self.deductions), len(self.solutions)
 
-    def solve_equations(self, max_iter=100, verbose=False):
+    def solve_equations(self, max_iter=250, verbose=False):
         ''' Solve a system of equations
         '''
         state_summary = self._length_tuple
