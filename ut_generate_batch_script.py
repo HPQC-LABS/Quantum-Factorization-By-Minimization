@@ -36,7 +36,8 @@ for num in nums:
             filename = 'batch_experiments_{}x{}.sh'.format(*prev_num_digit)
             filename = os.path.join(BATCH_FOLDER, filename)
             f = open(filename, 'w')
-            f.write('#!/bin/bash\n\n')            
+            f.write('#!/bin/bash\n\n')
+            f.write('cd /home/tanburn/Quantum-Factorization-By-Minimization/\n\n')
             f.writelines(lines)
             f.close()
             lines = []
