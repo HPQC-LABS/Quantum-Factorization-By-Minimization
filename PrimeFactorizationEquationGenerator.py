@@ -88,6 +88,7 @@ def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
     system.solve_equations(verbose=True, max_iter=300)
         
     
+    print '\nProduct: {}\n'.format(product)
     system.print_summary()
     print '\nSolved in {:.3f}s'.format(time() - s)
     
