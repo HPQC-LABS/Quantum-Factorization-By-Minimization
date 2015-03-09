@@ -123,21 +123,27 @@ def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 2:
-        product = int(sys.argv[1])
-        factorize(product=product)
-
-    #We can override the digit and product values above using arguments
-    elif len(sys.argv) > 2:
-        digitsInMultiplicand1 = int(sys.argv[1])
-        digitsInMultiplicand2 = int(sys.argv[2])
-        product = int(sys.argv[3])
-        qubit_reduction_method = int(sys.argv[4])
-        num_assumptions = int(sys.argv[5])
-        limit_assumptions = int(sys.argv[6])
-    #    OutputFileName = str(sys.argv[7])
-        factorize(product=product, digitsInMultiplicand1=digitsInMultiplicand1,
-                  digitsInMultiplicand2=digitsInMultiplicand2,
-                  num_assumptions=num_assumptions,
-                  limit_assumptions=limit_assumptions,
-                  qubit_reduction_method=qubit_reduction_method)
+    try:
+        if len(sys.argv) == 2:
+            product = int(sys.argv[1])
+            factorize(product=product)
+    
+        #We can override the digit and product values above using arguments
+        elif len(sys.argv) > 2:
+            digitsInMultiplicand1 = int(sys.argv[1])
+            digitsInMultiplicand2 = int(sys.argv[2])
+            product = int(sys.argv[3])
+            qubit_reduction_method = int(sys.argv[4])
+            num_assumptions = int(sys.argv[5])
+            limit_assumptions = int(sys.argv[6])
+        #    OutputFileName = str(sys.argv[7])
+            factorize(product=product, digitsInMultiplicand1=digitsInMultiplicand1,
+                      digitsInMultiplicand2=digitsInMultiplicand2,
+                      num_assumptions=num_assumptions,
+                      limit_assumptions=limit_assumptions,
+                      qubit_reduction_method=qubit_reduction_method)
+        else:
+            product = 143
+            factorize(product)
+    except Exception as e:
+        print e
