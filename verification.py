@@ -7,15 +7,16 @@ Created on Wed Dec 31 18:35:14 2014
 
 import itertools
 import sympy
+import cPickle
 
 from contradiction_exception import ContradictionException
 from sympy_helper_fns import is_constant, max_value, min_value
 from rsa_constants import RSA100, RSA100_F1, RSA100_F2
-
+from cfg_sympy_solver import FACTOR_DICT_FILENAME
 from carry_equations_generator import generate_carry_equations
 from sympy_solver import EquationSolver
 
-KNOWN_FACTORISATIONS = {
+EXTRA_KNOWN_FACTORISATIONS = {
         RSA100: (RSA100_F1, RSA100_F2),
         1267650600228508624673600186743: (1125899906842679, 1125899906842817),
         309485009821943203050291389: (17592186044423, 17592186044443),
@@ -29,13 +30,25 @@ KNOWN_FACTORISATIONS = {
         1267650600228402790082356974917: (1125899906842679, 1125899906842723),
 }
 
+for product, (f1, f2) in EXTRA_KNOWN_FACTORISATIONS.iteritems():
+    assert product == f1 * f2
+    assert f1 <= f2
+
+# Now union with all the known factorisations on disk, for which the checks
+# have been made at write time
+try:
+    factor_dict_file = open(FACTOR_DICT_FILENAME, 'r')
+    KNOWN_FACTORISATIONS = cPickle.load(factor_dict_file)
+    factor_dict_file.close()
+    KNOWN_FACTORISATIONS.update(EXTRA_KNOWN_FACTORISATIONS)
+except Exception as e:
+    print 'Error loading factor dict:\n', e
+    KNOWN_FACTORISATIONS = EXTRA_KNOWN_FACTORISATIONS
+
 VERIFICATION_FAILURE_MESSAGE = '*** Assertions failed. Solution incorrect ***'
 VERIFICATION_SUCCESS_MESSAGE = 'All assertions passed.'
 FACTORISATION_NOT_FOUND_STEM = 'No factorisation found for {}'
 
-for product, (f1, f2) in KNOWN_FACTORISATIONS.iteritems():
-    assert product == f1 * f2
-    assert f1 <= f2
 
 BRUTE_FORCE_FACTORISATION_LIMIT = 10**16
 
