@@ -12,6 +12,13 @@ from objective_function_helper import (equations_to_vanilla_coef_str,
                                        equations_to_sum_coef_str,
                                        equations_to_recursive_schaller_coef_str)
 
+# File containing the list of semiprimes
+SEMIPRIME_FILENAME = 'large_semiprimes.txt'
+# File containing the answers
+FACTORS_FILENAME = 'large_semiprimes_factors.txt'
+# Name of the dict that verification.py will use to find the solutions
+FACTOR_DICT_FILENAME = 'factor_dict'
+
 # Tuples of equation generator, objective function generator
 QUBIT_REDUCTION_ID =   {0: (generate_carry_equations, equations_to_vanilla_coef_str),
                         1: (generate_schaller_equations, equations_to_sum_coef_str),
