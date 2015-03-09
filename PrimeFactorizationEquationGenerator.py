@@ -12,7 +12,7 @@ from sympy_assumptions import (make_simultaneous_assumptions,
                                max_coef_rank_variables,
                                lexographical_rank_variable)
 from sympy_solver import EquationSolver
-from verification import check_solutions
+from verification import check_solutions, check_substitutions
 
 
 __author__ = "Nathaniel Bryans"
@@ -30,6 +30,8 @@ def num_to_factor_num_qubit(prod):
         (8, 8)
         >>> num_to_factor_num_qubit(1099551473989)
         (21, 21)
+        >>> num_to_factor_num_qubit(309485009822787627980424653)
+        (45, 45)
         >>> num_to_factor_num_qubit(1267650600228508624673600186743)
         (51, 51)
     '''
@@ -98,7 +100,8 @@ def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
     #    print e
     
     
-    check_solutions(product, system.solutions.copy(), verbose=True)
+    #check_solutions(product, system.solutions.copy(), verbose=True)
+    check_substitutions(product, system.copy(), verbose=True)
     
     print
     
@@ -143,6 +146,8 @@ if __name__ == '__main__':
                       limit_assumptions=limit_assumptions,
                       qubit_reduction_method=qubit_reduction_method)
         else:
+            import doctest
+            doctest.testmod()
             product = 143
             factorize(product)
     except Exception as e:
