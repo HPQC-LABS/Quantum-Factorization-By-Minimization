@@ -26,20 +26,24 @@ from objective_function_helper import (equations_to_vanilla_coef_str,
                                        equations_to_vanilla_objective_function,
                                        equations_to_auxillary_coef_str)
 
+from sympy_paralleliser import paralellised_subs, get_pool
+
+
 __author__ = "Richard Tanburn"
 __credits__ = ["Richard Tanburn", "Nathaniel Bryans", "Nikesh Dattani"]
 __version__ = "0.0.1"
 __status__ = "Prototype"
 
+# Maximum number of equations before quadratic equality checking kicks in
 EQUATION_EQUAL_CHECK_LIMIT = 350
 
-# Parent equation
 
 class EquationSolver(object):
     ''' Solver of equations '''
 
     def __init__(self, equations=None, variables=None, log_deductions=False,
-                 output_filename=None, invariant_interactions_on_substitution=True):
+                 output_filename=None, invariant_interactions_on_substitution=True,
+                 parallelise=False):
         if variables is None:
             if equations is None:
                 variables = {}
@@ -75,6 +79,10 @@ class EquationSolver(object):
         # substitute x = (1-y + z1) type deductions, where each term on the
         # RHS has 1 atom
         self.invariant_interactions_on_substitution = invariant_interactions_on_substitution
+        
+        # Allow parallelisation
+        self.parallelise = parallelise
+        self._pool = None
 
     def print_(self, output, close=False):
         ''' Print either to screen or a file if given '''
@@ -93,7 +101,8 @@ class EquationSolver(object):
         copy = EquationSolver(deepcopy(self.equations), 
                               deepcopy(self.variables),
                               log_deductions=self.log_deductions, 
-                              output_filename=self.output_filename)
+                              output_filename=self.output_filename,
+                              parallelise=self.parallelise)
                               
         # Now use deepcopy to copy everything else
         copy.num_qubits_start = self.num_qubits_start
@@ -111,13 +120,13 @@ class EquationSolver(object):
                 self.invariant_interactions_on_substitution, self.log_deductions,
                 # We can't pickle defaultdicts apparently
                 dict(self.deduction_record), self.variables, self.num_qubits_start,
-                self.output_filename, self._file)
+                self.output_filename, self._file, self.parallelise)
         
     def __setstate__(self, state):
         (self.equations, self.deductions, self.solutions, 
          self.invariant_interactions_on_substitution, self.log_deductions,
          deduction_record, self.variables, self.num_qubits_start,
-         self.output_filename, self._file) = state
+         self.output_filename, self._file, self.parallelise) = state
          
         # Re cast to a defaultdict
         self.deduction_record = defaultdict(lambda : defaultdict(list))
@@ -357,8 +366,26 @@ class EquationSolver(object):
             cleaned_sol = ((var, self.solutions.get(var)) for var in cleaned_atoms)
             cleaned_sol = filter(lambda x: x[1] is not None, cleaned_sol)
             cleaned_sol = {x[0]: x[1] for x in cleaned_sol}
+        else:
+            cleaned_sol = {}
 
-        cleaned = [eqn.subs(cleaned_sol).subs(self.deductions) for eqn in cleaned]
+        # Combine all combinations into one dict, giving priority to cleaned_sol        
+        combined_subs = self.deductions.copy()
+        combined_subs.update(cleaned_sol)
+
+        # Try to parallelise the slow substitution
+        if self.parallelise:
+            try:
+                if self._pool is None:
+                    self._pool = get_pool()
+                cleaned = paralellised_subs(cleaned, combined_subs, pool=self._pool)
+            except Exception as e:
+                print e
+                self.parallelise = False
+                cleaned = [eqn.subs(combined_subs) for eqn in cleaned]
+        else:
+            cleaned = [eqn.subs(combined_subs) for eqn in cleaned]
+
         cleaned = filter(is_equation, cleaned)
         cleaned = [eqn.expand() for eqn in cleaned]
         cleaned = map(remove_binary_squares_eqn, cleaned)
