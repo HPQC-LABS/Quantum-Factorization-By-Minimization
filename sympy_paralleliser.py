@@ -8,7 +8,10 @@ Created on Tue Mar 10 21:09:13 2015
 import itertools
 import multiprocessing
 
-DEFAULT_PROCESSES = 5
+DEFAULT_PROCESSES = 3
+
+# Minimum number of equations needed before parallelisation is used.
+PARALLELISED_SUBS_EQN_LIMIT = 40
 
 def get_pool(processes=DEFAULT_PROCESSES):
     ''' Return a pool object '''
@@ -23,6 +26,9 @@ def paralellised_subs(equations, to_sub, processes=DEFAULT_PROCESSES, pool=None)
         substitution.
         If a pool is given, ignore processes
     '''
+    if len(equations) < PARALLELISED_SUBS_EQN_LIMIT:
+        return [eqn.subs(to_sub) for eqn in equations]
+
     if isinstance(to_sub, dict):
         to_sub = to_sub.items()
     
