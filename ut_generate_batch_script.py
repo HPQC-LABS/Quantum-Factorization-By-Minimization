@@ -14,12 +14,15 @@ input_filename = 'large_semiprimes.txt'
 
 DIMENSIONS = range(20, 260, 10)
 
+BATCH_TEMPLATE = 'batch_experiments_{}x{}.sh'
+RUN_BATCH_FILENAME = 'run_batch.sh'
 PRINT_RESULTS_FILENAME = 'print_results.sh'
 COPY_RESULTS_FILENAME = 'copy_results.sh'
 
 BASH_STR = '#!/bin/sh'
 
 HOME_DIR = '/home/tanburn/Quantum-Factorization-By-Minimization/'
+BATCH_DIR = os.path.join(HOME_DIR, BATCH_FOLDER)
 
 def generate_batch_scripts():
 # Check the batch_scipts folder exists
@@ -44,7 +47,7 @@ def generate_batch_scripts():
         num_d1, num_d2 = num_to_factor_num_qubit(num)
         if (num_d1, num_d2) != prev_num_digit:
             if lines:
-                filename = 'batch_experiments_{}x{}.sh'.format(*prev_num_digit)
+                filename = BATCH_TEMPLATE.format(*prev_num_digit)
                 filename = os.path.join(BATCH_FOLDER, filename)
                 f = open(filename, 'w')
                 f.write(BASH_STR + '\n\n')
@@ -62,6 +65,34 @@ def generate_batch_scripts():
         lines.append(entry_str)
 
     return True
+
+def generate_run_batch_scripts():
+    ''' Generate a file that will open a new screen and run a given batch file 
+    
+    '''
+    f = open(RUN_BATCH_FILENAME, 'w')
+    f.write(BASH_STR + '\n\n')
+
+    f.write('cd {BATCH_DIR}\n\n'.format(BATCH_DIR=BATCH_DIR))
+
+    template = BATCH_TEMPLATE.format('$1', '$1')
+
+    script = '''
+if ["$1" == ""]; then
+    exit 1
+fi
+
+EXP_NAME="exp$1"
+
+screen -S $EXP_NAME -d -m
+
+BATCH_FILE="batch_experiments_$1x$1.sh"
+
+screen -S $EXP_NAME -X stuff ". ./$BATCH_FILE\\r"'''.format(temp=template)
+
+    f.write(script)
+    
+    f.close()
 
 def generate_print_results(dimensions):
     ''' Generate the script that puts the grep output into a file in a given folder '''
@@ -96,6 +127,7 @@ def generate_copy_results(dimensions):
 
 if __name__ == '__main__':
     generate_batch_scripts()
+    generate_run_batch_scripts()
     generate_print_results(DIMENSIONS)
     generate_copy_results(DIMENSIONS)
     
