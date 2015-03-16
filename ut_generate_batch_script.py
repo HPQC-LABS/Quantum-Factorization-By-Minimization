@@ -78,7 +78,7 @@ def generate_run_batch_scripts():
     template = BATCH_TEMPLATE.format('$1', '$1')
 
     script = '''
-if ["$1" == ""]; then
+if [ "$1" == "" ]; then
     exit 1
 fi
 
