@@ -11,7 +11,7 @@ import multiprocessing
 DEFAULT_PROCESSES = 3
 
 # Minimum number of equations needed before parallelisation is used.
-PARALLELISED_SUBS_EQN_LIMIT = 40
+PARALLELISED_SUBS_EQN_LIMIT = 30
 
 def get_pool(processes=DEFAULT_PROCESSES):
     ''' Return a pool object '''
