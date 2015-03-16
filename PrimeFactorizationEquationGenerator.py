@@ -150,7 +150,7 @@ if __name__ == '__main__':
         else:
             import doctest
             doctest.testmod()
-            product = 143
+            product = EXPERIMENTS[1].product
             factorize(product)
     except Exception as e:
         print e
