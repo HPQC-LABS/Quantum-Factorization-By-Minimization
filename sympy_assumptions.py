@@ -377,6 +377,9 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
                                               rank_func=rank_func,
                                               limit_permutations=limit_permutations)
 
+    if len(vars_to_sub) == 0:
+        raise ValueError('No variables found for substitution')
+
     equation_solvers = []
     times = []
     
@@ -392,6 +395,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
             start = time()        
             try:
                 solver = equation_solver.copy()
+                solver.parallelise = False
                 for var, val in itertools.izip(var_combination, sub_values):
                     solver.update_value(var, val)
                 solver.solve_equations()
