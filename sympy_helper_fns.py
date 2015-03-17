@@ -584,7 +584,7 @@ def str_eqns_to_sympy_eqns(str_eqns):
         >>> eqns = str_eqns_to_sympy_eqns(str_eqns)
         >>> for e in eqns: print e
         x + y == 1
-        x*y*z + 3 == 3*a
+        3*a == x*y*z + 3
     '''
     str_exprs = []
     for str_eqn in str_eqns:
@@ -594,16 +594,18 @@ def str_eqns_to_sympy_eqns(str_eqns):
 def str_exprs_to_sympy_eqns(str_exprs):
     ''' Take some strings and return the sympy expressions 
 
-        >>> str_eqns = ['x + y - 1', 'x*y*z - 3*a + 3']
+        >>> str_eqns = ['x + y - 1', 'x*y*z - 3*a + 3', '2*a - 4*b']
         >>> eqns = str_exprs_to_sympy_eqns(str_eqns)
         >>> for e in eqns: print e
         x + y == 1
-        x*y*z + 3 == 3*a
+        3*a == x*y*z + 3
+        a == 2*b
     '''
     exprs = map(sympy.sympify, str_exprs)
     exprs = map(sympy.Eq, exprs)
-    return map(balance_terms, exprs)
-
+    exprs = map(cancel_constant_factor, exprs)
+    exprs = map(balance_terms, exprs)
+    return exprs
 
 
 if __name__ == "__main__":
