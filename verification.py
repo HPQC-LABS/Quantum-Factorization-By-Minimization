@@ -194,6 +194,9 @@ def check_substitutions(product, system, verbose=False):
         return False
     
     if verbose:
+        num_remaining = len(system.unsolved_var)
+        if num_remaining:
+            print '{} qubits undetermined by answers'.format(num_remaining)
         print VERIFICATION_SUCCESS_MESSAGE
     return True
 
