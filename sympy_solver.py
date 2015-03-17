@@ -221,19 +221,7 @@ class EquationSolver(object):
             # Extract all the equations from the system
             all_equations = self.final_equations
 
-            # Now fetch non-trivial solutions
-            non_trivial_soln = []
-            for variable, soln in self.solutions.iteritems():
-                # If we've found the solution, don't bother trying to apply
-                # judgements to it                
-                if is_constant(soln):
-                    continue
-                non_trivial_soln.append(sympy.Eq(variable, soln))
-            non_trivial_soln = map(remove_binary_squares_eqn, non_trivial_soln)
-            non_trivial_soln = map(balance_terms, non_trivial_soln)
-            non_trivial_soln = map(cancel_constant_factor, non_trivial_soln)
-            non_trivial_soln = filter(is_equation, non_trivial_soln)
-            all_equations.extend(non_trivial_soln)
+            all_equations.extend(self.non_trivial_solns)
 
             self.apply_judgements(all_equations)
             self.apply_contradictions(all_equations)
@@ -284,6 +272,32 @@ class EquationSolver(object):
         final_equations = self.equations + self.deductions_as_equations
         final_equations = sorted(set(final_equations), key=str)
         return final_equations
+
+    @property
+    def non_trivial_solns(self):
+        ''' A list of everything from self.solutions that might hold 
+            information
+            
+            >>> a, b, c, u, v, x, y, z = sympy.symbols('a b c u v x y z')
+            >>> system = EquationSolver()
+            >>> solutions = {a: 1, b: c, u: 1 - v, x: y*z, y: x - 2*z}
+            >>> system.solutions = solutions
+            >>> system.non_trivial_solns
+            [y + 2*z == x, x == y*z]
+        '''
+        # Now fetch non-trivial solutions
+        non_trivial_soln = []
+        for variable, soln in self.solutions.iteritems():
+            # If we've found the solution, don't bother trying to apply
+            # judgements to it                
+            if is_constant(soln):# or (len(soln.atoms(sympy.Symbol)) == 1):
+                continue
+            non_trivial_soln.append(sympy.Eq(variable, soln))
+        non_trivial_soln = map(remove_binary_squares_eqn, non_trivial_soln)
+        non_trivial_soln = map(balance_terms, non_trivial_soln)
+        non_trivial_soln = map(cancel_constant_factor, non_trivial_soln)
+        non_trivial_soln = filter(is_equation, non_trivial_soln)
+        return non_trivial_soln
 
     def print_summary(self):
         ''' Print a summary of the information held in the object '''
