@@ -607,9 +607,11 @@ class EquationSolver(object):
                     if expr != val:
                         self.print_('Dropping deduction {} = {}'.format(expr, val))
 
-    def clean_solutions(self):
+    def clean_solutions(self, _prev_changed=None):
         ''' Remove cycles and chains in the solutions. Make sure every value is
             set to equal an expression involving constants and unsolved variables
+            
+            _prev_changed allows the recursive calling to keep track of cycles
 
             Simple solutions and cleaning
             >>> system = EquationSolver()
@@ -639,14 +641,30 @@ class EquationSolver(object):
             >>> system.solutions
             {c: y, x: y, b: y, a: y}
 
-            Non-trival cyclic solutions. This doesn't work as it should yet
+            Non-trival cyclic solutions. Little bit rough around the edges.
+            Keep an eye on it
             >>> system = EquationSolver()
-            >>> x, y = sympy.symbols('x y')
+            >>> x, y, z = sympy.symbols('x y z')
             >>> soln = {x: 1 - y, y: 1 - x}
             >>> system.solutions = soln
             >>> system.clean_solutions()
-            >>> system.solutions
+            >>> system.equations
+            [x + y == 1]
+            >>> system.deductions
             {}
+            >>> system.solutions
+            {y: -x + 1}
+
+            >>> system = EquationSolver()
+            >>> soln = {z: - x + 2, x: - y + 1, y: z - 1}
+            >>> system.solutions = soln
+            >>> system.clean_solutions()
+            >>> system.equations
+            [x + y == 1]
+            >>> system.deductions
+            {}
+            >>> system.solutions
+            {z: -x + 2, y: -x + 1}
 
             Incorrect keys
             >>> system = EquationSolver()
@@ -664,6 +682,8 @@ class EquationSolver(object):
             >>> system.solutions
             {x: -y + 1}
         '''
+        #TODO Make the solver handle cycles properly!!!
+
         # First make sure every key is a single value
         for expr, val in self.solutions.copy().iteritems():
             add_coef = expr.as_coeff_Add()[0]
@@ -694,7 +714,7 @@ class EquationSolver(object):
 #                self.update_value(variable, value)
 #                self.solutions.pop(variable)
 
-        changes = False
+        changed = set()
         new_solutions = {}
         to_skip = []  # Skip for the infinite loops
         for variable, value in self.solutions.iteritems():
@@ -730,6 +750,9 @@ class EquationSolver(object):
 
                 if value is None:
                     value = old_value.subs(self.solutions, simultaneous=True).expand()
+                    if value == variable:
+                        value = old_value
+                        changed.add(variable)
                     break
                 elif isinstance(value, int):
                     break
@@ -746,14 +769,18 @@ class EquationSolver(object):
                 continue
 
             if value != init_value:
-                changes = True
+                changed.add(variable)
 
             new_solutions[variable] = value
 
         self.solutions = new_solutions
 
-        if changes:
-            self.clean_solutions()
+        if len(changed):
+            if changed == _prev_changed:
+                var = changed.pop()
+                self.equations.append(standardise_equation(sympy.Eq(var, self.solutions[var])))
+                self.solutions.pop(var)
+            self.clean_solutions(_prev_changed=changed)
 
     def _update_log(self, expr, value):
         ''' Log an update under a judgement '''
