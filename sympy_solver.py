@@ -290,7 +290,7 @@ class EquationSolver(object):
         for variable, soln in self.solutions.iteritems():
             # If we've found the solution, don't bother trying to apply
             # judgements to it                
-            if is_constant(soln):# or (len(soln.atoms(sympy.Symbol)) == 1):
+            if is_simple_binary(soln):
                 continue
             non_trivial_soln.append(sympy.Eq(variable, soln))
         non_trivial_soln = map(remove_binary_squares_eqn, non_trivial_soln)
