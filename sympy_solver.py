@@ -759,6 +759,10 @@ class EquationSolver(object):
             >>> system.update_value(x, 0)
             >>> system.deductions
             {x: 0}
+            >>> system.update_value(x, 1)
+            Traceback (most recent call last):
+                ...
+            ContradictionException: x is already set to 0 != 1
 
             >>> system = EquationSolver()
             >>> x = sympy.symbols('x')
