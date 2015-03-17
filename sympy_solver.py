@@ -21,7 +21,8 @@ from sympy_helper_fns import (max_value, min_value, is_equation,
                               num_add_terms, parity, is_monic, is_one_or_zero,
                               remove_binary_squares, expressions_to_variables,
                               gather_monic_terms, square_equations,
-                              str_eqns_to_sympy_eqns, standardise_equation)
+                              str_eqns_to_sympy_eqns, standardise_equation,
+                              is_simple_binary)
 from objective_function_helper import (equations_to_vanilla_coef_str, 
                                        equations_to_vanilla_objective_function,
                                        equations_to_auxillary_coef_str)
