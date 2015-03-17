@@ -269,6 +269,12 @@ class EquationSolver(object):
         self.equations = self.clean_equations(self.equations)
         # and clear the cache for future generations
         clear_cache()
+        
+        # Close the pool
+        if self._pool is not None:
+            self._pool.close()
+            self._pool.join()
+            self._pool = None
 
     @property
     def final_equations(self):
