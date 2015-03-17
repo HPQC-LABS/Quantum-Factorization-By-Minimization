@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+import itertools
 import sys
 from time import time
 
@@ -19,6 +20,42 @@ __author__ = "Nathaniel Bryans"
 __credits__ = ["Nathaniel Bryans", "Nikesh Dattani"]
 __version__ = "0.0.6"
 __status__ = "Prototype"
+
+def factor_binary_differences(p, q):
+    ''' Given 2 factors, work out how many places they differ by when expressed
+        in binary form
+        
+        >>> for m, n in itertools.combinations_with_replacement(range(1, 10), 2):
+        ...     if len(bin(m)) != len(bin(n)):
+        ...         continue
+        ...     print m, n, factor_binary_differences(m, n)
+        1 1 0
+        2 2 0
+        2 3 1
+        3 3 0
+        4 4 0
+        4 5 1
+        4 6 1
+        4 7 2
+        5 5 0
+        5 6 2
+        5 7 1
+        6 6 0
+        6 7 1
+        7 7 0
+        8 8 0
+        8 9 1
+        9 9 0
+    '''
+    p_str = bin(p)[2:]
+    q_str = bin(q)[2:]
+    if len(p_str) != len(q_str):
+        return None
+    diffs = 0
+    for pi, qi in itertools.izip(p_str, q_str):
+        if pi != qi:
+            diffs += 1
+    return diffs
 
 def num_to_factor_num_qubit(prod):
     ''' Given a number, work out how many qubits the factors should be.
