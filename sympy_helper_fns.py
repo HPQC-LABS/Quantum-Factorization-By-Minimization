@@ -18,6 +18,63 @@ def is_one_or_zero(val):
     ''' Self explanatory '''
     return (val == 0) or (val == 1)
 
+def is_simple_binary(expr):
+    ''' Determine whether an expression is essentially binary, or determined.
+    
+        >>> x, y = sympy.symbols('x y')
+        >>> for test in [-1, 0, 1, 2, 0.5]:
+        ...     print test
+        ...     print is_simple_binary(test)
+        -1
+        False
+        0
+        True
+        1
+        True
+        2
+        False
+        0.5
+        False
+        
+        >>> for test in [x, y, x*y, 2*x, x + 1, x + y, 1 - x, x - 1, 1 - x*y]:
+        ...     print test
+        ...     print is_simple_binary(test)
+        x
+        True
+        y
+        True
+        x*y
+        False
+        2*x
+        False
+        x + 1
+        False
+        x + y
+        False
+        -x + 1
+        True
+        x - 1
+        False
+        -x*y + 1
+        False
+    '''
+    if is_constant(expr):
+        return is_one_or_zero(expr)
+    
+    if len(expr.atoms(sympy.Symbol)) > 2:
+        return False
+    
+    if not is_one_or_zero(min_value(expr)):
+        return False
+    if not is_one_or_zero(max_value(expr)):
+        return False
+    
+    for var in [expr, 1 - expr]:
+        if len(var.atoms()) == 1:
+            return True
+    
+    return False
+
 def num_add_terms(expr, check=False):
     ''' Return the number of additive terms in an expression.
         Note doesn't work for multiplicative terms!
@@ -55,7 +112,7 @@ def is_constant(expr):
         >>> is_constant(sympy.sympify(expr))
         False
     '''
-    if isinstance(expr, int):
+    if isinstance(expr, (int, float)):
         return True
     return len(expr.atoms(sympy.Symbol)) == 0
 
