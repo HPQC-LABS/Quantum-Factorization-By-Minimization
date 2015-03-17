@@ -14,7 +14,7 @@ from cfg_sympy_solver import (EXPERIMENTS, EXTENDED_EXPERIMENTS, EXPERIMENTS_21,
                               QUBIT_REDUCTION_ID)
 
 from sympy_solver import EquationSolver
-from verification import check_solutions
+from verification import check_solutions, check_substitutions
 
 
 SKIP = [100]
@@ -48,20 +48,24 @@ for exp, params in sorted(EXTENDED_EXPERIMENTS.iteritems()):
     
         system = EquationSolver(eqns, output_filename=output, 
                                             log_deductions=log_deductions,
-                                            invariant_interactions_on_substitution=invariant_interactions_on_substitution)
+                                            invariant_interactions_on_substitution=invariant_interactions_on_substitution,
+                                            parallelise=False)
         system.solve_equations(verbose=False, max_iter=100)
-            
+
         print '***\tExperiment {}\t***'.format(exp)
     #    print 'Final Equations'
     #    for e in system.final_equations:
     #        print e
+
+        if len(system.unsolved_var) != expected_qubits:        
+            print 'Num Qubits Start: {}'.format(system.num_qubits_start)
+            print 'Num Qubits End: {}'.format(len(system.unsolved_var))
+            print 'Num Qubits Expected: {}'.format(expected_qubits)
     
-        print 'Num Qubits Start: {}'.format(system.num_qubits_start)
-        print 'Num Qubits End: {}'.format(len(system.unsolved_var))
-        print 'Num Qubits Expected: {}'.format(expected_qubits)
-        print '\nSolved in {:.3f}s'.format(time() - s)
-        
+        print 'Solved in {:.3f}s'.format(time() - s)
+            
         check_solutions(product, system.solutions.copy(), verbose=True)
+        check_substitutions(product, system.copy(), verbose=True)
 
     except Exception as e:
         print '***\tExperiment {}\t***'.format(exp)
