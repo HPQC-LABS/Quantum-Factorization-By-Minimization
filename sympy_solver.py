@@ -185,13 +185,18 @@ class EquationSolver(object):
 
     def print_deduction_log(self):
         ''' Print the judgements and the deductions they have made '''
-        for judgement, ded_info in self.deduction_record.iteritems():
+        to_skip = ['clean_deductions', 'clean_solutions']
+        for judgement in sorted(self.deduction_record.keys()):
+            if judgement in to_skip:
+                continue
+            ded_info = self.deduction_record[judgement]
             self.print_('\n' + judgement)
             for eqn, deds in ded_info.iteritems():
                 eqn_str = str(eqn).ljust(25)
                 ded_str = map(lambda (x, y) : '{}={}'.format(x, y), deds)
                 ded_str = ', '.join(ded_str)
                 self.print_('{}\t=>\t{}'.format(eqn_str, ded_str))
+        self.print_('\n')
 
     @property    
     def _length_tuple(self):
