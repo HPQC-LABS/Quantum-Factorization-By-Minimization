@@ -75,6 +75,27 @@ def is_simple_binary(expr):
     
     return False
 
+def degree(expr):
+    ''' Return the degree of a sympy expression. I.e. the largest number of
+        variables multiplied together.
+        NOTE DOES take into account idempotency of binary variables
+        
+        >>> str_eqns = ['x + y',
+        ...             'x*y*z - 1',
+        ...             'x ** 2 + a*b*c',
+        ...             'x**2 + y']
+        >>> eqns = str_exprs_to_sympy_eqns(str_eqns)
+        >>> for e in eqns: print degree(e.lhs - e.rhs)
+        1
+        3
+        3
+        1
+    '''
+    degree = 0
+    for term in expr.as_coefficients_dict().keys():
+        degree = max(degree, len(term.atoms(sympy.Symbol)))
+    return degree
+
 def num_add_terms(expr, check=False):
     ''' Return the number of additive terms in an expression.
         Note doesn't work for multiplicative terms!
