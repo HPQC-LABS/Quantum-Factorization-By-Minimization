@@ -1338,7 +1338,11 @@ class EquationSolver(object):
                                   coef_transform=lambda x: pow(x, 0.01)):
         ''' Given an equation, assume the most common num_var are 0/1 and see
             if we can get any contradictions.
-            coef_transform is a function used to rank variables by taking abs(coef)
+            coef_transform is a function used to rank variables by taking 
+            coef_transform(abs(coef))
+            
+            Now also check to see if we can get any values that have to be
+            equal or unequal - again by checking each case
             
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
@@ -1357,11 +1361,11 @@ class EquationSolver(object):
             >>> eqn = sympy.Eq(x + y, 2*x*y + 2*z)
             >>> system.judgement_mini_assumption(eqn, num_var=2)
             >>> system.deductions
-            {}
+            {x: y}
             
             >>> system.judgement_mini_assumption(eqn, num_var=3)
             >>> system.deductions
-            {z: 0}
+            {x: y, z: 0}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
@@ -1370,19 +1374,55 @@ class EquationSolver(object):
             Traceback (most recent call last):
                 ...
             ContradictionException: Assumption judgement contradiction
+            
+            >>> system = EquationSolver()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(2*x + y, 1 + x + 4*z)
+            >>> system.judgement_mini_assumption(eqn, num_var=3)
+            >>> system.deductions
+            {z: 0, y: -x + 1}
+            
+            >>> equations = ['2*z67 + 5*z68 + z78 == z56 + 4*z810 + 2*z89 + 1', 
+            ...              'p4 + q4 + 2*z66 + 4*z69 == 2*z2627 + 3']
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system = EquationSolver()
+            >>> for eqn in equations: system.judgement_mini_assumption(eqn, 
+            ...                       num_var=4)
+            >>> system.deductions
+            {-z66 + 1: z69, z66: -z69 + 1, z2627: -z66 + 1, z810: z68}
+            >>> system.clean_deductions()
+            >>> system.solutions
+            {z66: -z69 + 1, z2627: z69, z810: z68}
         '''
+        # Create a dictionary of scores that we're going to use to rank variables
         var_score = defaultdict(int)
         for term, coef in (eqn.lhs + eqn.rhs).as_coefficients_dict().iteritems():
             for atom in term.atoms(sympy.Symbol):
                 var_score[atom] += coef_transform(abs(coef))
 
+        # Choose our variables
         variables = sorted(var_score.items(), key=lambda x: x[1])[-num_var:]
         variables = [v[0] for v in variables]
 
-        values = list(itertools.product(xrange(2), repeat=len(variables)))
+        # Now generate the potential values
+        values = list(itertools.product((sympy.sympify(0), sympy.sympify(1)), 
+                                        repeat=len(variables)))
         shuffle(values)
 
+        # Intersection will be a set of (variable, value) tuples, where value
+        # will be 0 or 1. We can then intersect with other non-contradictory
+        # solutions so we are left with deductions that must be true
         intersection = None
+        
+        # difference_grid is a dict of (var1, var2): difference, where var1 and
+        # var2 are variables and difference is the deduced difference - None
+        # initially when we don't know anything about the relationship.
+        # When we get contradictory relations, the tuple will be popped since
+        # we can't make any deduction.
+        difference_grid = dict()
+        for vars_ in itertools.combinations(variables, 2):
+            difference_grid[vars_] = None
+        
 
         for vals in values:
             to_sub = dict(zip(variables, vals))
@@ -1392,23 +1432,65 @@ class EquationSolver(object):
                     _eqn = standardise_equation(_eqn)
                     self.apply_contradictions([_eqn])
                 
-                # If our intersection is empty, then we already know we can't
-                # deduce anything
+                # Process the simple 0/1 deductions
                 if intersection is None:
                     intersection = set(to_sub.items())
                 else:
                     intersection.intersection_update(set(to_sub.items()))
-                    if len(intersection) == 0:
-                        return
+                    
+                # Process the difference relations
+                for key, diff in difference_grid.copy().iteritems():
+                    var1, var2 = key
+                    # We know they can be equal                    
+                    if to_sub[var1] == to_sub[var2]:
+                        # If they can also be unequal, bin it
+                        if diff == 1:
+                            difference_grid.pop(key)
+                        else:
+                            difference_grid[key] = 0
+                    else:
+                        if diff == 0:
+                            difference_grid.pop(key)
+                        else:
+                            difference_grid[key] = 1
+                        
+                # If our intersection or difference_grid is empty, then we 
+                # already know we can't deduce anything
+                if (len(intersection) == 0) and (len(difference_grid) == 0):
+                    return
 
             except ContradictionException:
                 continue
         
+        # If we haven't found a single solution, we must have gone somewhere
         if intersection is None:
             raise ContradictionException('Assumption judgement contradiction')
         
+        # Update definite solutions
         for var, val in intersection:
             self.update_value(var, val)
+
+        # Keep track of updated variables so we can update more gracefully
+        # later
+        updated = dict(intersection)
+        for (var1, var2), diff in difference_grid.iteritems():
+            val1 = updated.get(var1)
+            val2 = updated.get(var2)
+            # If we've got a relationship and a definite value, we should damn
+            # well have one for the other variable
+            assert (((val1 is None) and (val2 is None)) or 
+                    ((val1 is not None) and (val2 is not None)))
+            if val1 is not None:
+                continue
+            # Now update the relationship
+            if diff == 1:
+                self.update_value(var1, 1 - var2)
+            elif diff == 0:
+                self.update_value(var1, var2)
+            else:
+                # This absolutely should not happen as it should be caught
+                # by checking intersection
+                raise ContradictionException('This should not happen!')
 
 
     def judgement_1(self, eqn):
