@@ -7,7 +7,7 @@ Created on Fri Mar 06 10:42:11 2015
 
 import os
 
-from PrimeFactorizationEquationGenerator import num_to_factor_num_qubit
+from semiprime_tools import num_to_factor_num_qubit
 
 BATCH_FOLDER = 'batch_scripts'
 input_filename = 'large_semiprimes.txt'

@@ -12,6 +12,7 @@ from sympy_assumptions import (make_simultaneous_assumptions,
                                weighted_frequency_rank_variables,
                                max_coef_rank_variables,
                                lexographical_rank_variable)
+from semiprime_tools import num_to_factor_num_qubit
 from sympy_solver import EquationSolver
 from verification import check_solutions, check_substitutions
 
@@ -21,63 +22,6 @@ __credits__ = ["Nathaniel Bryans", "Nikesh Dattani"]
 __version__ = "0.0.6"
 __status__ = "Prototype"
 
-def factor_binary_differences(p, q):
-    ''' Given 2 factors, work out how many places they differ by when expressed
-        in binary form
-        
-        >>> for m, n in itertools.combinations_with_replacement(range(1, 10), 2):
-        ...     if len(bin(m)) != len(bin(n)):
-        ...         continue
-        ...     print m, n, factor_binary_differences(m, n)
-        1 1 0
-        2 2 0
-        2 3 1
-        3 3 0
-        4 4 0
-        4 5 1
-        4 6 1
-        4 7 2
-        5 5 0
-        5 6 2
-        5 7 1
-        6 6 0
-        6 7 1
-        7 7 0
-        8 8 0
-        8 9 1
-        9 9 0
-    '''
-    p_str = bin(p)[2:]
-    q_str = bin(q)[2:]
-    if len(p_str) != len(q_str):
-        return None
-    diffs = 0
-    for pi, qi in itertools.izip(p_str, q_str):
-        if pi != qi:
-            diffs += 1
-    return diffs
-
-def num_to_factor_num_qubit(prod):
-    ''' Given a number, work out how many qubits the factors should be.
-        Return the largest first
-    
-        >>> num_to_factor_num_qubit(143)    
-        (4, 4)
-        >>> num_to_factor_num_qubit(56153)
-        (8, 8)
-        >>> num_to_factor_num_qubit(1099551473989)
-        (21, 21)
-        >>> num_to_factor_num_qubit(309485009822787627980424653)
-        (45, 45)
-        >>> num_to_factor_num_qubit(1267650600228508624673600186743)
-        (51, 51)
-    '''
-    bin_str = bin(prod)[2:]
-    num_qub = len(bin_str)
-    if num_qub % 2:
-        return (num_qub + 1) / 2, (num_qub + 1) / 2
-    else:
-        return num_qub / 2, num_qub / 2
 
 def run_experiment(exp_num, *args, **kwargs):
     # A default experiment to run
@@ -185,8 +129,6 @@ if __name__ == '__main__':
                       limit_assumptions=limit_assumptions,
                       qubit_reduction_method=qubit_reduction_method)
         else:
-            import doctest
-            doctest.testmod()
             product = EXPERIMENTS[1].product
             factorize(product)
     except Exception as e:
