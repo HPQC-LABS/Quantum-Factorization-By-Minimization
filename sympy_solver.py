@@ -832,6 +832,7 @@ class EquationSolver(object):
         self.solutions = new_solutions
 
         if len(changed):
+            #TODO Find a smarter way of choosing which one to pop?
             if changed == _prev_changed:
                 var = changed.pop()
                 self.equations.append(standardise_equation(sympy.Eq(var, self.solutions[var])))
