@@ -20,9 +20,10 @@ from verification import check_solutions, check_substitutions
 SKIP = [100]
 for exp, params in sorted(EXTENDED_EXPERIMENTS.iteritems()):
     try:
-        
         if exp in SKIP:
             continue
+
+        print '***\tExperiment {}\t***'.format(exp)
     
         # A default experiment to run
         digitsInMultiplicand1, digitsInMultiplicand2, product, expected_qubits = params
@@ -52,7 +53,6 @@ for exp, params in sorted(EXTENDED_EXPERIMENTS.iteritems()):
                                             parallelise=False)
         system.solve_equations(verbose=False, max_iter=100)
 
-        print '***\tExperiment {}\t***'.format(exp)
     #    print 'Final Equations'
     #    for e in system.final_equations:
     #        print e
@@ -68,7 +68,6 @@ for exp, params in sorted(EXTENDED_EXPERIMENTS.iteritems()):
         check_substitutions(product, system.copy(), verbose=True)
 
     except Exception as e:
-        print '***\tExperiment {}\t***'.format(exp)
         print e
     
     print '\n' * 2
