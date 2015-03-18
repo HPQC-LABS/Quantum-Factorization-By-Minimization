@@ -1380,7 +1380,7 @@ class EquationSolver(object):
             >>> eqn = sympy.Eq(2*x + y, 1 + x + 4*z)
             >>> system.judgement_mini_assumption(eqn, num_var=3)
             >>> system.deductions
-            {z: 0, y: -x + 1}
+            {x: -y + 1, z: 0}
             
             >>> equations = ['2*z67 + 5*z68 + z78 == z56 + 4*z810 + 2*z89 + 1', 
             ...              'p4 + q4 + 2*z66 + 4*z69 == 2*z2627 + 3']
@@ -1484,7 +1484,8 @@ class EquationSolver(object):
                 continue
             # Now update the relationship
             if diff == 1:
-                self.update_value(var1, 1 - var2)
+                # Use judgement_two_term to gracefully handle the difference
+                self.judgement_two_term(sympy.Eq(var1 + var2, 1))
             elif diff == 0:
                 self.update_value(var1, var2)
             else:
