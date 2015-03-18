@@ -1044,18 +1044,18 @@ class EquationSolver(object):
                 self.judgement_n_term(eqn, num_constant_iter + 2)
         
         if num_constant_iter > 3:
-            if (not self.invariant_interactions_on_substitution):
-                for eqn in equations:
+#            if (not self.invariant_interactions_on_substitution):
+            for eqn in equations:
 
-#                    if self._length_tuple != state_summary:
-#                        return
+#                if self._length_tuple != state_summary:
+#                    return
 
-                    self.judgement_5(eqn, increase_complexity=True, 
-                                     invariant_interactions_on_substitution=False)
-                    self.judgement_6(eqn, increase_complexity=True, 
-                                     invariant_interactions_on_substitution=False)
-                    self.judgement_9(eqn, increase_complexity=True, 
-                                     invariant_interactions_on_substitution=False)
+                self.judgement_5(eqn, increase_complexity=True, 
+                                 invariant_interactions_on_substitution=False)
+                self.judgement_6(eqn, increase_complexity=True, 
+                                 invariant_interactions_on_substitution=False)
+                self.judgement_9(eqn, increase_complexity=True, 
+                                 invariant_interactions_on_substitution=False)
 
 
     def apply_judgements(self, equations):
@@ -1196,10 +1196,10 @@ class EquationSolver(object):
             term1_atoms = term1.atoms(sympy.Symbol)
             term2_atoms = term2.atoms(sympy.Symbol)            
             
-            # max with 1 to avoid ignoring constants
-            if (self.invariant_interactions_on_substitution and 
-                (max((len(term1_atoms), 1)) != max((len(term2_atoms), 1)))):
-                return
+#            # max with 1 to avoid ignoring constants
+#            if (self.invariant_interactions_on_substitution and 
+#                (max((len(term1_atoms), 1)) != max((len(term2_atoms), 1)))):
+#                return
 
             if ((0 < len(term2_atoms) < len(term1_atoms))
                 or is_constant(term1)):
@@ -1219,12 +1219,15 @@ class EquationSolver(object):
             >>> system.deductions
             {x: -y*z + 1}
 
-            >>> system = EquationSolver(invariant_interactions_on_substitution=True)
-            >>> x, y, z = sympy.symbols('x y z')
-            >>> eqn = sympy.Eq(x + y*z, 1)
-            >>> system.judgement_n_term(eqn)
-            >>> system.deductions
-            {}
+
+            Get rid of the invariant_interactions_on_substitution test while
+            it's turned off
+#            >>> system = EquationSolver(invariant_interactions_on_substitution=True)
+#            >>> x, y, z = sympy.symbols('x y z')
+#            >>> eqn = sympy.Eq(x + y*z, 1)
+#            >>> system.judgement_n_term(eqn)
+#            >>> system.deductions
+#            {}
 
             >>> system = EquationSolver()
             >>> x, y, z = sympy.symbols('x y z')
@@ -1295,8 +1298,8 @@ class EquationSolver(object):
                     (term_to_sub is None)):
                     term_to_sub = term
 
-                if self.invariant_interactions_on_substitution and (len(term_atoms) > 1):
-                    return
+#                if self.invariant_interactions_on_substitution and (len(term_atoms) > 1):
+#                    return
 
             if term_to_sub is not None:
                 value = rhs - lhs + term_to_sub
