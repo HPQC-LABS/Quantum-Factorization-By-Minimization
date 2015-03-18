@@ -105,7 +105,8 @@ def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
             #sol.print_summary()
             print 'Num Qubits End: {}'.format(len(sol.unsolved_var))
             
-            correct = check_solutions(product, sol.solutions.copy(), verbose=True)
+#            correct = check_solutions(product, sol.solutions.copy(), verbose=True)
+            correct = check_substitutions(product, system.copy(), verbose=True)
 
 
 if __name__ == '__main__':
