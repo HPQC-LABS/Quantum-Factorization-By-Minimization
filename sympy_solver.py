@@ -27,7 +27,7 @@ from objective_function_helper import (equations_to_vanilla_coef_str,
                                        equations_to_vanilla_objective_function,
                                        equations_to_auxillary_coef_str)
 
-from sympy_paralleliser import paralellised_subs, get_pool
+from sympy_paralleliser import paralellised_subs, get_pool, DEFAULT_NUM_PROCESSES
 
 
 __author__ = "Richard Tanburn"
@@ -265,10 +265,7 @@ class EquationSolver(object):
         clear_cache()
         
         # Close the pool
-        if self._pool is not None:
-            self._pool.close()
-            self._pool.join()
-            self._pool = None
+        self.close_pool()
 
     @property
     def final_equations(self):
@@ -379,6 +376,71 @@ class EquationSolver(object):
             f.write(out)
             f.close()
 
+    def close_pool(self):
+        ''' Close the pool if it's open and re-assign to None '''
+        if self._pool is not None:
+            self._pool.close()
+            self._pool.join()
+            self._pool = None
+
+    def batch_substitutions(self, equations, substitutions):
+        ''' Helper method that substitutes large dicts into large sets of
+            equations. Deals with memory management and parallelisation.
+            
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> system = EquationSolver()
+            >>> eqns = [x + y - 1,
+            ...         x*z - 1,
+            ...         x - 1]
+            >>> eqns = map(balance_terms, map(sympy.Eq, eqns))
+            >>> subs = {x: 1, z: 2}
+            >>> subbed = system.batch_substitutions(eqns, subs)
+            >>> for eqn in subbed: print eqn
+            y + 1 == 1
+            False
+            True
+        '''
+        if len(equations) == 0:
+            return []
+
+        batch_size = 30
+        fill = None
+        batch_equations = list(_batcher(equations, batch_size=batch_size, 
+                                        fill_value=fill))
+        # Reduce the final set so we only have the original equations
+        last = batch_equations.pop()
+        last = filter(lambda x: x is not None, last)
+        batch_equations.append(last)        
+        
+        # substituted will be the holder for our new equations. It is None
+        # while no method has worked.
+        # Later it will be a nested list of batched results, which we need to
+        # flatten later on
+        substituted = None        
+        
+        # Try to parallelise the slow substitution
+        if self.parallelise and (len(batch_equations) >= 2 * DEFAULT_NUM_PROCESSES):
+            try:
+                if self._pool is None:
+                    self._pool = get_pool()
+                substituted = paralellised_subs(batch_equations, substitutions, 
+                                                 pool=self._pool)
+            except Exception as e:
+                print e
+                self.parallelise = False
+                self.close_pool()
+
+        if substituted is None:
+            substituted = []
+            for batch in batch_equations:
+                substituted.append([eqn.subs(substitutions) for eqn in batch])
+                clear_cache()
+
+        # Now flatten substituted
+        substituted = list(itertools.chain(*substituted))
+        
+        return substituted
+
     def clean_equations(self, eqns):
         ''' Remove True equations and simplify '''
         # First clean up the deductions so we can use them
@@ -399,18 +461,7 @@ class EquationSolver(object):
         combined_subs = self.deductions.copy()
         combined_subs.update(cleaned_sol)
 
-        # Try to parallelise the slow substitution
-        if self.parallelise:
-            try:
-                if self._pool is None:
-                    self._pool = get_pool()
-                cleaned = paralellised_subs(cleaned, combined_subs, pool=self._pool)
-            except Exception as e:
-                print e
-                self.parallelise = False
-                cleaned = [eqn.subs(combined_subs) for eqn in cleaned]
-        else:
-            cleaned = [eqn.subs(combined_subs) for eqn in cleaned]
+        cleaned = self.batch_substitutions(cleaned, combined_subs)
 
         cleaned = filter(is_equation, cleaned)
         cleaned = [eqn.expand() for eqn in cleaned]
@@ -2316,6 +2367,21 @@ class EquationSolver(object):
             if (r_parity is not None) and (l_parity != r_parity):
                 raise ContradictionException('contradiction_2: {}'.format(eqn))
 
+
+## Simple chunker for partitioning lists
+def _batcher(iterable, batch_size, fill_value=None):
+    ''' Given a list of things, return a partition
+        >>> list(_batcher(range(20), 5))
+        [(0, 1, 2, 3, 4), (5, 6, 7, 8, 9), (10, 11, 12, 13, 14), (15, 16, 17, 18, 19)]
+        >>> list(_batcher(range(20), 4))
+        [(0, 1, 2, 3), (4, 5, 6, 7), (8, 9, 10, 11), (12, 13, 14, 15), (16, 17, 18, 19)]
+        >>> list(_batcher(range(20), 3))
+        [(0, 1, 2), (3, 4, 5), (6, 7, 8), (9, 10, 11), (12, 13, 14), (15, 16, 17), (18, 19, None)]
+        >>> list(_batcher(range(10), 3, fill_value=100))
+        [(0, 1, 2), (3, 4, 5), (6, 7, 8), (9, 100, 100)]
+    '''
+    return itertools.izip_longest(*[iter(iterable)] * batch_size, 
+                                    fillvalue=fill_value)
 
 ## Conflict resolution
 def _simplest(expr1, expr2):
