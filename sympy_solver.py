@@ -403,7 +403,9 @@ class EquationSolver(object):
         if len(equations) == 0:
             return []
 
+        #TODO Move into a cfg file
         batch_size = 30
+        min_batches = 6
         fill = None
         batch_equations = list(_batcher(equations, batch_size=batch_size, 
                                         fill_value=fill))
@@ -419,7 +421,7 @@ class EquationSolver(object):
         substituted = None        
         
         # Try to parallelise the slow substitution
-        if self.parallelise and (len(batch_equations) >= 2 * DEFAULT_NUM_PROCESSES):
+        if self.parallelise and (len(batch_equations) >= min_batches):
             try:
                 if self._pool is None:
                     self._pool = get_pool()
