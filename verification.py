@@ -176,9 +176,10 @@ def check_substitutions(product, system, verbose=False):
         >>> check_substitutions(143, system)
         True
         
+        >>> eqns = generate_carry_equations(8, 8, 56153)
         >>> system = EquationSolver(eqns)
-        >>> system.solve_equations()
-        >>> check_substitutions(143, system)
+        >>> system.solve_equations(max_iter=6)
+        >>> check_substitutions(56153, system)
         True
         
     '''
@@ -319,7 +320,7 @@ def evaluate_term_dict(product, term_dict):
         >>> eqns = generate_carry_equations(*params)
         >>> system = EquationSolver(eqns)
         >>> system.solve_equations()
-        >>> term_dict = equations_to_recursive_schaller_term_dict(system.equations)
+        >>> term_dict = equations_to_vanilla_term_dict(system.equations)
         >>> evaluate_term_dict(prod, term_dict)
         0
     '''
