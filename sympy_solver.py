@@ -661,7 +661,7 @@ class EquationSolver(object):
                     if expr != val:
                         self.print_('Dropping deduction {} = {}'.format(expr, val))
 
-    def clean_solutions(self, _prev_changed=None):
+    def clean_solutions(self, _prev_changed=None, _depth=0):
         ''' Remove cycles and chains in the solutions. Make sure every value is
             set to equal an expression involving constants and unsolved variables
             
@@ -754,7 +754,16 @@ class EquationSolver(object):
         # Now go through and do some standard checks and cleaning
         for variable, value in self.solutions.copy().iteritems():
             # Remove binary squares
-            self.solutions[variable] = remove_binary_squares(value)            
+            self.solutions[variable] = remove_binary_squares(value)
+
+            # Now pop anything with a crazy number of terms
+            #TODO Put in a config file
+            #TODO Add equation method??
+            #TODO Pop anything that's not simple_binary??
+            if num_add_terms(value) > 10:
+                self.solutions.pop(variable)
+                new_eq = standardise_equation(sympy.Eq(variable, value))
+                self.equations.append(new_eq)
             
             # Now make sure every value in the dict can be binary, throwing if
             # not
@@ -831,11 +840,14 @@ class EquationSolver(object):
 
         if len(changed):
             #TODO Find a smarter way of choosing which one to pop?
+            #TODO Add equation method??
             if changed == _prev_changed:
                 var = changed.pop()
                 self.equations.append(standardise_equation(sympy.Eq(var, self.solutions[var])))
                 self.solutions.pop(var)
-            self.clean_solutions(_prev_changed=changed)
+            if _depth > 50:
+                raise RuntimeError('Crazy depths in clean_solutions!')
+            self.clean_solutions(_prev_changed=changed, _depth=_depth+1)
 
     def _update_log(self, expr, value):
         ''' Log an update under a judgement '''
