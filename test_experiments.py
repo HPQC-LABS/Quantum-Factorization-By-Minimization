@@ -10,8 +10,8 @@ Created on Sat Feb 21 19:48:44 2015
 
 from time import time
 
-from cfg_sympy_solver import (EXPERIMENTS, EXTENDED_EXPERIMENTS, EXPERIMENTS_21,
-                              QUBIT_REDUCTION_ID)
+from cfg_sympy_solver import (EXPERIMENTS, EXTENDED_EXPERIMENTS, EXPERIMENTS_20,
+                              EXPERIMENTS_21, QUBIT_REDUCTION_ID)
 
 from sympy_solver import EquationSolver
 from verification import check_solutions, check_substitutions

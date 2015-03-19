@@ -5,7 +5,8 @@ import itertools
 import sys
 from time import time
 
-from cfg_sympy_solver import EXPERIMENTS, QUBIT_REDUCTION_ID, EXPERIMENTS_21
+from cfg_sympy_solver import (EXPERIMENTS, QUBIT_REDUCTION_ID, EXPERIMENTS_20,
+                              EXPERIMENTS_21)
 from objective_function_helper import coef_str_to_file
 from sympy_assumptions import (make_simultaneous_assumptions, 
                                frequency_rank_variables,

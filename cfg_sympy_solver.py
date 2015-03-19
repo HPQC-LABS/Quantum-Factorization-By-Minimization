@@ -65,6 +65,14 @@ PRESENTS = {
     4: Experiment(100, 100, 365375409332725729551031220428655686168881402197, 7),
 }
 
+EXPERIMENTS_20 = {
+    9: Experiment(20, 20, 274954455617, 18),
+    116: Experiment(20, 20, 275017384217, 21),
+    184: Experiment(20, 20, 275162142881, 2),
+    189: Experiment(20, 20, 275199914009, 13),
+    197: Experiment(20, 20, 274981725769, -1),
+}
+
 EXPERIMENTS_21 = {
     1: Experiment(21, 21, 1099526307889, 0),
     2: Experiment(21, 21, 1099551473989, 1),
@@ -92,7 +100,7 @@ EXPERIMENTS_21 = {
 
 EXTENDED_EXPERIMENTS = EXPERIMENTS.copy()
 EXTENDED_EXPERIMENTS.pop(100)
-for exp_set in [EXPERIMENTS_21, ]:
+for exp_set in [EXPERIMENTS_20, EXPERIMENTS_21,]:
     for exp_num, params in exp_set.iteritems():
         pre_digit = ''.join(map(str, params[:2]))
         extended_num = int(pre_digit + str(exp_num))
