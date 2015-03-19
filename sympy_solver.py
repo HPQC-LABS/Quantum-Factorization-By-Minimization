@@ -243,13 +243,8 @@ class EquationSolver(object):
 
                 # Here lets apply some slower, complex judgements to try and
                 # unstick ourselves
-                self.apply_judgements_complex(all_equations, num_constant_iter)
-
-                # Now apply judgements to the squares of the equations
-                # Since applying judgements to the square of the equations 
-                # doesn't change behaviour as we get stuck, just apply it once
-                if num_constant_iter == 2:
-                    self.apply_judgements_square(all_equations, verbose=verbose)
+                self.apply_judgements_complex(all_equations, num_constant_iter,
+                                              verbose=verbose)
 
                 if num_constant_iter > 4 or (self._length_tuple[:2] == (0, 0)):
                     break
@@ -1061,7 +1056,8 @@ class EquationSolver(object):
             num_ded = post[1] - pre[1]
             print '{} deductions made from squaring'.format(num_ded)
 
-    def apply_judgements_complex(self, equations, num_constant_iter):
+    def apply_judgements_complex(self, equations, num_constant_iter, 
+                                 verbose=False):
         ''' Apply more complex or slow judgements if we get stuck.
             num_constant_iter is the number of iterations that we have been
             stuck for.
@@ -1092,6 +1088,12 @@ class EquationSolver(object):
                 self.judgement_5(eqn, increase_complexity=True)
                 self.judgement_6(eqn, increase_complexity=True)
                 self.judgement_9(eqn, increase_complexity=True)
+
+        # Now apply judgements to the squares of the equations
+        # Since applying judgements to the square of the equations 
+        # doesn't change behaviour as we get stuck, just apply it once
+        if num_constant_iter == 2:
+            self.apply_judgements_square(equations, verbose=verbose)
 
         if num_constant_iter > 2:
 
