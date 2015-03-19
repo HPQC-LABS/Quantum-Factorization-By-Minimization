@@ -37,7 +37,7 @@ __version__ = "0.0.1"
 __status__ = "Prototype"
 
 # Maximum number of equations before quadratic equality checking kicks in
-EQUATION_EQUAL_CHECK_LIMIT = 350
+EQUATION_QUADRATIC_LIMIT = 350
 
 
 class EquationSolver(object):
@@ -212,10 +212,21 @@ class EquationSolver(object):
         # The number of iterations in which we've made no new deductions
         num_constant_iter = 0
 
+        # Keep track of the last few number of solutions, so that if we get
+        # too many repeats we can break the cycle
+        prev_num_solns = []
+
         if verbose:        
             self.print_('Num variables: {}'.format(len(self.variables)))
             self.print_('Iter\tNum Eqn\tNum Ded\tNum Sol')
         for i in xrange(max_iter):
+            # Check we're not going around in circles
+            prev_num_solns.append(self._length_tuple[2])
+            if len(prev_num_solns) > 10:
+                comp = prev_num_solns.pop(0)
+                if all([comp-1 <= v <= comp+1 for v in prev_num_solns]):
+                    break            
+
             # Clear the cache so that we don't blow up memory when working with
             # large numbers
             clear_cache()
@@ -468,7 +479,7 @@ class EquationSolver(object):
         cleaned = map(cancel_constant_factor, cleaned)
         cleaned = filter(is_equation, cleaned)
 
-        if len(cleaned) < EQUATION_EQUAL_CHECK_LIMIT:
+        if len(cleaned) < EQUATION_QUADRATIC_LIMIT:
             to_add = []
             # Now add any equations where LHS = RHS1, LHS = RHS2 and permutations
             def _helper(eqn1, eqn2, to_add):
