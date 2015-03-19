@@ -71,6 +71,7 @@ EXPERIMENTS_20 = {
     184: Experiment(20, 20, 275162142881, 2),
     189: Experiment(20, 20, 275199914009, 13),
     197: Experiment(20, 20, 274981725769, -1),
+    201: Experiment(20, 20, 275025776041, -1),
 }
 
 EXPERIMENTS_21 = {
