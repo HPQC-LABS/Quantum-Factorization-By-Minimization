@@ -67,7 +67,7 @@ def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
     system = EquationSolver(eqns, output_filename=output, 
                                         log_deductions=log_deductions,
                                         invariant_interactions_on_substitution=invariant_interactions_on_substitution,
-                                        parallelise=False)
+                                        parallelise=True)
     system.solve_equations(verbose=True, max_iter=300)
         
     
