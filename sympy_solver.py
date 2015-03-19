@@ -1091,16 +1091,16 @@ class EquationSolver(object):
                                                coef_transform=lambda x: pow(x, 1.01))
 
         if num_constant_iter > 1:
-            
+
             # Unleash the multiple equation mini-assumption
-#            num_eqn = max(2, int(num_constant_iter / 2.0))
-#            eqn_comb = itertools.combinations(equations, num_eqn)
-#            for comb in eqn_comb:
-#                self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
-#                                                         coef_transform=lambda x: pow(x, 0.01))
-#                self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
-#                                                         coef_transform=lambda x: pow(x, 1.01))
-            
+            num_eqn = max(2, int(num_constant_iter / 2.0))
+            eqn_comb = itertools.combinations(equations, num_eqn)
+            for comb in eqn_comb:
+                self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
+                                                         coef_transform=lambda x: pow(x, 0.01))
+                self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
+                                                         coef_transform=lambda x: pow(x, 1.01))
+                        
             for eqn in equations:
                 # Apply the slow judgement 8 and 2
                 self.judgement_2_slow(eqn)
@@ -1118,6 +1118,7 @@ class EquationSolver(object):
             self.apply_judgements_square(equations, verbose=verbose)
 
         if num_constant_iter > 2:
+
 
             for eqn in equations:
                 # Only do 1 at a time, so if we have a new deduction
