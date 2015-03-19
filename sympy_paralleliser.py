@@ -7,10 +7,17 @@ Created on Tue Mar 10 21:09:13 2015
 
 import itertools
 import multiprocessing
+import sys
 
 from sympy.core.cache import clear_cache
 
-DEFAULT_NUM_PROCESSES = 3
+
+DEFAULT_NUM_PROCESSES = {'linux': 6,
+                         'linux2': 6,
+                         'win32': 3,
+                         }
+# Default to 3
+DEFAULT_NUM_PROCESSES = DEFAULT_NUM_PROCESSES.get(sys.platform, 3)
 
 def get_pool(processes=DEFAULT_NUM_PROCESSES):
     ''' Return a pool object '''
