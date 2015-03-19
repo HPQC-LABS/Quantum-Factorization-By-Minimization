@@ -1079,6 +1079,16 @@ class EquationSolver(object):
                                                coef_transform=lambda x: pow(x, 1.01))
 
         if num_constant_iter > 1:
+            
+            # Unleash the multiple equation mini-assumption
+#            num_eqn = max(2, int(num_constant_iter / 2.0))
+#            eqn_comb = itertools.combinations(equations, num_eqn)
+#            for comb in eqn_comb:
+#                self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
+#                                                         coef_transform=lambda x: pow(x, 0.01))
+#                self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
+#                                                         coef_transform=lambda x: pow(x, 1.01))
+            
             for eqn in equations:
                 # Apply the slow judgement 8 and 2
                 self.judgement_2_slow(eqn)
@@ -1558,6 +1568,248 @@ class EquationSolver(object):
                 # by checking intersection
                 raise ContradictionException('This should not happen!')
 
+
+    @staticmethod
+    def _are_equations_similar(eqns):
+        ''' Given a list of equations, work out their 'alignment' or similarity.
+            Equations are similar if they share lots of the same variables or
+            are tangled in some way.
+            Specifically: score = 
+            sum((occurances of each variable - 1)**2) / num_var
+
+            >>> system = EquationSolver()
+            >>> equations = ['x == 1 - y', 
+            ...              'y == 1 - z',]
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system._are_equations_similar(equations)
+            0.333
+
+            >>> equations = ['a == b', 
+            ...              'x == 1 - y',]
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system._are_equations_similar(equations)
+            0.0
+
+            >>> equations = ['a == 1 + b - c',
+            ...              'a + 1 == 3 - 2*b + 5*c',
+            ...              'x == 1 - y',]
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system._are_equations_similar(equations)
+            0.6
+
+            >>> equations = ['a == 1 + b - c',
+            ...              'a + 1 == 3 - 2*b + 5*c',
+            ...              'a*b == 1 - b + d',
+            ...              'x == 1 + x1 + x2 + x3 + x4 + x5 + x6 + x7',]
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system._are_equations_similar(equations)
+            0.75
+
+            Real examples that produce deductions
+            >>> equations = ['p3 + 2*q1*q2 + q3 + z23 == 2*z34 + 1', 
+            ... 'p3*q5 + p4*q4 + p5*q3 + p6*q2 + 2*q1 + q2*q6 + z68 + z78 == 4*z810 + 8*z811 + 2*z89 + 1']
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system._are_equations_similar(equations)
+            0.235
+            
+            Another real example
+            >>> equations = ['p3 + 2*q1*q2 + q3 + z23 == 2*z34 + 4*z35 + 1',
+            ...              'q1 + q2 == z23 + 2*z24']
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system._are_equations_similar(equations)
+            0.375
+        '''
+        #TODO improve the scoring system, this is quite crude
+        num_atoms = len(expressions_to_variables(eqns))
+        atom_freq = defaultdict(int)
+        for eqn in eqns:
+            for atom in eqn.atoms(sympy.Symbol):
+                atom_freq[atom] += 1
+        
+        score = sum([(v - 1)**2 for v in atom_freq.values()])
+        score /= float(num_atoms)
+        return round(score, 3)
+
+    def judgement_mini_assumption_multi_eqn(self, eqns, num_var=4, 
+                                  coef_transform=lambda x: pow(x, 0.01)):
+        ''' Given an equation, assume the most common num_var are 0/1 and see
+            if we can get any contradictions.
+            coef_transform is a function used to rank variables by taking 
+            coef_transform(abs(coef))
+            
+            Now also check to see if we can get any values that have to be
+            equal or unequal - again by checking each case
+            
+            >>> equations = ['x == 1 - y', 
+            ...              'y == 1 - z',]
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system = EquationSolver()
+            >>> system.judgement_mini_assumption_multi_eqn(equations, 
+            ...                       num_var=3)
+            >>> system.deductions
+            {x: -y + 1, z: -y + 1, y: -z + 1}
+
+
+            An example where we couldn't make any deductions by considering the
+            equations in isolation
+            >>> equations = ['x*y*z == 0',
+            ...              '3*x + 3*y == 2 + z + 3*a',]
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system = EquationSolver()
+
+            >>> for eqn in equations:
+            ...     system.judgement_mini_assumption(eqn, 
+            ...                       num_var=3)
+            >>> system.deductions
+            {}
+            >>> system.judgement_mini_assumption_multi_eqn(equations, 
+            ...                       num_var=3)
+            >>> system.deductions
+            {x: -y + 1}
+
+
+            A real example
+            >>> equations = ['p3 + 2*q1*q2 + q3 + z23 == 2*z34 + 1', 
+            ... 'p3*q5 + p4*q4 + p5*q3 + p6*q2 + 2*q1 + q2*q6 + z68 + z78 == 4*z810 + 8*z811 + 2*z89 + 1']
+            >>> num_var = 6            
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system = EquationSolver()
+
+            >>> for eqn in equations:
+            ...     system.judgement_mini_assumption(eqn, 
+            ...                       num_var=num_var)
+            >>> system.deductions
+            {}
+            >>> system.judgement_mini_assumption_multi_eqn(equations, 
+            ...                       num_var=num_var)
+            >>> system.deductions
+            {z811: 0}
+            
+            Another real example
+            >>> equations = ['p3 + 2*q1*q2 + q3 + z23 == 2*z34 + 4*z35 + 1',
+            ...              'q1 + q2 == z23 + 2*z24']
+            >>> num_var = 4
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system = EquationSolver()
+
+            >>> for eqn in equations:
+            ...     system.judgement_mini_assumption(eqn, 
+            ...                       num_var=num_var)
+            >>> system.deductions
+            {}
+            >>> system.judgement_mini_assumption_multi_eqn(equations, 
+            ...                       num_var=num_var)
+            >>> system.deductions
+            {z35: 0}
+        '''
+        if isinstance(eqns, sympy.Equality):
+            self.judgement_mini_assumption(eqns, num_var=num_var, 
+                                           coef_transform=coef_transform)
+        
+        # Now work out if it's worth carrying out the substitution
+        if self._are_equations_similar(eqns) < 0.2:
+            return        
+        
+        # Create a dictionary of scores that we're going to use to rank variables
+        var_score = defaultdict(int)
+        for eqn in eqns:
+            for term, coef in (eqn.lhs + eqn.rhs).as_coefficients_dict().iteritems():
+                for atom in term.atoms(sympy.Symbol):
+                    var_score[atom] += coef_transform(abs(coef))
+
+        # Choose our variables
+        variables = sorted(var_score.items(), key=lambda x: x[1])[-num_var:]
+        variables = [v[0] for v in variables]
+
+        # Now generate the potential values
+        values = list(itertools.product((sympy.sympify(0), sympy.sympify(1)), 
+                                        repeat=len(variables)))
+        shuffle(values)
+
+        # Intersection will be a set of (variable, value) tuples, where value
+        # will be 0 or 1. We can then intersect with other non-contradictory
+        # solutions so we are left with deductions that must be true
+        intersection = None
+        
+        # difference_grid is a dict of (var1, var2): difference, where var1 and
+        # var2 are variables and difference is the deduced difference - None
+        # initially when we don't know anything about the relationship.
+        # When we get contradictory relations, the tuple will be popped since
+        # we can't make any deduction.
+        difference_grid = dict()
+        for vars_ in itertools.combinations(variables, 2):
+            difference_grid[vars_] = None
+        
+
+        for vals in values:
+            to_sub = dict(zip(variables, vals))
+            _eqns = [eqn.subs(to_sub) for eqn in eqns]
+            try:
+                for _eqn in _eqns:
+                    if is_equation(_eqn):
+                        _eqn = standardise_equation(_eqn)
+                        self.apply_contradictions([_eqn])
+                
+                # Process the simple 0/1 deductions
+                if intersection is None:
+                    intersection = set(to_sub.items())
+                else:
+                    intersection.intersection_update(set(to_sub.items()))
+                    
+                # Process the difference relations
+                for key, diff in difference_grid.copy().iteritems():
+                    var1, var2 = key
+                    # We know they can be equal                    
+                    if to_sub[var1] == to_sub[var2]:
+                        # If they can also be unequal, bin it
+                        if diff == 1:
+                            difference_grid.pop(key)
+                        else:
+                            difference_grid[key] = 0
+                    else:
+                        if diff == 0:
+                            difference_grid.pop(key)
+                        else:
+                            difference_grid[key] = 1
+                        
+                # If our intersection or difference_grid is empty, then we 
+                # already know we can't deduce anything
+                if (len(intersection) == 0) and (len(difference_grid) == 0):
+                    return
+
+            except ContradictionException:
+                continue
+        
+        # If we haven't found a single solution, we must have gone somewhere
+        if intersection is None:
+            raise ContradictionException('Assumption judgement contradiction')
+        
+        # Update definite solutions
+        for var, val in intersection:
+            self.update_value(var, val)
+
+        # Keep track of updated variables so we can update more gracefully
+        # later
+        updated = dict(intersection)
+        for (var1, var2), diff in sorted(difference_grid.iteritems(), key=itemgetter(1)):
+            val1 = updated.get(var1)
+            val2 = updated.get(var2)
+            # If we've got a relationship and a definite value, we should damn
+            # well have one for the other variable
+            assert (((val1 is None) and (val2 is None)) or 
+                    ((val1 is not None) and (val2 is not None)))
+            if val1 is not None:
+                continue
+            # Now update the relationship
+            if diff == 1:
+                # Use judgement_two_term to gracefully handle the difference
+                self.judgement_two_term(sympy.Eq(var1 + var2, 1))
+            elif diff == 0:
+                self.update_value(var1, var2)
+            else:
+                # This absolutely should not happen as it should be caught
+                # by checking intersection
+                raise ContradictionException('This should not happen!')
 
     def judgement_1(self, eqn):
         ''' If x + y + z = 1 then xy = yz = zx = 0
@@ -2422,7 +2674,10 @@ def _get_judgement():
         if ind > 100:
             break
 
-    eqn = frame[0].f_locals.get('eqn')
+    if caller_name == 'judgement_mini_assumption_multi_eqn':
+        eqn = frame[0].f_locals.get('eqns')
+    else:
+        eqn = frame[0].f_locals.get('eqn')
     return caller_name, eqn
 
 
