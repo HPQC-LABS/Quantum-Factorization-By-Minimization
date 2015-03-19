@@ -9,6 +9,7 @@ from copy import deepcopy
 from collections import defaultdict
 import inspect
 import itertools
+from operator import itemgetter
 from random import shuffle
 import sympy
 from sympy.core.cache import clear_cache
@@ -1448,7 +1449,7 @@ class EquationSolver(object):
             >>> for eqn in equations: system.judgement_mini_assumption(eqn, 
             ...                       num_var=4)
             >>> system.deductions
-            {-z66 + 1: z69, z66: -z69 + 1, z2627: -z66 + 1, z810: z68}
+            {z69: -z66 + 1, z66: -z69 + 1, z2627: -z66 + 1, z810: z68}
             >>> system.clean_deductions()
             >>> system.solutions
             {z66: -z69 + 1, z2627: z69, z810: z68}
@@ -1532,7 +1533,10 @@ class EquationSolver(object):
         # Keep track of updated variables so we can update more gracefully
         # later
         updated = dict(intersection)
-        for (var1, var2), diff in difference_grid.iteritems():
+        # Sort the items so we update direct equivalences (x=y) first, and 
+        # (x=1-y) relations later
+        sorted_items = sorted(difference_grid.iteritems(), key=itemgetter(1))
+        for (var1, var2), diff in sorted_items:
             val1 = updated.get(var1)
             val2 = updated.get(var2)
             # If we've got a relationship and a definite value, we should damn
