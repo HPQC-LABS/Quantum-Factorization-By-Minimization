@@ -182,6 +182,7 @@ def is_equation(eqn):
         >>> eq1 = sympy.Eq(x, y)
         >>> eq2 = sympy.Eq(x, x)
         >>> eq3 = sympy.Eq(x, y).subs(y, x)
+        >>> eq4 = sympy.Eq(2*x*y, 2)
 
         >>> is_equation(eq1)
         True
@@ -189,6 +190,8 @@ def is_equation(eqn):
         False
         >>> is_equation(eq3)
         False
+        >>> is_equation(eq4)
+        True
         
         Now check that it raises exceptions for the right things
         >>> is_equation(0)
@@ -507,6 +510,8 @@ def expressions_to_variables(exprs):
         >>> expressions_to_variables(to_test)
         set([x, z, a, b, y])
     '''
+    if len(exprs) == 0:
+        return set()
     if sympy.__version__ == '0.7.5':
         assert all(map(lambda x: isinstance(x, sympy.Basic), exprs))
     return set.union(*[expr.atoms(sympy.Symbol) for expr in exprs])
