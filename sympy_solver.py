@@ -1655,7 +1655,8 @@ class EquationSolver(object):
         return round(score, 3)
 
     def judgement_mini_assumption_multi_eqn(self, eqns, num_var=4, 
-                                  coef_transform=lambda x: pow(x, 0.01)):
+                                  coef_transform=lambda x: pow(x, 0.01),
+                                  cutoff=0.2):
         ''' Given an equation, assume the most common num_var are 0/1 and see
             if we can get any contradictions.
             coef_transform is a function used to rank variables by taking 
@@ -1672,6 +1673,16 @@ class EquationSolver(object):
             ...                       num_var=3)
             >>> system.deductions
             {x: -y + 1, z: -y + 1, y: -z + 1}
+
+            # Check that it works even when we overload the parameters
+            >>> equations = ['1 + x == 2*y + z', 
+            ...              'x == 1',]
+            >>> equations = str_eqns_to_sympy_eqns(equations)
+            >>> system = EquationSolver()
+            >>> system.judgement_mini_assumption_multi_eqn(equations, 
+            ...                       num_var=100)
+            >>> system.deductions
+            {x: 1, z: 0, y: 1}
 
 
             An example where we couldn't make any deductions by considering the
@@ -1727,11 +1738,15 @@ class EquationSolver(object):
             {z35: 0}
         '''
         if isinstance(eqns, sympy.Equality):
-            self.judgement_mini_assumption(eqns, num_var=num_var, 
+            eqns = [eqns]
+        if len(eqns) == 1:
+            self.judgement_mini_assumption(eqns[0], num_var=num_var, 
                                            coef_transform=coef_transform)
+        elif len(eqns) == 0:
+            return
         
         # Now work out if it's worth carrying out the substitution
-        if self._are_equations_similar(eqns) < 0.2:
+        if self._are_equations_similar(eqns) < cutoff:
             return        
         
         # Create a dictionary of scores that we're going to use to rank variables
