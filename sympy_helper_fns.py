@@ -502,7 +502,8 @@ def expressions_to_variables(exprs):
     ''' Take a list of equations or expressions and return a set of variables 
 
         >>> eqn = sympy.Eq(sympy.sympify('x*a + 1'))
-        >>> to_test = [sympy.sympify('x + y*z + 2*a^b'), eqn]
+        >>> expr = sympy.sympify('x + y*z + 2*a^b')
+        >>> to_test = [expr, eqn]
         >>> expressions_to_variables(to_test)
         set([x, z, a, b, y])
     '''
