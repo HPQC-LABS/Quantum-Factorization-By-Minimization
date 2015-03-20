@@ -1091,6 +1091,7 @@ class EquationSolver(object):
         
         if num_constant_iter > 0:
             # Use mini-assumptions
+            # Do for every stuck iteration, but with more variables
             for eqn in equations:
                 # Limit the substitutions at 2^6=64
                 num_var = min(3*num_constant_iter + 2, 6)
@@ -1101,17 +1102,28 @@ class EquationSolver(object):
                 self.judgement_mini_assumption(eqn, num_var=num_var,
                                                coef_transform=lambda x: pow(x, 1.01))
 
-        if num_constant_iter > 1:
+        if num_constant_iter == 1:
+            # Use the multi-equation mini-assumption to find simple
+            # correspondences between simple equations
+            num_var = 5
+            max_num_eqn = 3
+#            filter_func = lambda eq: eq.atoms(sympy.Symbol) < 5
+            filter_func = lambda eq: (num_add_terms(eq.lhs) + num_add_terms(eq.rhs)) < 5
+            short_equations = filter(filter_func, equations)
+            # Make sure we do something with the short equations
+            if len(short_equations) < max_num_eqn:
+                eqn_comb = [short_equations]
+            else:
+                eqn_comb = itertools.combinations(short_equations, max_num_eqn)
 
-            # Unleash the multiple equation mini-assumption
-            num_eqn = max(2, int(num_constant_iter / 2.0))
-            eqn_comb = itertools.combinations(equations, num_eqn)
             for comb in eqn_comb:
                 self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
-                                                         coef_transform=lambda x: pow(x, 0.01))
+                                                         coef_transform=lambda x: pow(x, 0.01),
+                                                         cutoff=0.01)
                 self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
-                                                         coef_transform=lambda x: pow(x, 1.01))
-                        
+                                                         coef_transform=lambda x: pow(x, 1.01),
+                                                         cutoff=0.01)
+            
             for eqn in equations:
                 # Apply the slow judgement 8 and 2
                 self.judgement_2_slow(eqn)
@@ -1129,22 +1141,33 @@ class EquationSolver(object):
             self.apply_judgements_square(equations, verbose=verbose)
 
         if num_constant_iter > 2:
+            # Unleash the multiple equation mini-assumption
+            #TODO put in a config or improve filtering
+            num_var = min(3 * num_constant_iter + 2, 6)
+            num_eqn = max(2, int(num_constant_iter / 2.0))
+            eqn_comb = itertools.combinations(equations, num_eqn)
+            for comb in eqn_comb:
+                self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
+                                                         coef_transform=lambda x: pow(x, 0.01))
+                self.judgement_mini_assumption_multi_eqn(comb, num_var=num_var,
+                                                         coef_transform=lambda x: pow(x, 1.01))
 
+            # Only do 1 at a time, so if we have a new deduction
+            # go round again
+#            if self._length_tuple != state_summary:
+#                return
 
             for eqn in equations:
-                # Only do 1 at a time, so if we have a new deduction
-                # go round again
-#                if self._length_tuple != state_summary:
-#                    return
-
                 self.judgement_n_term(eqn, num_constant_iter + 2)
         
         if num_constant_iter > 3:
+            # If we don't need the final sledgehammer arguments, then carry on
+#            if self._length_tuple != state_summary:
+#                return
+
 #            if (not self.invariant_interactions_on_substitution):
             for eqn in equations:
 
-#                if self._length_tuple != state_summary:
-#                    return
 
                 self.judgement_5(eqn, increase_complexity=True, 
                                  invariant_interactions_on_substitution=False)
