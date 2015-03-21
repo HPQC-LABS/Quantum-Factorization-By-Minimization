@@ -604,6 +604,15 @@ def min_atoms(expr1, expr2):
     else:
         return expr1
 
+def dict_as_eqns(dict_):
+    ''' Given a dictionary of lhs: rhs, return the sympy Equations in a list
+        
+        >>> x, y, z = sympy.symbols('x y z')
+        >>> dict_as_eqns({x: 1, y: z, x*y: 1 - z})
+        [x*y == -z + 1, x == 1, y == z]
+    '''
+    return [sympy.Eq(lhs, rhs) for lhs, rhs in dict_.iteritems()]
+
 def str_eqns_to_sympy_eqns(str_eqns):
     ''' Take string equations and sympify 
 
