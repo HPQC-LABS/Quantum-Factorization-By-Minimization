@@ -20,7 +20,7 @@ def is_one_or_zero(val):
 
 def is_simple_binary(expr):
     ''' Determine whether an expression is essentially binary, or determined.
-    
+        I.e. 0, 1, x, 1-x
         >>> x, y = sympy.symbols('x y')
         >>> for test in [-1, 0, 1, 2, 0.5]:
         ...     print test
