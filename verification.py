@@ -187,7 +187,7 @@ def check_substitutions(product, system, verbose=False):
     
     try:
         for var, val in target_dict.iteritems():
-            system.update_value(var, val)
+            system.add_solution(var, val)
         system.solve_equations()
     except ContradictionException:
         if verbose:

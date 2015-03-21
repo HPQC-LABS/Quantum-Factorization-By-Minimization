@@ -698,6 +698,10 @@ class EquationSolver(SolverBase):
         judgement, eqn = _get_judgement()
         self.deduction_record[judgement][eqn].append((expr, value))
 
+    def add_solution(self, variable, value):
+        ''' Override the base implementation to use update_value '''
+        self.update_value(variable, value)
+
     def update_value(self, expr, value):
         ''' Update the global dictionary and check for contradictions.
             Make sure expr is always 'positive'.

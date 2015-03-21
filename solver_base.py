@@ -138,6 +138,9 @@ class SolverBase(object):
         '''
         raise NotImplementedError('solve_equations not implemented')
 
+    def add_solution(self, variable, value):
+        ''' Add a solution to the solution dict '''
+        self.solutions[variable] = value
 
     @property
     def final_equations(self):
