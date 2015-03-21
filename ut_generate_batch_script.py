@@ -10,6 +10,7 @@ import os
 from semiprime_tools import num_to_factor_num_qubit
 
 BATCH_FOLDER = 'batch_scripts'
+RESULTS_FOLDER = 'results'
 input_filename = 'large_semiprimes.txt'
 
 DIMENSIONS = range(20, 260, 10)
@@ -23,6 +24,7 @@ BASH_STR = '#!/bin/sh'
 
 HOME_DIR = '/home/tanburn/Quantum-Factorization-By-Minimization/'
 BATCH_DIR = os.path.join(HOME_DIR, BATCH_FOLDER)
+RESULTS_DIR = os.path.join(HOME_DIR, RESULTS_FOLDER)
 
 def generate_batch_scripts():
 # Check the batch_scipts folder exists
@@ -61,7 +63,7 @@ def generate_batch_scripts():
         else:
             count += 1
         count_str = str(count).rjust(3, '0')
-        entry_str = 'python PrimeFactorizationEquationGenerator.py {prod} > {num_d1}x{num_d2}/{num_d1}x{num_d2}_{count}_0.txt\n'.format(prod=num, num_d1=num_d1, num_d2=num_d2, count=count_str)
+        entry_str = 'python PrimeFactorizationEquationGenerator.py {prod} > {RES_FOL}/{num_d1}x{num_d2}/{num_d1}x{num_d2}_{count}_0.txt\n'.format(prod=num, num_d1=num_d1, num_d2=num_d2, count=count_str, RES_FOL=RESULTS_DIR)
         lines.append(entry_str)
 
     return True
@@ -103,9 +105,9 @@ def generate_print_results(dimensions):
 
     f.write('SEARCH_STRING="End"\n\n')
 
-    template = '''echo "*** {dim} ***"\necho\ngrep $SEARCH_STRING {dim}x{dim}/*\necho\n'''
+    template = '''echo "*** {dim} ***"\necho\ngrep $SEARCH_STRING {RES_FOL}/{dim}x{dim}/*\necho\n'''
     for dim in dimensions:
-        f.write(template.format(dim=dim))
+        f.write(template.format(dim=dim, RES_FOL=RESULTS_FOLDER))
     f.close()
 
 def generate_copy_results(dimensions):
@@ -116,9 +118,9 @@ def generate_copy_results(dimensions):
     f.write(BASH_STR + '\n\n')
     f.write('cd {HOME_DIR}\n\n'.format(HOME_DIR=HOME_DIR))
 
-    template = '''cp -r {dim}x{dim}/ ../public_html/\n'''
+    template = '''cp -r {RES_FOL}/{dim}x{dim}/ ../public_html/\n'''
     for dim in dimensions:
-        f.write(template.format(dim=dim))
+        f.write(template.format(dim=dim, RES_FOL=RESULTS_FOLDER))
 
     f.write('./{print_res_file} > ../public_html/results_summary.txt\n'.format(print_res_file=PRINT_RESULTS_FILENAME))
     
