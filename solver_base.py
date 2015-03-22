@@ -89,9 +89,9 @@ class SolverBase(object):
         ''' Return a new instance of itself '''
         cls = type(self)
         copy = cls(deepcopy(self.equations), 
-                              deepcopy(self.variables),
-                              output_filename=self.output_filename,
-                              parallelise=self.parallelise)
+                   deepcopy(self.variables),
+                   output_filename=self.output_filename,
+                   parallelise=self.parallelise)
                               
         # Now use deepcopy to copy everything else
         copy.num_qubits_start = self.num_qubits_start
