@@ -432,8 +432,7 @@ class BinaryEquivalenceDict(EquivalenceDict):
         # looks for conjugates
         if value in BinaryEquivalenceDict.GROUND_ROOTS:
             alt_key = super(BinaryEquivalenceDict, self).__getitem__(1 - key)
-            self[alt_key] = 1 - value
-
+            super(BinaryEquivalenceDict, self).__setitem__(alt_key, 1 - value)            
 
     def update(self, other):
         ''' Check update is using all the extra bells and whistles 
