@@ -520,7 +520,7 @@ def expressions_to_variables(exprs):
         assert all(map(lambda x: isinstance(x, sympy.Basic), exprs))
     return set.union(*[expr.atoms(sympy.Symbol) for expr in exprs])
     
-def eqns_with_variables(eqns, variables):
+def eqns_with_variables(eqns, variables, strict=False):
     ''' Given a set of atoms, return only equations that have something in
         common
         
@@ -533,8 +533,18 @@ def eqns_with_variables(eqns, variables):
         [2*z1 + 1 == z2, x*z1 == 0]
         >>> eqns_with_variables(eqns, [y])
         [x + y == 1]
+
+        >>> eqns_with_variables(eqns, [x], strict=True)
+        []
+        >>> eqns_with_variables(eqns, [x, z1], strict=True)
+        [x*z1 == 0]
+        >>> eqns_with_variables(eqns, [x, y, z1], strict=True)
+        [x + y == 1, x*z1 == 0]
     '''
-    return [eqn for eqn in eqns if len(eqn.atoms(sympy.Symbol).intersection(variables))]
+    if strict:
+        return [eqn for eqn in eqns if eqn.atoms(sympy.Symbol).issubset(variables)]
+    else:
+        return [eqn for eqn in eqns if len(eqn.atoms(sympy.Symbol).intersection(variables))]
 
 def gather_monic_terms(eqn):
     ''' Take an equation and put all monic terms on the LHS, all non
