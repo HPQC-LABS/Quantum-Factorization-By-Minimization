@@ -18,6 +18,7 @@ import pickle
 import sympy
 from sympy.core.cache import clear_cache
 
+from equivalence_dict import BinaryEquivalenceDict
 from sympy_helper_fns import (max_value, min_value, is_equation,
                               remove_binary_squares_eqn, balance_terms,
                               cancel_constant_factor, is_constant,
@@ -282,6 +283,37 @@ class SolverBase(object):
             self.variables[var] = res
         return res
 
+
+class BinarySolutionSolverBase(SolverBase):
+    ''' A class that is to be used if the funky BinaryEquivalenceDict is wanted
+        to hold solutions
+    '''
+    SOLUTIONS_TYPE = BinaryEquivalenceDict
+
+    @property
+    def unsolved_var(self):
+        ''' Because of the funny way we store variables in a 
+            BinaryEquivalenceDict, count the number of variables that have
+            a non-constant root
+            
+            >>> variables = sympy.symbols('x, y, z')
+            >>> x, y, z = variables            
+            >>> solver = BinarySolutionSolverBase(variables={str(v): v for v in variables})
+            >>> solver.unsolved_var
+            set([x, z, y])
+            >>> solver.add_solution(x, 1)
+            >>> solver.unsolved_var
+            set([z, y])
+            >>> solver.add_solution(y, 1 - z)
+            >>> solver.unsolved_var
+            set([z])
+            >>> solver.add_solution(y, 1)
+            >>> solver.unsolved_var
+            set([])
+        '''
+        sols = [self.solutions[v] for v in self.variables.values()]
+        unsolved = set(expressions_to_variables(sols))
+        return unsolved
 
 def unique_array_stable(array):
     ''' Given a list of things, return a new list with unique elements with
