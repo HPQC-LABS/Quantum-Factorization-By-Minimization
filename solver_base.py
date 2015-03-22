@@ -40,6 +40,8 @@ __status__ = "Prototype"
 class SolverBase(object):
     ''' Solver of equations. Enforce certain methods to allow reusability '''
 
+    SOLUTIONS_TYPE = dict
+
     def __init__(self, equations=None, variables=None,
                  output_filename=None, parallelise=False, *args, **kwargs):
         if variables is None:
@@ -61,7 +63,7 @@ class SolverBase(object):
         self.equations = equations
 
         # Solutions. Subset of deductions, where the key is a single variable.
-        self.solutions = {}
+        self.solutions = self.SOLUTIONS_TYPE()
 
         # File to print to
         self.output_filename = output_filename
