@@ -243,8 +243,7 @@ class SolverBase(object):
         # Try to parallelise the slow substitution
         if self.parallelise and (len(batch_equations) >= min_batches):
             try:
-                if self._pool is None:
-                    self._pool = get_pool()
+                self.open_pool()
                 substituted = paralellised_subs(batch_equations, substitutions, 
                                                  pool=self._pool)
             except Exception as e:
