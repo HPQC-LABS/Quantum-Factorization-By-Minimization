@@ -310,8 +310,9 @@ class BinarySolutionSolverBase(SolverBase):
             >>> solver.unsolved_var
             set([])
         '''
-        sols = [self.solutions[v] for v in self.variables.values()]
-        unsolved = set(expressions_to_variables(sols))
+        sols = [(v, self.solutions[v]) for v in self.variables.values()]
+        unsolved = set([var for var, sol in sols if (var.atoms(sympy.Symbol) == 
+                                                     sol.atoms(sympy.Symbol))])
         return unsolved
 
 def unique_array_stable(array):
