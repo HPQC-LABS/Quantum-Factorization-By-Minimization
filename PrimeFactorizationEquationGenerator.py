@@ -1,161 +1,137 @@
 #!/usr/bin/env python
 
-import GenerateTableOutput
-import GenerateCarry
-import EquationHandler
-#import EquationSolver
+
+import itertools
 import sys
+from time import time
+
+from cfg_sympy_solver import (EXPERIMENTS, QUBIT_REDUCTION_ID, EXPERIMENTS_20,
+                              EXPERIMENTS_21)
+from objective_function_helper import coef_str_to_file
+from sympy_assumptions import (make_simultaneous_assumptions, 
+                               frequency_rank_variables,
+                               weighted_frequency_rank_variables,
+                               max_coef_rank_variables,
+                               lexographical_rank_variable)
+from semiprime_tools import num_to_factor_num_qubit
+from sympy_solver import EquationSolver
+from verification import check_solutions, check_substitutions
+
 
 __author__ = "Nathaniel Bryans"
 __credits__ = ["Nathaniel Bryans", "Nikesh Dattani"]
 __version__ = "0.0.6"
 __status__ = "Prototype"
 
-#Declare variables
-#digitsInMultiplicand1 = 5
-#digitsInMultiplicand2 = 5
-#product = 493
-#product = 899
-#product = 841
-#product = 551
 
-#digitsInMultiplicand1 = 20
-#digitsInMultiplicand2 = 20
-#product = 1099511627775
-#a = [37, 41, 43, 47, 53, 59, 61]
-#b = [67, 71,73,79,83,89,97,101,107,109,113,127]
-#m = []
-#for i in a:
-	#for j in b:
-	#	m.append(i*j)
+def run_experiment(exp_num, *args, **kwargs):
+    # A default experiment to run
+    params = EXPERIMENTS[exp_num]
+    digitsInMultiplicand1, digitsInMultiplicand2, product = params[:3]
+    factorize(product, digitsInMultiplicand1=digitsInMultiplicand1,
+              digitsInMultiplicand2=digitsInMultiplicand2, *args, **kwargs)
 
-#for r in m:
-digitsInMultiplicand1 = 7
-digitsInMultiplicand2 = 6
-#product = r
-#product = 99
-product = 3737
-OutputFileName = "output.txt"
+def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
+              num_assumptions=0, limit_assumptions=1, qubit_reduction_method=0,
+              output=None, invariant_interactions_on_substitution=True):
+    ''' Notes:
+        output = None -> output is printed to screen
+    '''
+    log_deductions = False
+    
+    if digitsInMultiplicand1 is None:
+        assert digitsInMultiplicand2 is None
+        digitsInMultiplicand1, digitsInMultiplicand2 = num_to_factor_num_qubit(product)
+    
+    equation_generator, coef_str_generator = QUBIT_REDUCTION_ID[qubit_reduction_method]
+    
+    eqns = equation_generator(digitsInMultiplicand1, digitsInMultiplicand2, product)
+    
+    s = time()
+    
+#    # We can use the handy state caching    
+#    cache_name = None#'_state_{}'.format(str(product)[-6:])
+#    if cache_name is not None:
+#        try:
+#            system = EquationSolver.from_disk(cache_name)
+#        except Exception as e:
+#            print e
+#            system = EquationSolver(eqns, output_filename=output, 
+#                                                log_deductions=log_deductions,
+#                                                invariant_interactions_on_substitution=invariant_interactions_on_substitution)
+#            system.solve_equations(verbose=True)
+#            system.to_disk(cache_name)
+#    
+#    # Do it normally
+#    else:
+    system = EquationSolver(eqns, output_filename=output, 
+                                        log_deductions=log_deductions,
+                                        invariant_interactions_on_substitution=invariant_interactions_on_substitution,
+                                        parallelise=True)
+    system.solve_equations(verbose=True, max_iter=300)
+        
+    
+    print '\nProduct: {}\n'.format(product)
+    system.print_summary()
+    print '\nSolved in {:.3f}s'.format(time() - s)
+    
+    #try:
+    #    coef_filename = OutputFileName.replace('.txt', '_coef.txt')
+    #    coef_str = coef_str_generator(system.final_equations)
+    #    coef_str_to_file(coef_str, coef_filename)
+    #except Exception as e:
+    #    print 'Failed to write the coefficient'
+    #    print e
+    
+    
+    #check_solutions(product, system.solutions.copy(), verbose=True)
+    check_substitutions(product, system.copy(), verbose=True)
+    
+    print
+    
+    ## Now lets do the assumptions stuff
+    if len(system.unsolved_var) and num_assumptions:    
+    
+        solns = zip(*make_simultaneous_assumptions(system, 
+                                              num_assumptions=num_assumptions,
+                                              verbose=True,
+                                              rank_func=max_coef_rank_variables,
+                                              return_variables=True,
+                                              limit_permutations=limit_assumptions))
+        
+        for i, sol in enumerate(solns):
+            sol, sub = sol
+            print '\n' + 'Case {}'.format(i + 1)
+            print sub
+            #sol.print_summary()
+            print 'Num Qubits End: {}'.format(len(sol.unsolved_var))
+            
+#            correct = check_solutions(product, sol.solutions.copy(), verbose=True)
+            correct = check_substitutions(product, system.copy(), verbose=True)
 
-#digitsInMultiplicand1 = 5
-#digitsInMultiplicand2 = 4
-#product = 403
 
-exp = 2
-if exp == 1:
-    digitsInMultiplicand1 = 4
-    digitsInMultiplicand2 = 4
-    product = 143
-if exp == 2:
-    digitsInMultiplicand1 = 8
-    digitsInMultiplicand2 = 8
-    product = 56153
-if exp == 3:
-    digitsInMultiplicand1 = 17
-    digitsInMultiplicand2 = 17
-    product = 4299161663
-
-if exp == 4:
-    digitsInMultiplicand1 = 21
-    digitsInMultiplicand2 = 21
-    product = 1099532599387
-
-if exp == 5:
-    digitsInMultiplicand1 = 24
-    digitsInMultiplicand2 = 24
-    product = 70368895172689
-
-if exp == 100:
-    digitsInMultiplicand1 = 165
-    digitsInMultiplicand2 = 165
-    product = 1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139
-
-
-
-#We can override the digit and product values above using arguments
-if len(sys.argv) > 2:
-	digitsInMultiplicand1 = int(sys.argv[1])
-	digitsInMultiplicand2 = int(sys.argv[2])
-	product = int(sys.argv[3])
-	OutputFileName = str(sys.argv[4])
-
-
-
-numMultipliers = 2	#eventually this will be dynamically generated by output
-
-multiplier = []
-multiplication = []
-carry = []
-
-#digitsInMultiplicand1 will always have the greater number of digits
-if digitsInMultiplicand1 < digitsInMultiplicand2:
-	temp = digitsInMultiplicand1
-	digitsInMultiplicand1 = digitsInMultiplicand2
-	digitsInMultiplicand2 = temp
-
-binPrime = bin(product)[2:]
-if (digitsInMultiplicand1 + digitsInMultiplicand2) > len(binPrime):
-	for i in range (0, ((digitsInMultiplicand1 + digitsInMultiplicand2)-len(binPrime))):
-		binPrime = "0" + binPrime
-
-print binPrime
-
-#Generate multipliers based on digits
-#	They take form 1,p2,p1,1 and 1,q2,q1,1
-#	This code will have to be rewritten to support >2 multiplicands
-strP = []
-strQ = []
-for i in range(1,digitsInMultiplicand1-1):
-	strP.append("p" + str(i))
-for i in range(1, digitsInMultiplicand2-1):
-	strQ.append("q" + str(i))
-strP.append("1")
-strP.insert(0, "1")
-strQ.append("1")
-strQ.insert(0, "1")
-multiplier.append(strP)
-multiplier.append(strQ)
-
-#Generate intermediary Multiplication row values
-#	This is the result of multiplying p by every bit of q
-for i in strQ:
-	temp = []
-	for j in strP:
-		if i == "1":
-			temp.append(j)
-		else:
-			if j == "1":
-				temp.append(i)
-			else:
-				temp.append(j + i)
-	multiplication.append(temp)
-
-#Find Carry row values
-myParams = [digitsInMultiplicand1, digitsInMultiplicand2]
-carry = GenerateCarry.CarryGenerator(myParams)
-
-#Generate Output
-myParams = [multiplier, multiplication, carry, binPrime]
-formattedCols = GenerateTableOutput.FormatOutput(myParams)
-print ""
-
-#Generate Equations
-myParams = [formattedCols, carry]
-eqns = EquationHandler.GenerateEquations(myParams)
-
-if 0:
-    import EquationSolver
-    myParams = [eqns, carry, strP, strQ, product, OutputFileName]
-    EquationSolver.SolveEquation(myParams)
-else:
-    from sympy_solver import EquationSolver
-    system = EquationSolver.from_params(eqns)
-    system.solve_equations(verbose=True)
+if __name__ == '__main__':
     try:
-        system.objective_function_to_file(OutputFileName.replace('.txt', '_coef.txt'))
-    except:
-        print 'Failed to write the coefficient'
-
-#    sim1 = system.simplified_system()
-#    sim1.update_value(sim1.get_var('p1'), 1)
-#    sim1.solve_equations(verbose=True)
+        if len(sys.argv) == 2:
+            product = int(sys.argv[1])
+            factorize(product=product)
+    
+        #We can override the digit and product values above using arguments
+        elif len(sys.argv) > 2:
+            digitsInMultiplicand1 = int(sys.argv[1])
+            digitsInMultiplicand2 = int(sys.argv[2])
+            product = int(sys.argv[3])
+            qubit_reduction_method = int(sys.argv[4])
+            num_assumptions = int(sys.argv[5])
+            limit_assumptions = int(sys.argv[6])
+        #    OutputFileName = str(sys.argv[7])
+            factorize(product=product, digitsInMultiplicand1=digitsInMultiplicand1,
+                      digitsInMultiplicand2=digitsInMultiplicand2,
+                      num_assumptions=num_assumptions,
+                      limit_assumptions=limit_assumptions,
+                      qubit_reduction_method=qubit_reduction_method)
+        else:
+            product = EXPERIMENTS[1].product
+            factorize(product)
+    except Exception as e:
+        print e
