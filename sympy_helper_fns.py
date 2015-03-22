@@ -83,13 +83,17 @@ def degree(expr):
         >>> str_eqns = ['x + y',
         ...             'x*y*z - 1',
         ...             'x ** 2 + a*b*c',
-        ...             'x**2 + y']
+        ...             'x**2 + y',
+        ...             'x',
+        ...             'x*y']
         >>> eqns = str_exprs_to_sympy_eqns(str_eqns)
         >>> for e in eqns: print degree(e.lhs - e.rhs)
         1
         3
         3
         1
+        1
+        2
     '''
     degree = 0
     for term in expr.as_coefficients_dict().keys():
