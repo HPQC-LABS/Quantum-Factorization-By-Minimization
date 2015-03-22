@@ -218,18 +218,20 @@ class BinaryEquivalenceDict(EquivalenceDict):
 
             >>> x, y, z = sympy.symbols('x y z')
             >>> eq_dict = BinaryEquivalenceDict([(x, y), (y, 1-z), (1-z, x)])
+            >>> print eq_dict
+            {x: y, y: -z + 1}
             >>> for i in [x, y, z, 1-x, 1-y, 1-z]: print '{} == {}'.format(i, eq_dict[i])
             x == -z + 1
             y == -z + 1
             z == z
-            -x + 1 == -x + 1
-            -y + 1 == -y + 1
+            -x + 1 == z
+            -y + 1 == z
             -z + 1 == -z + 1
             
             Show of all of the fancy logic
             >>> eq_dict[1-x] = 1
             >>> print eq_dict
-            {-x + 1: 1, -z + 1: 0, x: y, y: -z + 1}
+            {x: y, z: 1, y: -z + 1}
             >>> for i in [x, y, z, 1-x, 1-y, 1-z]: print '{} == {}'.format(i, eq_dict[i])
             x == 0
             y == 0
@@ -264,14 +266,19 @@ class BinaryEquivalenceDict(EquivalenceDict):
             alt_value = super(BinaryEquivalenceDict, self).__getitem__(1 - key)
             if alt_value in BinaryEquivalenceDict.GROUND_ROOTS:
                 return 1 - alt_value
+            # If we've borken into a different part of the tree, search that instead
+            elif alt_value.atoms(sympy.Symbol) != key.atoms(sympy.Symbol):
+                return 1 - BinaryEquivalenceDict.__getitem__(self, alt_value)
         else:
             return key
 
-        # If value isn't a ground state, maybe not value is
+        # If value isn't a ground state, maybe not value is. Do the same
         if value not in BinaryEquivalenceDict.GROUND_ROOTS:
             alt_value = super(BinaryEquivalenceDict, self).__getitem__(1 - value)
             if alt_value in BinaryEquivalenceDict.GROUND_ROOTS:
                 return 1 - alt_value
+            elif alt_value.atoms(sympy.Symbol) != value.atoms(sympy.Symbol):
+                return 1 - BinaryEquivalenceDict.__getitem__(self, alt_value)
         else:
             return value
         
@@ -376,6 +383,50 @@ class BinaryEquivalenceDict(EquivalenceDict):
                 ...
             ContradictionException: x3 != -x3 + 1
             
+            
+            We want the solutions to be as nice as possible
+            >>> from solver_hybrid import SolverHybrid
+            >>> from sympy_helper_fns import is_equation
+            >>> from carry_equations_generator import generate_carry_equations
+            >>> from semiprime_tools import num_to_factor_num_qubit
+
+            >>> prod = 143#56153
+            >>> fact1, fact2 = num_to_factor_num_qubit(prod)
+            >>> equations = generate_carry_equations(fact1, fact2, prod)
+            >>> equations = filter(is_equation, equations)
+            >>> system = SolverHybrid(equations)
+            >>> system.solve_equations()
+            >>> vars = sorted(system.variables.values(), key=str)
+            >>> sorted_sol = sorted(system.solutions.items(), key=lambda x: str(x[0]))
+            >>> for s in sorted_sol: print s
+            (p1, -q1 + 1)
+            (p2, -q2 + 1)
+            (q1, -q2 + 1)
+            (z12, 0)
+            (z23, 0)
+            (z24, 0)
+            (z34, 1)
+            (z35, 0)
+            (z45, 1)
+            (z46, -z56 + 1)
+            (z56, 1)
+            (z57, 0)
+            (z67, 1)
+            >>> for v in vars: print v, system.solutions[v]
+            p1 q2
+            p2 -q2 + 1
+            q1 -q2 + 1
+            q2 q2
+            z12 0
+            z23 0
+            z24 0
+            z34 1
+            z35 0
+            z45 1
+            z46 0
+            z56 1
+            z57 0
+            z67 1
         '''
         key = self._check_input_node(key)
         value = self._check_input_node(value)
@@ -385,11 +436,14 @@ class BinaryEquivalenceDict(EquivalenceDict):
         if key == value:
             return
 
-        # Deal with the roots rather than the actual nodes  
+        # Deal with the roots rather than the actual nodes
         #TODO use getitem of the BinaryEquivalenceDict or the get method, which
-        # might use the EquivalenceDict ones?      
-        key = self[key]
-        value = self[value]
+        # might use the EquivalenceDict ones? Since it appears not to make a
+        # difference, be explicit for the moment   
+        key = BinaryEquivalenceDict.__getitem__(self, key)
+        value = BinaryEquivalenceDict.__getitem__(self, value)
+#        key = super(BinaryEquivalenceDict, self).__getitem__(key)
+#        value = super(BinaryEquivalenceDict, self).__getitem__(value)
 
         # If roots are equal, they are already connected.
         if key == value:
