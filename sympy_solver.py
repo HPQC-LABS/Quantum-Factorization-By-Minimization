@@ -827,43 +827,6 @@ class EquationSolver(SolverBase, JudgementMixin):
                         self.deductions[current_val] = value
                         self._update_log(current_val, value)
 
-    def set_to_max(self, expr):
-        ''' Given an expression, update all terms so that it achieves it's maximum
-
-            >>> system = EquationSolver()
-            >>> expr = sympy.sympify('-2*x*y - 3 + 3*z23')
-            >>> system.set_to_max(expr)
-            >>> system.deductions
-            {x*y: 0, z23: 1}
-        '''
-        coef_dict = expr.as_coefficients_dict()
-        for var, coef in coef_dict.iteritems():
-            if var == 1:
-                continue
-            if coef > 0:
-                self.update_value(var, 1)
-            elif coef < 0:
-                self.update_value(var, 0)
-
-    def set_to_min(self, expr):
-        ''' Given an expression, update all terms so that it achieves it's minumum
-
-            >>> system = EquationSolver()
-            >>> expr = sympy.sympify('-2*x*y - 3 + 3*z23')
-            >>> system.set_to_min(expr)
-            >>> system.deductions
-            {x*y: 1, z23: 0}
-
-        '''
-        coef_dict = expr.as_coefficients_dict()
-        for var, coef in coef_dict.iteritems():
-            if var == 1:
-                continue
-            if coef < 0:
-                self.update_value(var, 1)
-            elif coef > 0:
-                self.update_value(var, 0)
-
     def apply_judgements_square(self, equations, verbose=False):
         ''' Pick out equations that we can square in a reasonable amount of
             time and apply the judgements to them

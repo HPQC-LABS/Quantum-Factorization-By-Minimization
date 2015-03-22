@@ -13,6 +13,7 @@ from random import shuffle
 import sympy
 
 from contradiction_exception import ContradictionException
+from contradictions import apply_contradictions
 from sympy_helper_fns import (max_value, min_value, is_equation,
                               is_constant,
                               num_add_terms, parity, expressions_to_variables,
@@ -369,7 +370,7 @@ class JudgementMixin(object):
             try:
                 if is_equation(_eqn):
                     _eqn = standardise_equation(_eqn)
-                    self.apply_contradictions([_eqn])
+                    apply_contradictions([_eqn])
                 
                 # Process the simple 0/1 deductions
                 if intersection is None:
@@ -630,7 +631,7 @@ class JudgementMixin(object):
                 for _eqn in _eqns:
                     if is_equation(_eqn):
                         _eqn = standardise_equation(_eqn)
-                        self.apply_contradictions([_eqn])
+                        apply_contradictions([_eqn])
                 
                 # Process the simple 0/1 deductions
                 if intersection is None:
@@ -1446,6 +1447,43 @@ class JudgementMixin(object):
 
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
+
+    def set_to_max(self, expr):
+        ''' Given an expression, update all terms so that it achieves it's maximum
+
+            >>> system = EquationSolver()
+            >>> expr = sympy.sympify('-2*x*y - 3 + 3*z23')
+            >>> system.set_to_max(expr)
+            >>> system.deductions
+            {x*y: 0, z23: 1}
+        '''
+        coef_dict = expr.as_coefficients_dict()
+        for var, coef in coef_dict.iteritems():
+            if var == 1:
+                continue
+            if coef > 0:
+                self.update_value(var, 1)
+            elif coef < 0:
+                self.update_value(var, 0)
+
+    def set_to_min(self, expr):
+        ''' Given an expression, update all terms so that it achieves it's minumum
+
+            >>> system = EquationSolver()
+            >>> expr = sympy.sympify('-2*x*y - 3 + 3*z23')
+            >>> system.set_to_min(expr)
+            >>> system.deductions
+            {x*y: 1, z23: 0}
+
+        '''
+        coef_dict = expr.as_coefficients_dict()
+        for var, coef in coef_dict.iteritems():
+            if var == 1:
+                continue
+            if coef < 0:
+                self.update_value(var, 1)
+            elif coef > 0:
+                self.update_value(var, 0)
 
 if __name__ == "__main__":
     import doctest
