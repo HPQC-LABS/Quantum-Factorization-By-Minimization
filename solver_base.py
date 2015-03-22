@@ -170,6 +170,8 @@ class SolverBase(object):
     @property
     def unsolved_var(self):
         ''' Return a set of variables we haven't managed to eliminate '''
+        #TODO Think of a cleverer way to do this with solutions that still
+        # hold some information, so aren't 'simple' solutions
         return set(self.variables.values()).difference(self.solutions.keys())
 
     @property
