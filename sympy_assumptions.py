@@ -443,126 +443,126 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
         >>> SOLVER = EquationSolver
         
         
-        >>> test_kwargs = {'rank_func': lexographical_rank_variable,
-        ...                'count_determined': True}        
-        
-        1.
-        >>> equations = ['x+y']
-        >>> equations = map(sympy.sympify, equations)
-        >>> equations = map(sympy.Eq, equations)
-        >>> system = SOLVER(equations)
-        >>> assumed_variables = set()
-        >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
-        
-        >>> assumed_variables
-        set([x])
-        >>> for sol in sols: print sol.solutions
-        {x: 0, y: 0}
-        
-        2.
-        >>> equations = ['x + y - 1']
-        >>> equations = map(sympy.sympify, equations)
-        >>> equations = map(sympy.Eq, equations)
-        >>> system = SOLVER(equations)
-        >>> assumed_variables = set()
-        >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
-        >>> assumed_variables
-        set([x])
-        >>> for sol in sols: print sol.solutions
-        {x: 0, y: 1}
-        {x: 1, y: 0}
-        
-        3.
-        >>> equations = ['x + y - 1', 'x + y']
-        >>> equations = map(sympy.sympify, equations)
-        >>> equations = map(sympy.Eq, equations)
-        >>> system = SOLVER(equations)
-        >>> assumed_variables = set()
-        >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
-        Traceback (most recent call last):
-            ...
-        ContradictionException: Contradiction either way when substituting x
-
-        4.
-        Note you might need to add more z variables to stop the n_term
-        substitution judgement coming in
-        >>> equations = ['x + y + z1 + z2 + z3 + z4 + z5 + z6 - 1', 'a + b']
-        >>> equations = map(sympy.sympify, equations)
-        >>> equations = map(sympy.Eq, equations)
-        >>> system = SOLVER(equations)
-        >>> assumed_variables = set()
-        >>> sols = make_sequential_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, **test_kwargs)
-        >>> assumed_variables
-        set([x, a])
-        
-        Note one path has solved a lot more variables than the other
-        >>> for sol in sols: print sol.solutions
-        {x: 0, b: 0, a: 0}
-        {z6: 0, z5: 0, z1: 0, z4: 0, x: 1, z2: 0, y: 0, a: 0, z3: 0, b: 0}
-        
-        And we can see this in the remaining equations
-        >>> for sol in sols: print sol.equations
-        [y + z1 + z2 + z3 + z4 + z5 + z6 == 1]
-        []
-
-        Now we try the above example with 3 guesses
-        >>> assumed_variables = set()
-        >>> sols = make_sequential_assumptions(system, num_assumptions=3, assumed_variables=assumed_variables, **test_kwargs)
-        >>> assumed_variables
-        set([x, y, a])
-        
-        Note one path has solved a lot more variables than the other
-        >>> for sol in sols: print sol.solutions
-        {a: 0, x: 0, b: 0, y: 0}
-        {z6: 0, z5: 0, z1: 0, z4: 0, x: 0, z2: 0, y: 1, a: 0, z3: 0, b: 0}
-        {z6: 0, z5: 0, z1: 0, z4: 0, x: 1, z2: 0, y: 0, a: 0, z3: 0, b: 0}
-        
-        And we can see this in the remaining equations
-        >>> for sol in sols: print sol.equations
-        [z1 + z2 + z3 + z4 + z5 + z6 == 1]
-        []
-        []
-        
-        
-        5.
-        Using the same example, we show the fancy count determined feature:
-        >>> alt_kwargs = test_kwargs.copy()
-        >>> alt_kwargs['count_determined'] = False
-        >>> assumed_variables = set()
-        >>> sols = make_sequential_assumptions(system, num_assumptions=3, assumed_variables=assumed_variables, **alt_kwargs)
-        >>> assumed_variables
-        set([x, y, a, z1])
-        
-        Note one path has solved a lot more variables than the other
-        >>> for sol in sols: print sol.solutions
-        {a: 0, x: 0, b: 0, y: 0, z1: 0}
-        {z6: 0, z5: 0, z1: 1, y: 0, x: 0, z2: 0, z4: 0, a: 0, z3: 0, b: 0}
-        {z6: 0, z5: 0, z1: 0, z4: 0, x: 0, z2: 0, y: 1, a: 0, z3: 0, b: 0}
-        {z6: 0, z5: 0, z1: 0, z4: 0, x: 1, z2: 0, y: 0, a: 0, z3: 0, b: 0}
-        
-        And we can see this in the remaining equations
-        >>> for sol in sols: print sol.equations
-        [z2 + z3 + z4 + z5 + z6 == 1]
-        []
-        []
-        []
-        
-        
-        6.
-        Here is an example where we go down one road (a=1), but it's a dead end
-        >>> equations = ['a + b - 1', 'a + x + y - 1', 'a + x + 2*y - 2']
-        >>> equations = map(sympy.sympify, equations)
-        >>> equations = map(sympy.Eq, equations)
-        >>> system = SOLVER(equations)
-        >>> assumed_variables = set()
-        >>> sols = make_sequential_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, **test_kwargs)
-        >>> assumed_variables
-        set([a])
-        >>> for sol in sols: print sol.solutions
-        {y: 1, x: 0, b: 1, a: 0}
-        
-        >>> for sol in sols: print sol.equations
-        []
+#        >>> test_kwargs = {'rank_func': lexographical_rank_variable,
+#        ...                'count_determined': True}        
+#        
+#        1.
+#        >>> equations = ['x+y']
+#        >>> equations = map(sympy.sympify, equations)
+#        >>> equations = map(sympy.Eq, equations)
+#        >>> system = SOLVER(equations)
+#        >>> assumed_variables = set()
+#        >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
+#        
+#        >>> assumed_variables
+#        set([x])
+#        >>> for sol in sols: print sol.solutions
+#        {x: 0, y: 0}
+#        
+#        2.
+#        >>> equations = ['x + y - 1']
+#        >>> equations = map(sympy.sympify, equations)
+#        >>> equations = map(sympy.Eq, equations)
+#        >>> system = SOLVER(equations)
+#        >>> assumed_variables = set()
+#        >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
+#        >>> assumed_variables
+#        set([x])
+#        >>> for sol in sols: print sol.solutions
+#        {x: 0, y: 1}
+#        {x: 1, y: 0}
+#        
+#        3.
+#        >>> equations = ['x + y - 1', 'x + y']
+#        >>> equations = map(sympy.sympify, equations)
+#        >>> equations = map(sympy.Eq, equations)
+#        >>> system = SOLVER(equations)
+#        >>> assumed_variables = set()
+#        >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
+#        Traceback (most recent call last):
+#            ...
+#        ContradictionException: Contradiction either way when substituting x
+#
+#        4.
+#        Note you might need to add more z variables to stop the n_term
+#        substitution judgement coming in
+#        >>> equations = ['x + y + z1 + z2 + z3 + z4 + z5 + z6 - 1', 'a + b']
+#        >>> equations = map(sympy.sympify, equations)
+#        >>> equations = map(sympy.Eq, equations)
+#        >>> system = SOLVER(equations)
+#        >>> assumed_variables = set()
+#        >>> sols = make_sequential_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, **test_kwargs)
+#        >>> assumed_variables
+#        set([x, a])
+#        
+#        Note one path has solved a lot more variables than the other
+#        >>> for sol in sols: print sol.solutions
+#        {x: 0, b: 0, a: 0}
+#        {z6: 0, z5: 0, z1: 0, z4: 0, x: 1, z2: 0, y: 0, a: 0, z3: 0, b: 0}
+#        
+#        And we can see this in the remaining equations
+#        >>> for sol in sols: print sol.equations
+#        [y + z1 + z2 + z3 + z4 + z5 + z6 == 1]
+#        []
+#
+#        Now we try the above example with 3 guesses
+#        >>> assumed_variables = set()
+#        >>> sols = make_sequential_assumptions(system, num_assumptions=3, assumed_variables=assumed_variables, **test_kwargs)
+#        >>> assumed_variables
+#        set([x, y, a])
+#        
+#        Note one path has solved a lot more variables than the other
+#        >>> for sol in sols: print sol.solutions
+#        {a: 0, x: 0, b: 0, y: 0}
+#        {z6: 0, z5: 0, z1: 0, z4: 0, x: 0, z2: 0, y: 1, a: 0, z3: 0, b: 0}
+#        {z6: 0, z5: 0, z1: 0, z4: 0, x: 1, z2: 0, y: 0, a: 0, z3: 0, b: 0}
+#        
+#        And we can see this in the remaining equations
+#        >>> for sol in sols: print sol.equations
+#        [z1 + z2 + z3 + z4 + z5 + z6 == 1]
+#        []
+#        []
+#        
+#        
+#        5.
+#        Using the same example, we show the fancy count determined feature:
+#        >>> alt_kwargs = test_kwargs.copy()
+#        >>> alt_kwargs['count_determined'] = False
+#        >>> assumed_variables = set()
+#        >>> sols = make_sequential_assumptions(system, num_assumptions=3, assumed_variables=assumed_variables, **alt_kwargs)
+#        >>> assumed_variables
+#        set([x, y, a, z1])
+#        
+#        Note one path has solved a lot more variables than the other
+#        >>> for sol in sols: print sol.solutions
+#        {a: 0, x: 0, b: 0, y: 0, z1: 0}
+#        {z6: 0, z5: 0, z1: 1, y: 0, x: 0, z2: 0, z4: 0, a: 0, z3: 0, b: 0}
+#        {z6: 0, z5: 0, z1: 0, z4: 0, x: 0, z2: 0, y: 1, a: 0, z3: 0, b: 0}
+#        {z6: 0, z5: 0, z1: 0, z4: 0, x: 1, z2: 0, y: 0, a: 0, z3: 0, b: 0}
+#        
+#        And we can see this in the remaining equations
+#        >>> for sol in sols: print sol.equations
+#        [z2 + z3 + z4 + z5 + z6 == 1]
+#        []
+#        []
+#        []
+#        
+#        
+#        6.
+#        Here is an example where we go down one road (a=1), but it's a dead end
+#        >>> equations = ['a + b - 1', 'a + x + y - 1', 'a + x + 2*y - 2']
+#        >>> equations = map(sympy.sympify, equations)
+#        >>> equations = map(sympy.Eq, equations)
+#        >>> system = SOLVER(equations)
+#        >>> assumed_variables = set()
+#        >>> sols = make_sequential_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, **test_kwargs)
+#        >>> assumed_variables
+#        set([a])
+#        >>> for sol in sols: print sol.solutions
+#        {y: 1, x: 0, b: 1, a: 0}
+#        
+#        >>> for sol in sols: print sol.equations
+#        []
     '''
     assert isinstance(equation_solver, EquationSolver)
     if num_assumptions == 0:
