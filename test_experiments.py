@@ -14,15 +14,20 @@ from cfg_sympy_solver import (EXPERIMENTS, EXTENDED_EXPERIMENTS, EXPERIMENTS_20,
                               EXPERIMENTS_21, QUBIT_REDUCTION_ID)
 
 from sympy_solver import EquationSolver
+from solver_hybrid import SolverHybrid
 from verification import check_substitutions
+
+#solver = EquationSolver
+solver = SolverHybrid
 
 if __name__ == '__main__':
     
     SKIP = [100]
-    #for exp, params in sorted(EXTENDED_EXPERIMENTS.iteritems(), 
-    #                          key=lambda x: x[1].num_qubits_expected,
-    #                          reverse=True):
-    for exp, params in EXTENDED_EXPERIMENTS.iteritems():
+    
+#    for exp, params in sorted(EXTENDED_EXPERIMENTS.iteritems(), 
+#                              key=lambda x: x[1].num_qubits_expected,
+#                              reverse=True):
+    for exp, params in EXTENDED_EXPERIMENTS.items():
         try:
             if exp in SKIP:
                 continue
@@ -50,11 +55,11 @@ if __name__ == '__main__':
             log_deductions = False
             invariant_interactions_on_substitution = True
         
-            system = EquationSolver(eqns, output_filename=output, 
+            system = solver(eqns, output_filename=output, 
                                                 log_deductions=log_deductions,
                                                 invariant_interactions_on_substitution=invariant_interactions_on_substitution,
                                                 parallelise=False)
-            system.solve_equations(verbose=True, max_iter=200)
+            system.solve_equations(verbose=False, max_iter=200)
     
             if len(system.unsolved_var) != expected_qubits:        
                 print 'Num Qubits Start: {}'.format(system.num_qubits_start)
