@@ -192,12 +192,17 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         
         equations = unique_array_stable(equations)
         
-        # Do a sequential search starting from the left of the equations
-        #TODO We should limit on the number of states
-#        num_eq = 100 * num_constant_iter
+        # Do a sequential search starting from the left or right of the equations
+        # Limit the number of states so that we don't go crazy
+        # Limit the number of equations so we don't spend forever substituting
+        # into equations that don't contain the first few variables
+        
+        # For now don't substitute into thousands of deductions, while we wait
+        # for interleaving equation adding
+        num_eq = 5 * num_constant_iter
         max_states = 2 ** (num_constant_iter + 8)
         if not (num_constant_iter % 2):
-            eqn_to_search = equations#[:num_eq]
+            eqn_to_search = equations[:num_eq]
         # Or the right
         else:
             # Reverse the equations again so the solver has a better chance
@@ -209,9 +214,10 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
                                              expressions_to_variables(eqn_to_search),
                                              strict=True)
 
-        self.judgement_sequential_search(deduction_eqns + eqn_to_search, max_states=max_states)
+        self.judgement_sequential_search(deduction_eqns + eqn_to_search, 
+                                         max_states=max_states)
 
-        # Now unleash the mini-assumption        
+        # Now unleash the mini-assumption
         if num_constant_iter > 2:
             # Use mini-assumptions
             # Do for every stuck iteration, but with more variables
