@@ -294,7 +294,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
                 (len(search.valid_states) > max_states)):
                 break
         
-        deductions = search.get_deductions()
+        deductions = search.get_solutions()
         
         for k in variables:
             v = deductions[k]
