@@ -110,6 +110,21 @@ class SolverSequential(BinarySolutionSolverBase):
             >>> solver.sub_var([y, z])
             >>> solver.variables_to_sub
             [u]
+            
+            >>> for s in solver.valid_states: print s
+            ({v: 1, x: 0, z: 0, y: 1}, [u == 1, u == 1])
+            ({v: 1, x: 0, z: 1, y: 1}, [u == 1, u == 0])
+            ({v: 1, x: 1, z: 0, y: 0}, [u == 1, u == 1])
+            ({v: 1, x: 1, z: 1, y: 0}, [u == 1, u == 0])
+            >>> solver.sub_var(v)
+            >>> for s in solver.valid_states: print s
+            ({v: 1, x: 0, z: 0, y: 1}, [u == 1, u == 1])
+            ({v: 1, x: 0, z: 1, y: 1}, [u == 1, u == 0])
+            ({v: 1, x: 1, z: 0, y: 0}, [u == 1, u == 1])
+            ({v: 1, x: 1, z: 1, y: 0}, [u == 1, u == 0])
+            >>> solver.variables_to_sub
+            [u]
+            
         '''
         set_vars_to_sub = set(vars_to_sub)
         
@@ -188,13 +203,19 @@ class SolverSequential(BinarySolutionSolverBase):
             >>> solver.get_solutions()
             {v: 1, u: 1, x: 0, z: 0, y: 1}
         '''
+        # Check that we haven't gone too far over the limit by putting it
+        # in the outer loop. This way we can still have the post-processing
+        # with a continue statement and not check too often
+        if len(self.valid_states) > max_states:
+            return
+
         if vars_to_sub is None:
             vars_to_sub = self.variables_to_sub
         elif isinstance(vars_to_sub, int):
             vars_to_sub = self.variables_to_sub[:vars_to_sub]
         elif isinstance(vars_to_sub, sympy.Symbol):
             vars_to_sub = [vars_to_sub]
-
+        
         self._pop_variables_from_queue(vars_to_sub)
 
         if len(vars_to_sub) == 0:
@@ -205,14 +226,9 @@ class SolverSequential(BinarySolutionSolverBase):
 
         old_states = self.valid_states
         self.valid_states = []
+
+
         for state_dict, eqns in old_states:
-
-            # Check that we haven't gone too far over the limit by putting it
-            # in the outer loop. This way we can still have the post-processing
-            # with a continue statement and not check too often
-            if len(self.valid_states) > max_states:
-                break
-
             for possible_val in possible_vals:
                 to_sub = dict(zip(vars_to_sub, possible_val))
                 try:
@@ -253,6 +269,7 @@ class SolverSequential(BinarySolutionSolverBase):
         if verbose:        
             self.print_('Num variables: {}'.format(len(self.variables)))
             self.print_('Iterations\tNum Subbed\tNum to Sub\tNum State\tNum Sol')
+
         for i in xrange(max_iter):
             self.sub_var(vars_to_sub=vars_at_a_time, max_states=max_states)
             if verbose:
@@ -376,9 +393,10 @@ class SolverSequential(BinarySolutionSolverBase):
         ''' Use add solution '''
         pass
 
-    def add_interleaving_equations(equations, deductions):
+    def add_interleaving_equations(self, deductions):
         ''' Given equations, and a dictionary of deductions, return a new list of
-            equations with the deductions interleaved so the search space of the
+            equations with the deductions interleaved so the search space of
+            final system is reduced as much as possible
         '''
         pass
     
