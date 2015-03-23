@@ -215,6 +215,8 @@ class SolverSequential(BinarySolutionSolverBase):
             vars_to_sub = self.variables_to_sub[:vars_to_sub]
         elif isinstance(vars_to_sub, sympy.Symbol):
             vars_to_sub = [vars_to_sub]
+        else:
+            vars_to_sub = set(self.variables_to_sub).intersection(set(vars_to_sub))
         
         self._pop_variables_from_queue(vars_to_sub)
 
