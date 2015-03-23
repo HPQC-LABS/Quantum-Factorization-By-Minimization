@@ -1,0 +1,10 @@
+(1) q2 + q7 + z89 + 1 == 2*q2*q7 + 2*z910 + 4*z911
+(2) 2*z910 + 4*z911 == z89 + 2
+(3) z810 + z910 + 2*z911 == 1
+
+What's needed to solve:
+
+Looking at (2) or (3), it's clear z911 = 0
+Looking at parity of (2), z89 = 0
+With z89 = 0, from (1) we see q2 + q7 = 1, which gives the relationship we are looking for
+
