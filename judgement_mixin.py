@@ -15,7 +15,7 @@ import sympy
 from contradiction_exception import ContradictionException
 from contradictions import apply_contradictions
 from sympy_helper_fns import (max_value, min_value, is_equation,
-                              is_constant,
+                              is_constant, is_simple_binary,
                               num_add_terms, parity, expressions_to_variables,
                               standardise_equation)
 
@@ -33,7 +33,7 @@ class JudgementMixin(object):
             ...         'x == 0',
             ...         'p6 == 2*z2627']
             >>> eqns = str_eqns_to_sympy_eqns(eqns)
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> for eqn in eqns: system.judgement_0(eqn)
             >>> system.deductions
             {p6: 0, x: 0, z2627: 0, p5*q7: 0, q5*q7: 0}
@@ -57,7 +57,7 @@ class JudgementMixin(object):
             then the variables must all be 1
             x*y*z=1 => x = y = 1
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x * y * z, 1)
             >>> system.judgement_prod(eqn)
@@ -71,7 +71,7 @@ class JudgementMixin(object):
             {x: 1, z: 1, y: 1}
             
             >>> eqn = sympy.Eq(2*x*y*z, 1)
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> system.judgement_prod(eqn)
             Traceback (most recent call last):
                 ...
@@ -93,28 +93,28 @@ class JudgementMixin(object):
             Note this isn't applied to the equations directly, but is called
             via the parity judgement
             
-            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
+            >>> system = JudgementMixinTest(invariant_interactions_on_substitution=False)
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y*z, 1)
             >>> system.judgement_two_term(eqn)
             >>> system.deductions
             {x: -y*z + 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 1)
             >>> system.judgement_two_term(eqn)
             >>> system.deductions
             {x: -y + 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(1 + y, 1)
             >>> system.judgement_two_term(eqn)
             >>> system.deductions
             {y: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x - y, 1)
             >>> system.judgement_two_term(eqn)
@@ -136,11 +136,6 @@ class JudgementMixin(object):
             term1_atoms = term1.atoms(sympy.Symbol)
             term2_atoms = term2.atoms(sympy.Symbol)            
             
-#            # max with 1 to avoid ignoring constants
-#            if (self.invariant_interactions_on_substitution and 
-#                (max((len(term1_atoms), 1)) != max((len(term2_atoms), 1)))):
-#                return
-
             if ((0 < len(term2_atoms) < len(term1_atoms))
                 or is_constant(term1)):
                 self.update_value(term2, rhs - term1)
@@ -152,66 +147,56 @@ class JudgementMixin(object):
         ''' If an expression has n or fewer variable terms, sub it in!
             Only substitute single atoms terms for the moment
 
-            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
+            >>> system = JudgementMixinTest(invariant_interactions_on_substitution=False)
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y*z, 1)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {x: -y*z + 1}
 
-
-            Get rid of the invariant_interactions_on_substitution test while
-            it's turned off
-#            >>> system = EquationSolver(invariant_interactions_on_substitution=True)
-#            >>> x, y, z = sympy.symbols('x y z')
-#            >>> eqn = sympy.Eq(x + y*z, 1)
-#            >>> system.judgement_n_term(eqn)
-#            >>> system.deductions
-#            {}
-
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, z)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {x: -y + z}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(1 + y, 1)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {y: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x - y, 1)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {x: y + 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(-x + y, 1)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {y: x + 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + z, 1)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {x: -y - z + 1}
 
-            >>> system = EquationSolver(invariant_interactions_on_substitution=False)
+            >>> system = JudgementMixinTest(invariant_interactions_on_substitution=False)
             >>> x, y, z, z2, u, v = sympy.symbols('x y z z2 u v')
             >>> eqn = sympy.Eq(2*x + y + z*z2, u + v)
             >>> system.judgement_n_term(eqn)
             >>> system.deductions
             {y: u + v - 2*x - z*z2}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> lhs = sympy.sympify('q2 + q3')
             >>> rhs = sympy.sympify('2*q2*q3 + 2*z2021')
             >>> eqn = sympy.Eq(lhs, rhs)
@@ -219,7 +204,7 @@ class JudgementMixin(object):
             >>> system.deductions
             {q2: 2*q2*q3 - q3 + 2*z2021}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> lhs = sympy.sympify('q2 + 4*q3')
             >>> rhs = sympy.sympify('2*q2*q3 + 2*z2021')
             >>> eqn = sympy.Eq(lhs, rhs)
@@ -251,14 +236,14 @@ class JudgementMixin(object):
     def judgement_min_max(self, eqn):
         ''' If min(rhs) == max(lhs), then we know what to do
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + z, 3)
             >>> system.judgement_min_max(eqn)
             >>> system.deductions
             {x: 1, z: 1, y: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 2*y, 5 - 2*z)
             >>> system.judgement_min_max(eqn)
@@ -284,7 +269,7 @@ class JudgementMixin(object):
             Now also check to see if we can get any values that have to be
             equal or unequal - again by checking each case
             
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 4*y, 5 + 2*z)
             >>> system.judgement_mini_assumption(eqn, num_var=1)
@@ -296,7 +281,7 @@ class JudgementMixin(object):
             {x: 1, z: 0, y: 1}
             
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2*x*y + 2*z)
             >>> system.judgement_mini_assumption(eqn, num_var=2)
@@ -307,7 +292,7 @@ class JudgementMixin(object):
             >>> system.deductions
             {x: y, z: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 10*y, 5 + 2*z)
             >>> system.judgement_mini_assumption(eqn, num_var=4)
@@ -315,7 +300,7 @@ class JudgementMixin(object):
                 ...
             ContradictionException: Assumption judgement contradiction
             
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(2*x + y, 1 + x + 4*z)
             >>> system.judgement_mini_assumption(eqn, num_var=3)
@@ -445,7 +430,7 @@ class JudgementMixin(object):
             Specifically: score = 
             sum((occurances of each variable - 1)**2) / num_var
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> equations = ['x == 1 - y', 
             ...              'y == 1 - z',]
             >>> equations = str_eqns_to_sympy_eqns(equations)
@@ -512,17 +497,17 @@ class JudgementMixin(object):
             >>> equations = ['x == 1 - y', 
             ...              'y == 1 - z',]
             >>> equations = str_eqns_to_sympy_eqns(equations)
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> system.judgement_mini_assumption_multi_eqn(equations, 
             ...                       num_var=3)
             >>> system.deductions
-            {x: -y + 1, z: -y + 1, y: -z + 1}
+            {x: -y + 1, y: -z + 1}
 
             # Check that it works even when we overload the parameters
             >>> equations = ['1 + x == 2*y + z', 
             ...              'x == 1',]
             >>> equations = str_eqns_to_sympy_eqns(equations)
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> system.judgement_mini_assumption_multi_eqn(equations, 
             ...                       num_var=100)
             >>> system.deductions
@@ -534,7 +519,7 @@ class JudgementMixin(object):
             >>> equations = ['x*y*z == 0',
             ...              '3*x + 3*y == 2 + z + 3*a',]
             >>> equations = str_eqns_to_sympy_eqns(equations)
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
 
             >>> for eqn in equations:
             ...     system.judgement_mini_assumption(eqn, 
@@ -552,7 +537,7 @@ class JudgementMixin(object):
             ... 'p3*q5 + p4*q4 + p5*q3 + p6*q2 + 2*q1 + q2*q6 + z68 + z78 == 4*z810 + 8*z811 + 2*z89 + 1']
             >>> num_var = 6            
             >>> equations = str_eqns_to_sympy_eqns(equations)
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
 
             >>> for eqn in equations:
             ...     system.judgement_mini_assumption(eqn, 
@@ -569,7 +554,7 @@ class JudgementMixin(object):
             ...              'q1 + q2 == z23 + 2*z24']
             >>> num_var = 4
             >>> equations = str_eqns_to_sympy_eqns(equations)
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
 
             >>> for eqn in equations:
             ...     system.judgement_mini_assumption(eqn, 
@@ -698,14 +683,14 @@ class JudgementMixin(object):
         ''' If x + y + z = 1 then xy = yz = zx = 0
             Generally true for any number of terms that = 1
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + z, 1)
             >>> system.judgement_1(eqn)
             >>> system.deductions
             {x*z: 0, x*y: 0, y*z: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
             >>> eqn = sympy.Eq(x + y + z + z2, 1)
             >>> system.judgement_1(eqn)
@@ -746,42 +731,42 @@ class JudgementMixin(object):
     def judgement_2_slow(self, eqn):
         ''' If a term being 1 would tip max(rhs) > max(lhs), then it must be 0
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2 + z)
             >>> system.judgement_2_slow(eqn)
             >>> system.deductions
             {z: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2 + z)
             >>> system.judgement_2_slow(eqn)
             >>> system.deductions
             {z: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 3 * y, 2 + z)
             >>> system.judgement_2_slow(eqn)
             >>> system.deductions
             {}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 5 * y, 2 + z)
             >>> system.judgement_2_slow(eqn)
             >>> system.deductions
             {y: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 1 + z)
             >>> system.judgement_2_slow(eqn)
             >>> system.deductions
             {}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> lhs = sympy.sympify('q3 + q4')
             >>> rhs = sympy.sympify('2*q3*q4 + 2*z78 + 4*z79')
             >>> eqn = sympy.Eq(lhs, rhs)
@@ -789,7 +774,7 @@ class JudgementMixin(object):
             >>> system.deductions
             {z79: 0}
             
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x+y, 2*z + 1)
             >>> system.judgement_2_slow(eqn)
@@ -812,44 +797,44 @@ class JudgementMixin(object):
         _helper(eqn.rhs, eqn.lhs)
 
     def judgement_2(self, eqn):
-        ''' If a term being 1 would tip max(rhs) > max(lhs), then it must be 0
+        ''' If a term being 1 would tip max(rhs) > max(lhs), then it must be 0.
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2 + z)
             >>> system.judgement_2(eqn)
             >>> system.deductions
             {z: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2 + z)
             >>> system.judgement_2(eqn)
             >>> system.deductions
             {z: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 3 * y, 2 + z)
             >>> system.judgement_2(eqn)
             >>> system.deductions
             {}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 5 * y, 2 + z)
             >>> system.judgement_2(eqn)
             >>> system.deductions
             {y: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 1 + z)
             >>> system.judgement_2(eqn)
             >>> system.deductions
             {}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> lhs = sympy.sympify('q3 + q4')
             >>> rhs = sympy.sympify('2*q3*q4 + 2*z78 + 4*z79')
             >>> eqn = sympy.Eq(lhs, rhs)
@@ -857,7 +842,7 @@ class JudgementMixin(object):
             >>> system.deductions
             {z79: 0}
             
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x+y, 2*z + 1)
             >>> system.judgement_2(eqn)
@@ -880,12 +865,63 @@ class JudgementMixin(object):
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
+    def judgement_2_extended(self, eqn):
+        ''' If 2 terms both being 1 would tip max(rhs) > max(lhs), then the
+            product must be 0.
+
+            >>> system = JudgementMixinTest()
+            >>> x, y, z1, z2 = sympy.symbols('x y z1 z2')
+            >>> eqn = sympy.Eq(x + y, 2 + z1 + z2)
+            >>> system.judgement_2_extended(eqn)
+            >>> system.deductions
+            {z1*z2: 0}
+
+            >>> system = JudgementMixinTest()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 3 * y, 2 + z)
+            >>> system.judgement_2_extended(eqn)
+            >>> system.deductions
+            {x*y: 0}
+
+            >>> system = JudgementMixinTest()
+            >>> lhs = sympy.sympify('q3 + q4')
+            >>> rhs = sympy.sympify('2*q3*q4 + 2*z78 + 4*z79')
+            >>> eqn = sympy.Eq(lhs, rhs)
+            >>> system.judgement_2_extended(eqn)
+            >>> system.deductions
+            {q3*q4*z78: 0, z78*z79: 0, q3*q4*z79: 0}
+            
+            >>> system = JudgementMixinTest()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y, 2*z + 1)
+            >>> system.judgement_2_extended(eqn)
+            >>> system.deductions
+            {}
+        '''
+        def _helper(lhs, rhs):
+            lhs_max = max_value(lhs)
+
+            rhs_terms = rhs.as_ordered_terms()
+            if is_constant(rhs_terms[-1]):
+                rhs_const = rhs_terms.pop()
+            else:
+                rhs_const = 0
+
+            for term1, term2 in itertools.combinations(rhs_terms, r=2):
+                if max_value(term1) + max_value(term2) + rhs_const > lhs_max:
+                    atoms = term1.atoms(sympy.Symbol).union(term2.atoms(sympy.Symbol))
+                    prod = atoms.pop()
+                    for a in atoms: prod *= a
+                    self.update_value(prod, 0)
+
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
 
     def _judgement_2_old(self, eqn):
         ''' If max(lhs) < max(rhs) and there is only 1 variable term
             in the RHS, then this term must be 0
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x+y, 2*z + 1)
             >>> system._judgement_2_old(eqn)
@@ -903,14 +939,14 @@ class JudgementMixin(object):
             left is 1.
             Similarly for minimum
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2)
             >>> system.judgement_3(eqn)
             >>> system.deductions
             {x: 1, y: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + z, 0)
             >>> system.judgement_3(eqn)
@@ -933,42 +969,42 @@ class JudgementMixin(object):
         ''' If min(LHS) > min(RHS) and we only have one variable term on the
             RHS, this must be 1
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 1, 2*z)
             >>> system.judgement_4(eqn)
             >>> system.deductions
             {z: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 1, z)
             >>> system.judgement_4(eqn)
             >>> system.deductions
             {z: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x * y + 1, 2 * z)
             >>> system.judgement_4(eqn)
             >>> system.deductions
             {z: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
             >>> eqn = sympy.Eq(x + 3 * y + 1, 2 * z + z2)
             >>> system.judgement_4(eqn)
             >>> system.deductions
             {}
             
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 3 * y + 4, 5 * z)
             >>> system.judgement_4(eqn)
             >>> system.deductions
             {z: 1}
             
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 3 * y + 4, 5)
             >>> system.judgement_4(eqn)
@@ -1000,35 +1036,35 @@ class JudgementMixin(object):
             Also works with any even RHS and any number of even variables on
             the LHS.
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
             >>> eqn = sympy.Eq(x + 2*y + z, 2*z2)
             >>> system.judgement_5(eqn)
             >>> system.deductions
             {x: z}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, z1, z2, z3, z4 = sympy.symbols('x z1 z2 z3 z4')
             >>> eqn = sympy.Eq(x + 2*z1 + 2*z2, 4*z3*z4 + 2)
             >>> system.judgement_5(eqn)
             >>> system.deductions
             {x: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
             >>> eqn = sympy.Eq(x + 2*y + 3*z, 2 * z2)
             >>> system.judgement_5(eqn)
             >>> system.deductions
             {x: z}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z, z2 = sympy.symbols('x y z z2')
             >>> eqn = sympy.Eq(x + 2*y + 4*z, 2*z2)
             >>> system.judgement_5(eqn)
             >>> system.deductions
             {x: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z, u, v = sympy.symbols('x y z u v')
             >>> eqn = sympy.Eq(x + y + z + 2*u, 4*v)
             >>> system.judgement_5(eqn, increase_complexity=True, 
@@ -1038,7 +1074,7 @@ class JudgementMixin(object):
 
             >>> eqns = ['q2 + q3 + 2*z4950 + 1 == 2*q2*q3 + 2*z56 + 4*z57']
             >>> eqn = str_eqns_to_sympy_eqns(eqns)[0]
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> system.judgement_5(eqn, increase_complexity=True,
             ... invariant_interactions_on_substitution=True)
             >>> system.deductions
@@ -1096,42 +1132,42 @@ class JudgementMixin(object):
             then the sum must be 1. If it has 1 monic term, it must be 1
             Also make sure we don't replicate judgement_two_term
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + 2*x*y, 2 * z + 1)
             >>> system.judgement_6(eqn, increase_complexity=True)
             >>> system.deductions
             {x: -y + 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y = sympy.symbols('x y')
             >>> eqn = sympy.Eq(x + y, 1)
             >>> system.judgement_6(eqn, increase_complexity=False)
             >>> system.deductions
             {}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y = sympy.symbols('x y')
             >>> eqn = sympy.Eq(x + y, 1)
             >>> system.judgement_6(eqn, increase_complexity=True)
             >>> system.deductions
             {x: -y + 1}
             
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + 2*z, 3)
             >>> system.judgement_6(eqn, increase_complexity=True)
             >>> system.deductions
             {x: -y + 1}
             
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> eqns = ['2*q5*z1213 + 2*q6*q7 + 1 == z1213 + 2*z89']
             >>> eqn = str_eqns_to_sympy_eqns(eqns)[0]
             >>> system.judgement_6(eqn)
             >>> system.deductions
             {z1213: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z, u, v = sympy.symbols('x y z u v')
             >>> eqn = sympy.Eq(x + y + z + 2*u, 4*v + 1)
             >>> system.judgement_6(eqn, increase_complexity=True,
@@ -1175,7 +1211,7 @@ class JudgementMixin(object):
         ''' Special case of judgement_5
             x + y = 2z -> x = y = z
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y, 2*z)
             >>> system.judgement_7(eqn)
@@ -1206,42 +1242,42 @@ class JudgementMixin(object):
     def judgement_8(self, eqn):
         ''' If a term being 0 would tip max(rhs) < min(lhs), then it must be 1
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 3, 2 + z)
             >>> system.judgement_8(eqn)
             >>> system.deductions
             {z: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(10, 9*x + y)
             >>> system.judgement_8(eqn)
             >>> system.deductions
             {x: 1, y: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(9, 9*x + y)
             >>> system.judgement_8(eqn)
             >>> system.deductions
             {x: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(4*x*y + z, 3)
             >>> system.judgement_8(eqn)
             >>> system.deductions
             {x*y: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(4*x, 3*z + y)
             >>> system.judgement_8(eqn)
             >>> system.deductions
             {}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> lhs = sympy.sympify('x + y + 2')
             >>> rhs = sympy.sympify('10*x*y + 2*x')
             >>> eqn = sympy.Eq(lhs, rhs)
@@ -1263,42 +1299,42 @@ class JudgementMixin(object):
     def judgement_8_slow(self, eqn):
         ''' If a term being 0 would tip max(rhs) < min(lhs), then it must be 1
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + 3, 2 + z)
             >>> system.judgement_8_slow(eqn)
             >>> system.deductions
             {z: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(10, 9*x + y)
             >>> system.judgement_8_slow(eqn)
             >>> system.deductions
             {x: 1, y: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(9, 9*x + y)
             >>> system.judgement_8_slow(eqn)
             >>> system.deductions
             {x: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(4*x*y + z, 3)
             >>> system.judgement_8_slow(eqn)
             >>> system.deductions
             {x*y: 1}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(4*x, 3*z + y)
             >>> system.judgement_2(eqn)
             >>> system.deductions
             {}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> lhs = sympy.sympify('x + y + 2')
             >>> rhs = sympy.sympify('10*x*y + 2*x')
             >>> eqn = sympy.Eq(lhs, rhs)
@@ -1337,7 +1373,7 @@ class JudgementMixin(object):
             >>> eqns = ['3*q5 + 2*z89 == 4*q5*z89 + 5*q7 + 1',
             ...         '3*x + 2*a1 == 4*a2*a3 + y + z + 1']
             >>> eqns = str_eqns_to_sympy_eqns(eqns)
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> for eqn in eqns: system.judgement_9(eqn, increase_complexity=True)
             >>> system.deductions
             {q5: -q7 + 1}
@@ -1401,20 +1437,20 @@ class JudgementMixin(object):
             Also works with any even RHS and any number of even variables on
             the LHS.
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z, z2, z3 = sympy.symbols('x y z z2, z3')
             >>> eqn = sympy.Eq(x + 2*y + z + z2, 2*z3)
             >>> system._judgement_10i(eqn)
             >>> system.deductions
             {x*z2 + z*z2: 0, x*z + x*z2: 0, x*z + z*z2: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> eqn = sympy.Eq(x + 2*y + 3*z + 7 * z2, 4*z3)
             >>> system._judgement_10i(eqn)
             >>> system.deductions
             {x*z2 + z*z2: 0, x*z + x*z2: 0, x*z + z*z2: 0}
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> x, y, z = sympy.symbols('x y z')
             >>> eqn = sympy.Eq(x + y + 1, 2 * z)
             >>> system._judgement_10i(eqn)
@@ -1451,7 +1487,7 @@ class JudgementMixin(object):
     def set_to_max(self, expr):
         ''' Given an expression, update all terms so that it achieves it's maximum
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> expr = sympy.sympify('-2*x*y - 3 + 3*z23')
             >>> system.set_to_max(expr)
             >>> system.deductions
@@ -1469,7 +1505,7 @@ class JudgementMixin(object):
     def set_to_min(self, expr):
         ''' Given an expression, update all terms so that it achieves it's minumum
 
-            >>> system = EquationSolver()
+            >>> system = JudgementMixinTest()
             >>> expr = sympy.sympify('-2*x*y - 3 + 3*z23')
             >>> system.set_to_min(expr)
             >>> system.deductions
@@ -1484,6 +1520,17 @@ class JudgementMixin(object):
                 self.update_value(var, 1)
             elif coef > 0:
                 self.update_value(var, 0)
+
+class JudgementMixinTest(JudgementMixin):
+    ''' Test class that can be instantiated to run the test. This avoids any
+        funny inheritence stuff.        
+    '''
+    def __init__(self, *args, **kwargs):
+        self.deductions = {}
+    
+    def update_value(self, expr, val):
+        ''' Simply add it to self.deductions to that the doctests can work '''
+        self.deductions[expr] = val
 
 if __name__ == "__main__":
     import doctest
