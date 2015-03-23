@@ -514,6 +514,72 @@ class BinaryEquivalenceDict(EquivalenceDict):
         '''
         return super(BinaryEquivalenceDict, self).copy()
 
+    ## Make sure iterables, keys, values and items all do the right things
+    def __iter__(self):
+        ''' Override __iter__ so that we can iterate over the implicit mappings
+            in the usual way. Also test that the other methods also match this
+            
+            >>> a, b, c, d, e = sympy.symbols('a b c d e')
+            >>> eq_dict = BinaryEquivalenceDict([(a, b), (c, 1 - d), (d, 1-e)])
+
+            >>> print eq_dict.items()
+            [(c, -e + 1), (a, b), (d, -e + 1)]
+
+            >>> for i in eq_dict: print i
+            c
+            a
+            d
+        '''
+        seen = set()
+        for node in super(BinaryEquivalenceDict, self).__iter__():
+            if node in self.GROUND_ROOTS:
+                raise ValueError()
+            node = node.atoms(sympy.Symbol)
+            assert len(node) == 1
+            node = node.pop()
+            if node in seen:
+                continue
+            else:
+                seen.add(node)
+                yield node
+
+    def iterkeys(self):
+        return self.__iter__()
+
+    def itervalues(self):
+        ''' Override __iter__ so that we can iterate over the implicit mappings
+            in the usual way. Also test that the other methods also match this
+            
+            >>> a, b, c, d, e = sympy.symbols('a b c d e')
+            >>> eq_dict = BinaryEquivalenceDict([(a, b), (c, d), (d, 1-e), (e, 1)])
+
+            >>> for i in eq_dict.itervalues(): print i
+            0
+            1
+            b
+
+            >>> for i in eq_dict.values(): print i
+            0
+            1
+            b
+        '''
+        seen = set()
+        seen_add = seen.add
+        return (self[x] for x in self.iterkeys() if not (self[x] in seen or seen_add(self[x])))
+    
+    def iteritems(self):
+        return ((k, self[k]) for k in self.iterkeys())
+
+    def keys(self):
+        return list(self.iterkeys())
+
+    def values(self):
+        return list(self.itervalues())
+
+    def items(self):
+        return list(self.iteritems())
+
+
 if __name__ == "__main__":
     import doctest
     
