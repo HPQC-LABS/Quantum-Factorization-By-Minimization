@@ -18,16 +18,16 @@ from sympy_helper_fns import is_constant
 ATOMIC_VARIABLES = False
 
 def lexographical_rank_variable(equation_solver):
-    ''' Given an EquationSolver, find the next variable that we'd like to
+    ''' Given a Solver, find the next variable that we'd like to
         substitute
         
         >>> a, b, p1, p2, q4 = sympy.symbols('a b p1 p2 q4')
         
         >>> test1 = {str(v): v for v in [a, b]}
         >>> test2 = {str(v): v for v in [p1, p2, q4]}
-        >>> lexographical_rank_variable(EquationSolver(variables=test1))
+        >>> lexographical_rank_variable(SOLVER(variables=test1))
         {b: 0, a: 1}
-        >>> lexographical_rank_variable(EquationSolver(variables=test2))
+        >>> lexographical_rank_variable(SOLVER(variables=test2))
         {p1: 2, p2: 1, q4: 0}
     '''
     vars_ = sorted(equation_solver.unsolved_var, key=str, reverse=True)
@@ -36,7 +36,7 @@ def lexographical_rank_variable(equation_solver):
 
 def weighted_frequency_rank_variables(equation_solver, 
                                       atomic_variables=ATOMIC_VARIABLES):
-    ''' Given an EquationSolver, find the next variable that we'd like to
+    ''' Given a Solver, find the next variable that we'd like to
         substitute, by summing abs(coef) where coef is the coefficient of any
         term the variable appears in
         
@@ -44,22 +44,22 @@ def weighted_frequency_rank_variables(equation_solver,
         
         >>> eqn1 = sympy.Eq(a + 2*b)
         >>> eqn2 = sympy.Eq(a + b - 1)
-        >>> weighted_frequency_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> weighted_frequency_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 3, a: 2})
         
         >>> eqn1 = sympy.Eq(a + 2*a*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> weighted_frequency_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> weighted_frequency_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 3, a: 4})
 
         >>> eqn1 = sympy.Eq(a - 2*a*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> weighted_frequency_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> weighted_frequency_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 3, a: 4})
         
         >>> eqn1 = sympy.Eq(a - 2*a*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> weighted_frequency_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=False)
+        >>> weighted_frequency_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=False)
         defaultdict(<type 'int'>, {a*b: 2, b: 1, a: 2})
     '''
     var_score = defaultdict(int)
@@ -79,29 +79,29 @@ def weighted_frequency_rank_variables(equation_solver,
 
 def frequency_rank_variables(equation_solver, 
                              atomic_variables=ATOMIC_VARIABLES):
-    ''' Given an EquationSolver, find the next variable that we'd like to
+    ''' Given a Solver, find the next variable that we'd like to
         substitute, by summing the number of times a variable appears
         
         >>> a, b = sympy.symbols('a b')
         
         >>> eqn1 = sympy.Eq(a + 2*b)
         >>> eqn2 = sympy.Eq(a + b - 1)
-        >>> frequency_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> frequency_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 2, a: 2})
         
         >>> eqn1 = sympy.Eq(a + 2*a*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> frequency_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> frequency_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 2, a: 3})
 
         >>> eqn1 = sympy.Eq(a - 2*a*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> frequency_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> frequency_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 2, a: 3})
         
         >>> eqn1 = sympy.Eq(a - 2*a*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> frequency_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=False)
+        >>> frequency_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=False)
         defaultdict(<type 'int'>, {a*b: 1, b: 1, a: 2})
     '''
     var_score = defaultdict(int)
@@ -118,29 +118,29 @@ def frequency_rank_variables(equation_solver,
     
 def max_coef_rank_variables(equation_solver, 
                             atomic_variables=ATOMIC_VARIABLES):
-    ''' Given an EquationSolver, find the next variable that we'd like to
+    ''' Given a solver, find the next variable that we'd like to
         substitute, by summing the number of times a variable appears
         
         >>> a, b = sympy.symbols('a b')
         
         >>> eqn1 = sympy.Eq(a + 2*b)
         >>> eqn2 = sympy.Eq(a + b - 1)
-        >>> max_coef_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> max_coef_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 2, a: 1})
         
         >>> eqn1 = sympy.Eq(a - 2*a*b + 6*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> max_coef_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> max_coef_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 6, a: 2})
 
         >>> eqn1 = sympy.Eq(a - 2*a*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> max_coef_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=True)
+        >>> max_coef_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=True)
         defaultdict(<type 'int'>, {b: 2, a: 2})
         
         >>> eqn1 = sympy.Eq(a - 2*a*b)
         >>> eqn2 = sympy.Eq(a + b - 20)
-        >>> max_coef_rank_variables(EquationSolver(equations=[eqn1, eqn2]), atomic_variables=False)
+        >>> max_coef_rank_variables(SOLVER(equations=[eqn1, eqn2]), atomic_variables=False)
         defaultdict(<type 'int'>, {a*b: 2, b: 1, a: 2})
     '''
     var_score = defaultdict(int)
@@ -182,7 +182,7 @@ def get_variables_to_substitute(num_variables, equation_solver,
         >>> equations = ['4*x1 + 3*x2 + 2*x3 + 2*x4 + x5 + x6 + x7 - 6']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
 
         >>> subs = get_variables_to_substitute(1, system, limit_permutations=None)
         >>> for s in subs: print s
@@ -252,7 +252,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
                      return_variables=False):
     ''' Given a system of equations, make a number of assumptions and see if we
         reach a contradiction or not.
-        Returns a list of EquationSolver systems representing each possible
+        Returns a list of Solvers representing each possible
         system
         limit_permutations decides whether we just substitute the best
         num_assumptions variables, or every combination of num_assumptions
@@ -266,7 +266,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x+y']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> assumed_variables = set()
         >>> sols = make_simultaneous_assumptions(system, 
         ...                                      num_assumptions=1, 
@@ -279,7 +279,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x + y - 1']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> assumed_variables = set()
         >>> sols = make_simultaneous_assumptions(system, 
         ...                                      num_assumptions=1, 
@@ -293,7 +293,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x + y - 1', 'x + y']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> sols = make_simultaneous_assumptions(system, 
         ...                                      num_assumptions=1, 
         ...                                      **test_kwargs)
@@ -308,7 +308,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x1 + x2 + x3 + x4 + x5 + x6 + x7 - 2']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> sols = make_simultaneous_assumptions(system, 
         ...                                      num_assumptions=2,
         ...                                      **test_kwargs)
@@ -328,7 +328,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x1 + x2 + x3 + x4 + x5 + x6 + x7 - 2']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> sols = make_simultaneous_assumptions(system, 
         ...                                      num_assumptions=1,
         ...                                      **alt_kwargs)
@@ -349,7 +349,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
         {x7: 1}
 
         6. Test making all the different combinations of 2 variables
-        NOTE: Uses 5's EquationSolver
+        NOTE: Uses 5's SOLVER
 
         >>> sols = make_simultaneous_assumptions(system, 
         ...                                      num_assumptions=2,
@@ -397,7 +397,7 @@ def make_simultaneous_assumptions(equation_solver, num_assumptions=3,
                 solver = equation_solver.copy()
                 solver.parallelise = False
                 for var, val in itertools.izip(var_combination, sub_values):
-                    solver.update_value(var, val)
+                    solver.add_solution(var, val)
                 solver.solve_equations()
                 equation_solvers.append(solver)
                 end = time()
@@ -432,12 +432,16 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
                      rank_func=weighted_frequency_rank_variables):
     ''' Given a system of equations, make a number of assumptions and see if we
         reach a contradiction or not.
-        Returns a list of EquationSolver systems representing each possible
+        Returns a list of Solvers representing each possible
         system
         Assumed variables is a list of variables that have been chosen
         If count_determined is False, then if a variable leads to a contradiction
         one way but not the other, then it doesn't count as an assumption.
         If True, a fixed number of iterations occurs
+        
+        NOTE this test doesn't work for the hybrid yet
+        >>> SOLVER = EquationSolver
+        
         
         >>> test_kwargs = {'rank_func': lexographical_rank_variable,
         ...                'count_determined': True}        
@@ -446,7 +450,7 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x+y']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> assumed_variables = set()
         >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
         
@@ -459,7 +463,7 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x + y - 1']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> assumed_variables = set()
         >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
         >>> assumed_variables
@@ -472,7 +476,7 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x + y - 1', 'x + y']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> assumed_variables = set()
         >>> sols = make_sequential_assumptions(system, num_assumptions=1, assumed_variables=assumed_variables, **test_kwargs)
         Traceback (most recent call last):
@@ -485,7 +489,7 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['x + y + z1 + z2 + z3 + z4 + z5 + z6 - 1', 'a + b']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> assumed_variables = set()
         >>> sols = make_sequential_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, **test_kwargs)
         >>> assumed_variables
@@ -549,7 +553,7 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
         >>> equations = ['a + b - 1', 'a + x + y - 1', 'a + x + 2*y - 2']
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
-        >>> system = EquationSolver(equations)
+        >>> system = SOLVER(equations)
         >>> assumed_variables = set()
         >>> sols = make_sequential_assumptions(system, num_assumptions=2, assumed_variables=assumed_variables, **test_kwargs)
         >>> assumed_variables
@@ -560,6 +564,7 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
         >>> for sol in sols: print sol.equations
         []
     '''
+    assert isinstance(equation_solver, EquationSolver)
     if num_assumptions == 0:
         return [equation_solver]
 
@@ -584,9 +589,9 @@ def make_sequential_assumptions(equation_solver, num_assumptions=3,
     
     # Make systems for each assumption
     eqnsol0 = equation_solver.copy()
-    eqnsol0.update_value(next_var, 0)
+    eqnsol0.add_solution(next_var, 0)
     eqnsol1 = equation_solver.copy()
-    eqnsol1.update_value(next_var, 1)
+    eqnsol1.add_solution(next_var, 1)
 
     # Now let the systems rip!
     try:
@@ -657,4 +662,6 @@ if __name__ == "__main__":
     import doctest
     import sympy
     from sympy_solver import EquationSolver
+    from solver_hybrid import SolverHybrid
+    SOLVER = SolverHybrid
     doctest.testmod()
