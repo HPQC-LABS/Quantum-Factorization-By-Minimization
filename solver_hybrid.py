@@ -260,6 +260,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
             self.judgement_min_max(eqn)
             self.judgement_1(eqn)
             self.judgement_2(eqn)
+            self.judgement_2_extended(eqn)
             self.judgement_3(eqn)
             self.judgement_4(eqn)
             self.judgement_5(eqn, increase_complexity=False)
