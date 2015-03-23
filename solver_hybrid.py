@@ -16,7 +16,8 @@ from semiprime_tools import num_to_factor_num_qubit
 from sympy_helper_fns import (is_equation, expressions_to_variables,
                               str_eqns_to_sympy_eqns, standardise_equation,
                               is_simple_binary, dict_as_eqns, degree,
-                              eqns_with_variables, num_add_terms)
+                              eqns_with_variables, num_add_terms, 
+                              remove_binary_squares)
 from solver_base import BinarySolutionSolverBase, unique_array_stable
 from solver_sequential import SolverSequential
 from sympy.core.cache import clear_cache
@@ -170,8 +171,8 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         old_deductions = self.deductions.copy()
         self.deductions = {}
         for expr, val in old_deductions.iteritems():
-            new_expr = expr.subs(cleaned_sol).expand()
-            new_val = val.subs(cleaned_sol).expand()
+            new_expr = remove_binary_squares(expr.subs(cleaned_sol).expand())
+            new_val = remove_binary_squares(val.subs(cleaned_sol).expand())
             
             # If equal, continue
             if new_expr == new_val:
