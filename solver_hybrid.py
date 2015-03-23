@@ -16,7 +16,7 @@ from semiprime_tools import num_to_factor_num_qubit
 from sympy_helper_fns import (is_equation, expressions_to_variables,
                               str_eqns_to_sympy_eqns, standardise_equation,
                               is_simple_binary, dict_as_eqns, degree,
-                              eqns_with_variables)
+                              eqns_with_variables, num_add_terms)
 from solver_base import BinarySolutionSolverBase, unique_array_stable
 from solver_sequential import SolverSequential
 from sympy.core.cache import clear_cache
@@ -161,10 +161,6 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
                 self.deductions.pop(expr)
                 self.solutions[expr] = val
 
-        # Now go over the remaining deductions and pick out equations which
-        # include an unsolved variables
-        unsolved_var = self.unsolved_var
-
         # Clean the solutions so we don't spend so long in subs
         # Extract only the atoms we would like to try and find
         ded_as_eqn = self.deductions_as_equations
@@ -248,7 +244,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         if isinstance(expr, int): expr = sympy.sympify(expr)
         if isinstance(val, int): val = sympy.sympify(val)
         if degree(val) > degree(expr):
-            expr, var = val, expr
+            expr, val = val, expr
         if is_simple_binary(expr) and is_simple_binary(val):
             self.solutions[expr] = val
         else:
