@@ -34,7 +34,7 @@ Experiment = namedtuple('Experiment', ('digits_multiplicand_1',
 
 EXPERIMENTS = {
     1: Experiment(4, 4, 143, 1),
-    2: Experiment(8, 8, 56153, 1),
+    2: Experiment(8, 8, 56153, 35),
     3: Experiment(17, 17, 4299161663, 1),
     4: Experiment(21, 21, 1099532599387, 1),
     5: Experiment(24, 24, 70368895172689, 0),
@@ -66,12 +66,12 @@ PRESENTS = {
 }
 
 EXPERIMENTS_20 = {
-    9: Experiment(20, 20, 274954455617, 1),
-    116: Experiment(20, 20, 275017384217, 1),
-    184: Experiment(20, 20, 275162142881, 1),
-    189: Experiment(20, 20, 275199914009, 1),
-    197: Experiment(20, 20, 274981725769, 0),
-    201: Experiment(20, 20, 275025776041, 0),
+    9: Experiment(20, 20, 274954455617, 18),
+    116: Experiment(20, 20, 275017384217, 21),
+    184: Experiment(20, 20, 275162142881, 2),
+    189: Experiment(20, 20, 275199914009, 13),
+    197: Experiment(20, 20, 274981725769, -1),
+    201: Experiment(20, 20, 275025776041, -1),
 }
 
 EXPERIMENTS_21 = {

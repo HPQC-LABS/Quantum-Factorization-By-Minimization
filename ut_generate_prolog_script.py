@@ -88,36 +88,3 @@ def write_script(script_str, filename='factor.pl'):
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-
-#    prod = 143
-#    prod = 56153
-#    prod = 4306239659
-#    prod = EXPERIMENTS[100].product
-
-    # 200x200    
-#    prod = 645562469521727147413979793000752968582426448207305878207844816196118912415070998411753548531516944594279465790740639879
-
-#    prod = 2945340432158418383223693624588738123559693482299075088767878449688292160397327779966295692450325070170031945807812908771881611572255401942922812303597161984656837427025571643491822766545899513818123285400690072855199653418293946527676736528882321172981935465021616458364488640088706931812060921466459680818892943
-
-#    prod = 
-
-#    fact1, fact2 = num_to_factor_num_qubit(prod)
-#    equations = generate_carry_equations(fact1, fact2, prod)
-#    equations = filter(is_equation, equations)
-
-
-    from sympy_helper_fns import str_eqns_to_sympy_eqns
-    equations = '''q2 + q7 + z8586 + z89 + 1 == 2*q2*q7 + q2*z8586 + 2*z910 + 4*z911
-    q2*z8586 + 2*z910 + 4*z911 == z8586 + z89 + 2
-    q7*z8586 == 0
-    z8586*z910 == 0'''.split('\n')
-    equations = str_eqns_to_sympy_eqns(equations)
-    print equations
-
-    write_script(get_script(equations), 'present2.pl')
-
-#    variables = expressions_to_variables(equations)
-#    print var_str(variables)
-#    print domain_str(variables)
-#    print equation_str(equations)
-#    print print_str(variables)
