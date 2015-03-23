@@ -15,8 +15,10 @@ from sympy_assumptions import (make_simultaneous_assumptions,
                                lexographical_rank_variable)
 from semiprime_tools import num_to_factor_num_qubit
 from sympy_solver import EquationSolver
+from solver_hybrid import SolverHybrid
 from verification import check_solutions, check_substitutions
 
+SOLVER = SolverHybrid
 
 __author__ = "Nathaniel Bryans"
 __credits__ = ["Nathaniel Bryans", "Nikesh Dattani"]
@@ -64,7 +66,7 @@ def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
 #    
 #    # Do it normally
 #    else:
-    system = EquationSolver(eqns, output_filename=output, 
+    system = SOLVER(eqns, output_filename=output, 
                                         log_deductions=log_deductions,
                                         invariant_interactions_on_substitution=invariant_interactions_on_substitution,
                                         parallelise=True)
