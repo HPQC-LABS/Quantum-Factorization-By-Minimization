@@ -259,29 +259,21 @@ class BinaryEquivalenceDict(EquivalenceDict):
             {x3: x4, x1: x4, x2: x4}
         '''
         key = self._check_input_node(key)
+        
+        # We only fetch things for single variables
+        if num_add_terms(key) == 2:
+            return 1 - BinaryEquivalenceDict.__getitem__(self, 1 - key)
+
         value = super(BinaryEquivalenceDict, self).__getitem__(key)
 
-        # If we can't find a ground state for key, maybe we can for 1-key
-        if key not in BinaryEquivalenceDict.GROUND_ROOTS:
-            alt_value = super(BinaryEquivalenceDict, self).__getitem__(1 - key)
-            if alt_value in BinaryEquivalenceDict.GROUND_ROOTS:
-                return 1 - alt_value
-            # If we've borken into a different part of the tree, search that instead
-            elif alt_value.atoms(sympy.Symbol) != key.atoms(sympy.Symbol):
-                return 1 - BinaryEquivalenceDict.__getitem__(self, alt_value)
-        else:
-            return key
+        if key == value:
+            return value
 
-        # If value isn't a ground state, maybe not value is. Do the same
+        # If value isn't a ground state, maybe (not value) is.
         if value not in BinaryEquivalenceDict.GROUND_ROOTS:
             alt_value = super(BinaryEquivalenceDict, self).__getitem__(1 - value)
-            if alt_value in BinaryEquivalenceDict.GROUND_ROOTS:
-                return 1 - alt_value
-            elif alt_value.atoms(sympy.Symbol) != value.atoms(sympy.Symbol):
-                return 1 - BinaryEquivalenceDict.__getitem__(self, alt_value)
-        else:
-            return value
-        
+            return 1 - alt_value
+
         # If we can't do anything funky, never mind
         return value
 
@@ -342,13 +334,15 @@ class BinaryEquivalenceDict(EquivalenceDict):
             We want this so that we can substitute single variables out
             >>> eq_dict = BinaryEquivalenceDict([(1 - x1, x2)])
             >>> print eq_dict
-            {x2: -x1 + 1}
+            {x1: -x2 + 1}
             >>> eq_dict[0] = x2
             >>> print eq_dict
-            {-x1 + 1: 0, x2: -x1 + 1}
+            {x1: -x2 + 1, x2: 0}
             >>> eq_dict[x3] = 1 - x1
             >>> print eq_dict
-            {-x1 + 1: 0, x3: 0, x2: -x1 + 1}
+            {x3: 0, x1: -x2 + 1, x2: 0}
+            >>> print eq_dict.items()
+            [(x3, 0), (x1, 1), (x2, 0)]
 
             Check the roots of the above system
             >>> for expr in [0, 1, x1, x2, x3, 1-x1]: print expr, eq_dict[expr]
@@ -384,66 +378,19 @@ class BinaryEquivalenceDict(EquivalenceDict):
             ContradictionException: x3 != -x3 + 1
             
             
-            We want the solutions to be as nice as possible
-            >>> from solver_hybrid import SolverHybrid
-            >>> from sympy_helper_fns import is_equation
-            >>> from carry_equations_generator import generate_carry_equations
-            >>> from semiprime_tools import num_to_factor_num_qubit
 
-            >>> prod = 143#56153
-            >>> fact1, fact2 = num_to_factor_num_qubit(prod)
-            >>> equations = generate_carry_equations(fact1, fact2, prod)
-            >>> equations = filter(is_equation, equations)
-            >>> system = SolverHybrid(equations)
-            >>> system.solve_equations()
-            >>> vars = sorted(system.variables.values(), key=str)
-            >>> sorted_sol = sorted(system.solutions.items(), key=lambda x: str(x[0]))
-            >>> for s in sorted_sol: print s
-            (p1, -q1 + 1)
-            (p2, -q2 + 1)
-            (q1, -q2 + 1)
-            (z12, 0)
-            (z23, 0)
-            (z24, 0)
-            (z34, 1)
-            (z35, 0)
-            (z45, 1)
-            (z46, -z56 + 1)
-            (z56, 1)
-            (z57, 0)
-            (z67, 1)
-            >>> for v in vars: print v, system.solutions[v]
-            p1 q2
-            p2 -q2 + 1
-            q1 -q2 + 1
-            q2 q2
-            z12 0
-            z23 0
-            z24 0
-            z34 1
-            z35 0
-            z45 1
-            z46 0
-            z56 1
-            z57 0
-            z67 1
         '''
         key = self._check_input_node(key)
         value = self._check_input_node(value)
-
+        
         # Key is 'mapped' to value anyway, so don't put it in the underlying
         # data structure
         if key == value:
             return
 
         # Deal with the roots rather than the actual nodes
-        #TODO use getitem of the BinaryEquivalenceDict or the get method, which
-        # might use the EquivalenceDict ones? Since it appears not to make a
-        # difference, be explicit for the moment   
         key = BinaryEquivalenceDict.__getitem__(self, key)
         value = BinaryEquivalenceDict.__getitem__(self, value)
-#        key = super(BinaryEquivalenceDict, self).__getitem__(key)
-#        value = super(BinaryEquivalenceDict, self).__getitem__(value)
 
         # If roots are equal, they are already connected.
         if key == value:
@@ -453,40 +400,21 @@ class BinaryEquivalenceDict(EquivalenceDict):
         if key == 1 - value:
             raise ContradictionException('{} != {}'.format(key, value))
 
-
         # NOTE we already know key and value aren't equal
         if key in BinaryEquivalenceDict.GROUND_ROOTS:
             if value in BinaryEquivalenceDict.GROUND_ROOTS:
                 # Now check that we haven't got a contradiction if we've grounded both
                 # variables
                 raise ContradictionException('{} != {}'.format(key, value))
-            
             else:
-                # We have that key is grounded and value isn't, so we should
-                # swap them over so that ground states are always roots
+                # If key is grounded, but value isn't then swap them over
                 key, value = value, key
-        
-        elif value in BinaryEquivalenceDict.GROUND_ROOTS:
-            # value is grounded so do nothing
-            pass
-        else:
-            # We always want the 1-x to be a root, or else it won't substitute
-            # nicely
-            if num_add_terms(key) == 2:
-                # But if we're double negating, then we can simplify this too
-                if num_add_terms(value) == 2:
-                    key, value = 1-key, 1-value
-                else:
-                    key, value = value, key
+            
+        # Double negate to we only ever get variable: equivalence
+        if num_add_terms(key) == 2:
+            key, value = 1 - key, 1 - value
         
         super(BinaryEquivalenceDict, self).__setitem__(key, value)
-        # Now make the connection with 1-x if we have a definite solution.
-        # It is important to use the EquivalenceDict's __getitem__ as we want
-        # to find the root node of the 1-x key, not our fancy new method that
-        # looks for conjugates
-        if value in BinaryEquivalenceDict.GROUND_ROOTS:
-            alt_key = super(BinaryEquivalenceDict, self).__getitem__(1 - key)
-            super(BinaryEquivalenceDict, self).__setitem__(alt_key, 1 - value)            
 
     def update(self, other):
         ''' Check update is using all the extra bells and whistles 
@@ -520,15 +448,73 @@ class BinaryEquivalenceDict(EquivalenceDict):
             in the usual way. Also test that the other methods also match this
             
             >>> a, b, c, d, e = sympy.symbols('a b c d e')
-            >>> eq_dict = BinaryEquivalenceDict([(a, b), (c, 1 - d), (d, 1-e)])
+            >>> eq_dict = BinaryEquivalenceDict([(a, b), (c, 1-d), (d, 1-e)])
 
             >>> print eq_dict.items()
-            [(c, -e + 1), (a, b), (d, -e + 1)]
+            [(c, e), (a, b), (d, -e + 1)]
 
             >>> for i in eq_dict: print i
             c
             a
             d
+            
+            We want the solutions to be as nice as possible
+            >>> from solver_hybrid import SolverHybrid
+            >>> from sympy_helper_fns import is_equation
+            >>> from carry_equations_generator import generate_carry_equations
+            >>> from semiprime_tools import num_to_factor_num_qubit
+
+            >>> prod = 143
+            >>> fact1, fact2 = num_to_factor_num_qubit(prod)
+            >>> equations = generate_carry_equations(fact1, fact2, prod)
+            >>> equations = filter(is_equation, equations)
+            >>> system = SolverHybrid(equations)
+            >>> system.solve_equations()
+            >>> vars = sorted(system.variables.values(), key=str)
+            >>> sorted_sol = sorted(system.solutions.items(), key=lambda x: str(x[0]))
+            >>> for s in sorted_sol: print s
+            (p1, q2)
+            (p2, -q2 + 1)
+            (q1, -q2 + 1)
+            (z12, 0)
+            (z23, 0)
+            (z24, 0)
+            (z34, 1)
+            (z35, 0)
+            (z45, 1)
+            (z46, 0)
+            (z56, 1)
+            (z57, 0)
+            (z67, 1)
+            >>> for v in vars: print v, system.solutions[v]
+            p1 q2
+            p2 -q2 + 1
+            q1 -q2 + 1
+            q2 q2
+            z12 0
+            z23 0
+            z24 0
+            z34 1
+            z35 0
+            z45 1
+            z46 0
+            z56 1
+            z57 0
+            z67 1
+            >>> for k in system.solutions: print k, system.solutions[k]
+            z56 1
+            z12 0
+            q1 -q2 + 1
+            z34 1
+            z35 0
+            z45 1
+            z24 0
+            z67 1
+            z46 0
+            p2 -q2 + 1
+            z23 0
+            z57 0
+            p1 q2
         '''
         seen = set()
         for node in super(BinaryEquivalenceDict, self).__iter__():
