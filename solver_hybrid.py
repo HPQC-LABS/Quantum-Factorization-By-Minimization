@@ -199,8 +199,8 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         
         # For now don't substitute into thousands of deductions, while we wait
         # for interleaving equation adding
-        num_eq = 5 * num_constant_iter
-        max_states = 2 ** (num_constant_iter + 8)
+        num_eq = 50 * num_constant_iter
+        max_states = 2 ** (num_constant_iter + 8) + 2
         if not (num_constant_iter % 2):
             eqn_to_search = equations[:num_eq]
         # Or the right
@@ -214,7 +214,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
                                              expressions_to_variables(eqn_to_search),
                                              strict=True)
 
-        self.judgement_sequential_search(deduction_eqns + eqn_to_search, 
+        self.judgement_sequential_search(eqn_to_search + deduction_eqns, 
                                          max_states=max_states)
 
         # Now unleash the mini-assumption
