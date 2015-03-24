@@ -107,7 +107,7 @@ def get_target_digits(product):
     
     return target_factors
 
-def get_target_pq_dict(product):
+def get_target_pq_dict(product, swap=False):
     ''' Return a dic=ctionary of expected p and q values 
     
         >>> get_target_pq_dict(143)
@@ -116,6 +116,11 @@ def get_target_pq_dict(product):
     target_digits = get_target_digits(product)
     target_dict = {}
     pi, qi = target_digits
+    
+    # Allow p and q to permute
+    if swap:
+        pi, qi = qi, pi
+
     pi.reverse()
     qi.reverse()
     for i, pi_ in enumerate(pi):
@@ -183,23 +188,30 @@ def check_substitutions(product, system, verbose=False):
         True
         
     '''
-    target_dict = get_target_pq_dict(product)
+    success = False
     
-    try:
-        for var, val in target_dict.iteritems():
-            system.add_solution(var, val)
-        system.solve_equations()
-    except ContradictionException:
+    for target_dict in [get_target_pq_dict(product), 
+                        get_target_pq_dict(product, swap=True)]:
+        try:
+            for var, val in target_dict.iteritems():
+                system.add_solution(var, val)
+            system.solve_equations()
+            success = True
+        except ContradictionException:
+            continue
+
+    if success:
+        if verbose:
+            num_remaining = len(system.unsolved_var)
+            if num_remaining:
+                print '{} qubits undetermined by answers'.format(num_remaining)
+            print VERIFICATION_SUCCESS_MESSAGE
+        return True
+    else:
         if verbose:
             print VERIFICATION_FAILURE_MESSAGE
         return False
-    
-    if verbose:
-        num_remaining = len(system.unsolved_var)
-        if num_remaining:
-            print '{} qubits undetermined by answers'.format(num_remaining)
-        print VERIFICATION_SUCCESS_MESSAGE
-    return True
+
 
 def check_solutions(product, solutions, verbose=False):
     ''' Check that solutions are consistent with the binary factorisation.
