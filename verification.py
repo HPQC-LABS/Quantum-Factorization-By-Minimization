@@ -197,6 +197,7 @@ def check_substitutions(product, system, verbose=False):
                 system.add_solution(var, val)
             system.solve_equations()
             success = True
+            break
         except ContradictionException:
             continue
 
