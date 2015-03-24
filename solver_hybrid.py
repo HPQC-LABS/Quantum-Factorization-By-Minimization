@@ -213,8 +213,12 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         deduction_eqns = eqns_with_variables(deductions, 
                                              expressions_to_variables(eqn_to_search),
                                              strict=True)
+        # Now interleaf them for maximum effectiveness!
+        all_eqn = SolverSequential.interleave_equations(eqn_to_search, 
+                                                        deduction_eqns, 
+                                                        priority=1)
 
-        self.judgement_sequential_search(eqn_to_search + deduction_eqns, 
+        self.judgement_sequential_search(all_eqn, 
                                          max_states=max_states)
 
         # Now unleash the mini-assumption
