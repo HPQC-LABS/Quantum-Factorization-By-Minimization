@@ -395,12 +395,104 @@ class SolverSequential(BinarySolutionSolverBase):
         ''' Use add solution '''
         pass
 
-    def add_interleaving_equations(self, deductions):
-        ''' Given equations, and a dictionary of deductions, return a new list of
-            equations with the deductions interleaved so the search space of
-            final system is reduced as much as possible
+    @staticmethod
+    def interleave_equations(equations1, equations2, priority=1):
+        ''' Given 2 lists of equations, maintaining the order of the first and
+            insert the second one around it depending on the atoms that appear
+            in each equation.
+            
+            >>> eqns1 = ['x + y + z == 0', 'a*b + 3*a == 2 + b']
+            >>> eqns2 = ['x*y == 0', 'a*b == 1', 'x*a == 0', 'u*v == 0']
+            >>> eqns1 = str_eqns_to_sympy_eqns(eqns1)
+            >>> eqns2 = str_eqns_to_sympy_eqns(eqns2)
+            >>> eqns = SolverSequential.interleave_equations(eqns1, eqns2, 
+            ...                                              priority=0)
+            >>> for e in eqns: print e
+            x + y + z == 0
+            x*y == 0
+            a*b + 3*a == b + 2
+            a*b == 1
+            a*x == 0
+            u*v == 0
+
+            >>> eqns = SolverSequential.interleave_equations(eqns1, eqns2, 
+            ...                                              priority=1)
+            >>> for e in eqns: print e
+            x*y == 0
+            x + y + z == 0
+            a*b == 1
+            a*x == 0
+            a*b + 3*a == b + 2
+            u*v == 0
+
+            >>> eqns1 = ['x + y + z == 0', 'a*b + 3*a == 2 + b', 'u + v == 1',
+            ... 'x + u == 1', 'a + b == 1', 'x + a + u == 2']
+            >>> eqns2 = ['x*y == 0', 'a*b == 1', 'u*v == 0', 'x*u == 0',
+            ... 'a*u == 0', 'z*v*b == 0', 'y*a*b == 0']
+            >>> eqns1 = str_eqns_to_sympy_eqns(eqns1)
+            >>> eqns2 = str_eqns_to_sympy_eqns(eqns2)
+            >>> eqns = SolverSequential.interleave_equations(eqns1, eqns2,
+            ...                                              priority=0)
+            >>> for e in eqns: print e
+            x + y + z == 0
+            x*y == 0
+            a*b + 3*a == b + 2
+            a*b == 1
+            a*b*y == 0
+            u + v == 1
+            u*v == 0
+            u*x == 0
+            a*u == 0
+            b*v*z == 0
+            u + x == 1
+            a + b == 1
+            a + u + x == 2
+            
+            >>> eqns = SolverSequential.interleave_equations(eqns1, eqns2,
+            ...                                              priority=1)
+            >>> for e in eqns: print e
+            x*y == 0
+            x + y + z == 0
+            a*b == 1
+            a*b*y == 0
+            a*b + 3*a == b + 2
+            u*v == 0
+            u*x == 0
+            a*u == 0
+            b*v*z == 0
+            u + v == 1
+            u + x == 1
+            a + b == 1
+            a + u + x == 2
         '''
-        pass
+        assert priority in [0, 1]
+        interleaved = []
+        equations2 = equations2[:]
+        
+        # Keep track of what we've already seen so that odd things aren't
+        # pushed to the end
+        seen = set()
+
+        for eqn1 in equations1:
+            seen.update(eqn1.atoms(sympy.Symbol))
+            if priority == 0:
+                interleaved.append(eqn1)
+            
+            # Extract the equations whose atoms are a subset of the current
+            # equation, and keep the rest for the next iteration
+            unused_eq = []
+            for eqn2 in equations2:
+                if eqn2.atoms(sympy.Symbol).issubset(seen):
+                    interleaved.append(eqn2)
+                else:
+                    unused_eq.append(eqn2)
+            equations2 = unused_eq
+            
+            if priority == 1:
+                interleaved.append(eqn1)
+        
+        interleaved.extend(equations2)
+        return interleaved
     
     def get_solutions(self):
         ''' Work out what we know from the valid states '''
