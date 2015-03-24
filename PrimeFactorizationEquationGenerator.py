@@ -70,7 +70,7 @@ def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
                                         log_deductions=log_deductions,
                                         invariant_interactions_on_substitution=invariant_interactions_on_substitution,
                                         parallelise=True)
-    system.solve_equations(verbose=True, max_iter=300)
+    system.solve_equations(verbose=True, max_iter=400)
         
     
     print '\nProduct: {}\n'.format(product)
