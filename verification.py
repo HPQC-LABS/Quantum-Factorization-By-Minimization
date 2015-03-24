@@ -15,6 +15,9 @@ from rsa_constants import RSA100, RSA100_F1, RSA100_F2
 from cfg_sympy_solver import FACTOR_DICT_FILENAME
 from carry_equations_generator import generate_carry_equations
 from sympy_solver import EquationSolver
+from solver_hybrid import SolverHybrid
+
+SOLVER = SolverHybrid
 
 EXTRA_KNOWN_FACTORISATIONS = {
         RSA100: (RSA100_F1, RSA100_F2),
@@ -150,17 +153,17 @@ def get_num_digit_multiplicands(product):
 
 def get_target_solutions(product, equation_generator=generate_carry_equations):
     ''' Generate all of the correct solutions by plugging all of the correct
-        pi and qi into an EquationSolver and solving
+        pi and qi into a Solver and solving
         
         >>> get_target_solutions(143)
-        {z56: 1, z12: 0, p2: 1, z24: 0, z35: 0, z45: 1, z57: 0, z67: 1, z46: 0, q1: 1, z34: 1, z23: 0, p1: 0, q2: 0}
+        {z56: 1, z12: 0, q1: 1, z24: 0, z35: 0, z45: 1, q2: 0, z67: 1, z46: 0, p2: 1, z34: 1, z23: 0, z57: 0, p1: 0}
     '''
     digitsInMultiplicand1, digitsInMultiplicand2 = get_num_digit_multiplicands(product)    
     
     eqns = equation_generator(digitsInMultiplicand1=digitsInMultiplicand1, 
                                     digitsInMultiplicand2=digitsInMultiplicand2,
                                     product=product)
-    system = EquationSolver(eqns)
+    system = SOLVER(eqns)
     
     target_pq = get_target_pq_dict(product)
     
@@ -173,16 +176,16 @@ def get_target_solutions(product, equation_generator=generate_carry_equations):
     return system.solutions
 
 def check_substitutions(product, system, verbose=False):
-    ''' Check that, when we substitute the correct p and q values in to an
-        EquationSolver we don't get any contradictions
+    ''' Check that, when we substitute the correct p and q values in to a
+        Solver we don't get any contradictions
         
         >>> eqns = generate_carry_equations(4, 4, 143)
-        >>> system = EquationSolver(eqns)
+        >>> system = SOLVER(eqns)
         >>> check_substitutions(143, system)
         True
         
         >>> eqns = generate_carry_equations(8, 8, 56153)
-        >>> system = EquationSolver(eqns)
+        >>> system = SOLVER(eqns)
         >>> system.solve_equations(max_iter=6)
         >>> check_substitutions(56153, system)
         True
@@ -288,7 +291,7 @@ def _check_solutions_for_targets(targets, solutions, verbose=False):
 
     # For symbolic matchings, just check that no symbolic expression is mapped to
     # two different values
-    #TODO Do something cleverer here, like plug into a new EquationSolver.
+    #TODO Do something cleverer here, like plug into a new SOLVER.
     symbolic_map = {}
     for sol, tar in symbolic_pairs:
         prev_tar = symbolic_map.get(sol)
@@ -311,7 +314,7 @@ def evaluate_term_dict(product, term_dict):
         
         >>> prod = params[-1]
         >>> eqns = generate_carry_equations(*params)
-        >>> system = EquationSolver(eqns)
+        >>> system = SOLVER(eqns)
         >>> system.solve_equations()
         >>> term_dict = equations_to_vanilla_term_dict(system.equations)
         >>> evaluate_term_dict(prod, term_dict)
@@ -321,7 +324,7 @@ def evaluate_term_dict(product, term_dict):
         
         >>> prod = params[-1]
         >>> eqns = generate_carry_equations(*params)
-        >>> system = EquationSolver(eqns)
+        >>> system = SOLVER(eqns)
         >>> system.solve_equations()
         >>> term_dict = equations_to_vanilla_term_dict(system.equations)
         >>> evaluate_term_dict(prod, term_dict)
@@ -331,7 +334,7 @@ def evaluate_term_dict(product, term_dict):
         
         >>> prod = params[-1]
         >>> eqns = generate_carry_equations(*params)
-        >>> system = EquationSolver(eqns)
+        >>> system = SOLVER(eqns)
         >>> system.solve_equations()
         >>> term_dict = equations_to_vanilla_term_dict(system.equations)
         >>> evaluate_term_dict(prod, term_dict)
