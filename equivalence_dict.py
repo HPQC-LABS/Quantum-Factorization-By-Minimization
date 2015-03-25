@@ -91,11 +91,8 @@ class EquivalenceDict(dict):
             return
 
         # Deal with the roots rather than the actual nodes
-        #TODO Work out if we want overloaded getitem or that of the EquivalenceDict
-        key = self[key]
-        value = self[value]
-#        key = EquivalenceDict.__getitem__(self, key)
-#        value = EquivalenceDict.__getitem__(self, value)
+        key = EquivalenceDict.__getitem__(self, key)
+        value = EquivalenceDict.__getitem__(self, value)
         
         # If the roots are the same we're also done!        
         if key == value:
