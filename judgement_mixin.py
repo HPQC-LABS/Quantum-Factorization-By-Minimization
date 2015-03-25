@@ -1341,6 +1341,14 @@ class JudgementMixin(object):
             >>> system.judgement_8_slow(eqn)
             >>> system.deductions
             {x: 1}
+            
+            >>> system = JudgementMixinTest()
+            >>> lhs = sympy.sympify('x + y')
+            >>> rhs = sympy.sympify('2')
+            >>> eqn = sympy.Eq(lhs, rhs)
+            >>> system.judgement_8_slow(eqn)
+            >>> system.deductions
+            {x: 1, y: 1}
         '''
         def _helper(lhs, rhs):
             rhs_term_dict = rhs.as_coefficients_dict()
