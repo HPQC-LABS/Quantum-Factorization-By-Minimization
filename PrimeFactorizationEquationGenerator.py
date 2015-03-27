@@ -111,6 +111,9 @@ def factorize(product, digitsInMultiplicand1=None, digitsInMultiplicand2=None,
 #            correct = check_solutions(product, sol.solutions.copy(), verbose=True)
             correct = check_substitutions(product, system.copy(), verbose=True)
 
+    # Return the first solver so we can play with it
+    return system
+
 
 if __name__ == '__main__':
     try:
@@ -135,5 +138,6 @@ if __name__ == '__main__':
         else:
             product = EXPERIMENTS[1].product
             factorize(product)
+            solver = factorize(product)
     except Exception as e:
         print e
