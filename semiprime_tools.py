@@ -33,6 +33,13 @@ def factor_binary_differences(p, q):
         8 8 0
         8 9 1
         9 9 0
+        
+        >>> factor_binary_differences(524309, 534167)
+        5
+        >>> factor_binary_differences(1048573, 1048423)
+        4
+        >>> factor_binary_differences(1267650600228229401496703205361, 633825993891935921676532842551)
+        78
     '''
     p_str = bin(p)[2:]
     q_str = bin(q)[2:]
