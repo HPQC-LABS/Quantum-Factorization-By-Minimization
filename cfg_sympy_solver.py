@@ -5,11 +5,11 @@ Created on Wed Jan 14 13:31:21 2015
 @author: Richard
 """
 
-from collections import namedtuple
+
 
 from schaller_equations_generator import generate_schaller_equations
 from carry_equations_generator import generate_carry_equations
-
+from experiment_tuple import Experiment
 from objective_function_helper import (equations_to_vanilla_coef_str, 
                                        equations_to_sum_coef_str,
                                        equations_to_recursive_schaller_coef_str)
@@ -26,11 +26,6 @@ QUBIT_REDUCTION_ID =   {0: (generate_carry_equations, equations_to_vanilla_coef_
                         1: (generate_schaller_equations, equations_to_sum_coef_str),
                         2: (generate_carry_equations, equations_to_recursive_schaller_coef_str)
                         }
-
-Experiment = namedtuple('Experiment', ('digits_multiplicand_1',
-                                       'digits_multiplicand_2',
-                                       'product',
-                                       'num_qubits_expected'))
 
 EXPERIMENTS = {
     1: Experiment(4, 4, 143, 1),
