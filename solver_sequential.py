@@ -16,7 +16,8 @@ from contradictions import apply_contradictions
 from contradiction_exception import ContradictionException
 from equivalence_dict import BinaryEquivalenceDict
 from solver_base import BinarySolutionSolverBase
-from sympy_helper_fns import is_equation, balance_terms, is_constant, expressions_to_variables
+from sympy_helper_fns import (is_equation, balance_terms, is_constant, 
+                              expressions_to_variables, is_simple_binary)
 from sympy.core.cache import clear_cache
 
 
@@ -41,7 +42,7 @@ class SolverSequential(BinarySolutionSolverBase):
         for eqn in self.equations:
             self.add_equation(eqn, _init=True)
     
-    def reorder_variables_to_sub(self):
+    def reorder_variables_to_sub(self, sorter=None):
         ''' Reorder the queue 
         
             >>> variables = sympy.symbols('x y z p1 p2 p10')            
@@ -51,7 +52,34 @@ class SolverSequential(BinarySolutionSolverBase):
             >>> search.variables_to_sub
             [p1, p10, p2, x, y, z]
         '''
-        self.variables_to_sub = sorted(self.variables_to_sub, key=str)
+        if sorter is None:
+            self.variables_to_sub = sorted(self.variables_to_sub, key=str)
+        else:
+            self.variables_to_sub = sorted(self.variables_to_sub, cmp=sorter)
+    
+    def sub_next(self, variable):
+        ''' Pull a variable to the front of the queue
+        
+            >>> variables = sympy.symbols('x y z p1 p2 p10')
+            >>> x, y, z, p1, p2, p10 = variables
+            >>> search = SolverSequential()
+            >>> search.variables_to_sub = variables
+            >>> search.sub_next(p2)
+            >>> search.variables_to_sub
+            [p2, x, y, z, p1, p10]
+            >>> search.variables_subbed
+            set([])
+            >>> search.sub_next(z)
+            >>> search.variables_to_sub
+            [z, p2, x, y, p1, p10]
+            
+            >>> search.sub_next(sympy.Symbol('t'))
+            >>> search.variables_to_sub
+            [t, z, p2, x, y, p1, p10]
+        '''
+        
+        self._pop_variables_from_queue([variable], add_to_subbed=False)
+        self.variables_to_sub = [variable] + list(self.variables_to_sub)
     
     def check_states(self, check_state_vars_subbed=False):
         ''' Check we have somewhere to keep going! 
@@ -88,7 +116,7 @@ class SolverSequential(BinarySolutionSolverBase):
                 subbed = state[0]                
                 assert set(subbed.keys()) == self.variables_subbed
 
-    def _pop_variables_from_queue(self, vars_to_sub):
+    def _pop_variables_from_queue(self, vars_to_sub, add_to_subbed=False):
         ''' Given a list of variables, add them to the set of subbed variables
             and remove them from the queue
             
@@ -99,15 +127,15 @@ class SolverSequential(BinarySolutionSolverBase):
             >>> solver.variables_to_sub
             [x, y, u, v, z]
             
-            >>> solver.sub_var(1)
+            >>> _ = solver.sub_var(1)
             >>> solver.variables_to_sub
             [y, u, v, z]
             
-            >>> solver.sub_var(v)
+            >>> _ = solver.sub_var(v)
             >>> solver.variables_to_sub
             [y, u, z]
             
-            >>> solver.sub_var([y, z])
+            >>> _ = solver.sub_var([y, z])
             >>> solver.variables_to_sub
             [u]
             
@@ -116,7 +144,7 @@ class SolverSequential(BinarySolutionSolverBase):
             ({v: 1, x: 0, z: 1, y: 1}, [u == 1, u == 0])
             ({v: 1, x: 1, z: 0, y: 0}, [u == 1, u == 1])
             ({v: 1, x: 1, z: 1, y: 0}, [u == 1, u == 0])
-            >>> solver.sub_var(v)
+            >>> _ = solver.sub_var(v)
             >>> for s in solver.valid_states: print s
             ({v: 1, x: 0, z: 0, y: 1}, [u == 1, u == 1])
             ({v: 1, x: 0, z: 1, y: 1}, [u == 1, u == 0])
@@ -128,7 +156,8 @@ class SolverSequential(BinarySolutionSolverBase):
         '''
         set_vars_to_sub = set(vars_to_sub)
         
-        self.variables_subbed.update(set_vars_to_sub)
+        if add_to_subbed:
+            self.variables_subbed.update(set_vars_to_sub)
         
         # Now remove them from the queue
         filter_ = lambda x: x not in set_vars_to_sub
@@ -153,7 +182,7 @@ class SolverSequential(BinarySolutionSolverBase):
             [({}, [x + y == 1, u + v + x*y == 2, u + z == 1])]
             
             Sub in 1 variable
-            >>> solver.sub_var(1)
+            >>> _ = solver.sub_var(1)
             >>> solver.variables_subbed
             set([x])
             >>> solver.variables_to_sub
@@ -163,7 +192,7 @@ class SolverSequential(BinarySolutionSolverBase):
             ({x: 1}, [y == 0, u + v + y == 2, u + z == 1])
 
             Sub in 1 more
-            >>> solver.sub_var(1)
+            >>> _ = solver.sub_var(1)
             >>> solver.variables_subbed
             set([x, y])
             >>> solver.variables_to_sub
@@ -173,7 +202,7 @@ class SolverSequential(BinarySolutionSolverBase):
             ({x: 1, y: 0}, [u + v == 2, u + z == 1])
             
             Now sub in 2 at one time
-            >>> solver.sub_var(2)
+            >>> _ = solver.sub_var(2)
             >>> solver.variables_subbed
             set([v, u, x, y])
             >>> solver.variables_to_sub
@@ -186,7 +215,7 @@ class SolverSequential(BinarySolutionSolverBase):
             >>> eqns = ['x + y == 1', 'x*y + u + v == 2', 'u + z == 1']
             >>> eqns = str_eqns_to_sympy_eqns(eqns)
             >>> solver = SolverSequential(eqns)
-            >>> solver.sub_var(None)
+            >>> _ = solver.sub_var(None)
             >>> solver.variables_subbed
             set([v, u, x, z, y])
             >>> for s in solver.valid_states: print s
@@ -207,7 +236,7 @@ class SolverSequential(BinarySolutionSolverBase):
         # in the outer loop. This way we can still have the post-processing
         # with a continue statement and not check too often
         if len(self.valid_states) > max_states:
-            return
+            return set()
 
         if vars_to_sub is None:
             vars_to_sub = self.variables_to_sub
@@ -218,10 +247,10 @@ class SolverSequential(BinarySolutionSolverBase):
         else:
             vars_to_sub = set(self.variables_to_sub).intersection(set(vars_to_sub))
         
-        self._pop_variables_from_queue(vars_to_sub)
+        self._pop_variables_from_queue(vars_to_sub, add_to_subbed=True)
 
         if len(vars_to_sub) == 0:
-            return
+            return set()
 
         possible_vals = list(itertools.product([sympy.S.Zero, sympy.S.One], 
                                                repeat=len(vars_to_sub)))
@@ -238,6 +267,14 @@ class SolverSequential(BinarySolutionSolverBase):
                     new_eqns = map(balance_terms, new_eqns)
                     new_eqns = filter(is_equation, new_eqns)
                     apply_contradictions(new_eqns)
+
+                    # Now search through for anything we might have determined
+                    for e in new_eqns:
+                        atoms = e.atoms(sympy.Symbol)
+                        if len(atoms) == 1:
+                            for atom in atoms:
+                                self.sub_next(atom)
+
                     new_state = state_dict.copy()
                     for k, v in to_sub.iteritems():
                         # Check we've not already tried a different solution
@@ -254,6 +291,8 @@ class SolverSequential(BinarySolutionSolverBase):
         
         # Reset the sympy cache when done
         clear_cache()
+        
+        return vars_to_sub
 
     @property
     def _length_tuple(self):
@@ -347,7 +386,7 @@ class SolverSequential(BinarySolutionSolverBase):
             >>> eqns = ['x + y == 1', 'u + v == 1']
             >>> eqns = str_eqns_to_sympy_eqns(eqns)
             >>> solver = SolverSequential(eqns)
-            >>> solver.sub_var(None)
+            >>> _ = solver.sub_var(None)
             >>> for s in solver.valid_states: print s
             ({v: 1, u: 0, x: 0, y: 1}, [])
             ({v: 0, u: 1, x: 0, y: 1}, [])
@@ -373,7 +412,7 @@ class SolverSequential(BinarySolutionSolverBase):
             
             Check again with a variable we know from the equations
             >>> solver = SolverSequential(eqns)
-            >>> solver.sub_var(None)
+            >>> _ = solver.sub_var(None)
             >>> solver.add_solution(x, 1)
             >>> solver.add_solution(y, 1)
             Traceback (most recent call last):
@@ -389,11 +428,6 @@ class SolverSequential(BinarySolutionSolverBase):
     def solutions(self):
         ''' Override the solutions dict '''
         return self.get_solutions()
-
-    @solutions.setter
-    def solutions(self, val):
-        ''' Use add solution '''
-        pass
 
     @staticmethod
     def interleave_equations(equations1, equations2, priority=1):
@@ -556,7 +590,6 @@ class SolverSequential(BinarySolutionSolverBase):
 
         return deductions
 
-    
 
 if __name__ == '__main__':
     import doctest
