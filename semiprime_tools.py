@@ -7,6 +7,69 @@ Created on Wed Mar 18 09:42:07 2015
 
 import itertools
 
+FACTOR_ROOTS = ('p', 'q')
+
+def cmp_variables(x, y):
+    ''' Given 2 variables, compare them according to root (first letter) and
+        then index.
+    
+        >>> variables = 'p1, p2, p10, p11, p22, q1, q10, q9, z12'.split(', ')
+        >>> sorted(variables, cmp=cmp_variables)
+        ['p1', 'p2', 'p10', 'p11', 'p22', 'q1', 'q9', 'q10', 'z12']
+    '''
+    x, y = str(x), str(y)
+    if x[0] != y[0]:
+        return cmp(x[0], y[0])
+    else:
+        return cmp(int(x[1:]), int(y[1:]))
+
+def cmp_variables_right(x, y):
+    ''' Given 2 variables, compare them according to whether their root is a
+        factor, and then according to the power of 2 the variable represents.
+        Low powers of 2 are given priority
+    
+        >>> variables = 'p1, p2, p10, p11, p22, q1, q10, q9, z12'.split(', ')
+        >>> sorted(variables, cmp=cmp_variables_right)
+        ['p1', 'q1', 'p2', 'q9', 'p10', 'q10', 'p11', 'p22', 'z12']
+    '''
+    x, y = str(x), str(y)
+    x_root = x[0]
+    y_root = y[0]
+    x_ind = int(x[1:])
+    y_ind = int(y[1:])
+    
+    # Now force p and q to be the same
+    if (x_root in FACTOR_ROOTS) and (y_root in FACTOR_ROOTS):
+        x_root = y_root = 'p'
+    
+    if x_root != y_root:
+        return cmp(x_root, y_root)
+    else:
+        return cmp(x_ind, y_ind)
+
+def cmp_variables_left(x, y):
+    ''' Given 2 variables, compare them according to whether their root is a
+        factor, and then according to the power of 2 the variable represents.
+        High powers of 2 are given priority
+    
+        >>> variables = 'p1, p2, p10, p11, p22, q1, q10, q9, z12'.split(', ')
+        >>> sorted(variables, cmp=cmp_variables_left)
+        ['p22', 'p11', 'p10', 'q10', 'q9', 'p2', 'p1', 'q1', 'z12']
+    '''
+    x, y = str(x), str(y)
+    x_root = x[0]
+    y_root = y[0]
+    x_ind = int(x[1:])
+    y_ind = int(y[1:])
+    
+    # Now force p and q to be the same
+    if (x_root in FACTOR_ROOTS) and (y_root in FACTOR_ROOTS):
+        x_root = y_root = 'p'
+    
+    if x_root != y_root:
+        return cmp(x_root, y_root)
+    else:
+        return -1 * cmp(x_ind, y_ind)
 
 def factor_binary_differences(p, q):
     ''' Given 2 factors, work out how many places they differ by when expressed
