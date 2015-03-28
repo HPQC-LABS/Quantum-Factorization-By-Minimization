@@ -5,10 +5,12 @@ Created on Sat Mar 21 12:26:24 2015
 @author: Richard
 """
 
+import itertools
+
 import sympy
 
 from contradiction_exception import ContradictionException
-from sympy_helper_fns import min_value, max_value, parity
+from sympy_helper_fns import min_value, max_value, parity, str_eqns_to_sympy_eqns
 
 def apply_contradictions(equations):
     ''' Now look for contradictions in the equations '''
@@ -64,6 +66,36 @@ def contradiction_2(eqn):
         r_parity = parity(eqn.rhs)
         if (r_parity is not None) and (l_parity != r_parity):
             raise ContradictionException('contradiction_2: {}'.format(eqn))
+
+def contradiction_mini_assump(eqn, atom_limit=4):
+    ''' If we have a small equation, see if any valid solutions exist at all
+    
+        >>> eqns = ['x + y == 3', 'x + x*y + y == 2', 'x + y == 2', 'x*y == 1']
+        >>> eqns = str_eqns_to_sympy_eqns(eqns)
+        
+        >>> for e in eqns:
+        ...     try:
+        ...         contradiction_mini_assump(e, atom_limit=3)
+        ...         print '{} is fine'.format(e)
+        ...     except ContradictionException as contradiction:
+        ...         print contradiction
+        No valid combinations for x + y == 3
+        No valid combinations for x*y + x + y == 2
+        x + y == 2 is fine
+        x*y == 1 is fine
+    '''
+    atoms = list(eqn.atoms(sympy.Symbol))
+    if len(atoms) > atom_limit:
+        return
+    
+    vals = itertools.product(range(2), repeat=len(atoms))
+    for val in vals:
+        to_sub = dict(zip(atoms, val))
+        evaluated = eqn.subs(to_sub)
+        if evaluated:
+            return
+    
+    raise ContradictionException('No valid combinations for {}'.format(eqn))
 
 if __name__ == "__main__":
     import doctest
