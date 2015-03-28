@@ -429,6 +429,13 @@ class SolverSequential(BinarySolutionSolverBase):
         ''' Override the solutions dict '''
         return self.get_solutions()
 
+    @solutions.setter
+    def solutions(self, value):
+        ''' Provide a setter that does nothing so that we don't make other
+            interfaces unhappy
+        '''
+        assert len(value) == 0
+
     @staticmethod
     def interleave_equations(equations1, equations2, priority=1):
         ''' Given 2 lists of equations, maintaining the order of the first and
