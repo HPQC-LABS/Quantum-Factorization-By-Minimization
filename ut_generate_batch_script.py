@@ -22,6 +22,7 @@ BATCH_TEMPLATE = 'batch_experiments_{}x{}.sh'
 BATCH_TEMPLATE_HAMMING = 'batch_experiments_{}x{}.sh'
 
 RUN_BATCH_FILENAME = 'run_batch.sh'
+RUN_BATCH_HAMMING_FILENAME = 'run_batch_hamming.sh'
 PRINT_RESULTS_FILENAME = 'print_results.sh'
 COPY_RESULTS_FILENAME = 'copy_results.sh'
 
@@ -29,6 +30,7 @@ BASH_STR = '#!/bin/sh'
 
 HOME_DIR = '/home/tanburn/Quantum-Factorization-By-Minimization/'
 BATCH_DIR = os.path.join(HOME_DIR, BATCH_FOLDER)
+BATCH_HAMMING_DIR = os.path.join(HOME_DIR, BATCH_FOLDER_HAMMING)
 RESULTS_DIR = os.path.join(HOME_DIR, RESULTS_FOLDER)
 
 def generate_batch_scripts_hamming(dim='20'):
@@ -104,16 +106,18 @@ def generate_batch_scripts():
 
     return True
 
-def generate_run_batch_scripts():
+def generate_run_batch_scripts(output_filename=RUN_BATCH_FILENAME,
+                               batch_folder=BATCH_DIR, 
+                               batch_template=BATCH_TEMPLATE):
     ''' Generate a file that will open a new screen and run a given batch file 
     
     '''
-    f = open(RUN_BATCH_FILENAME, 'w')
+    f = open(output_filename, 'w')
     f.write(BASH_STR + '\n\n')
 
-    f.write('cd {BATCH_DIR}\n\n'.format(BATCH_DIR=BATCH_DIR))
+    f.write('cd {BATCH_DIR}\n\n'.format(BATCH_DIR=batch_folder))
 
-    template = BATCH_TEMPLATE.format('$1', '$1')
+    template = batch_template.format('$1', '$1')
 
     script = '''
 if [ "$1" == "" ]; then
@@ -121,6 +125,36 @@ if [ "$1" == "" ]; then
 fi
 
 EXP_NAME="exp$1"
+
+screen -S $EXP_NAME -d -m
+
+BATCH_FILE="batch_experiments_$1x$1.sh"
+
+screen -S $EXP_NAME -X stuff ". ./$BATCH_FILE\\r"'''.format(temp=template)
+
+    f.write(script)
+    
+    f.close()
+
+def generate_run_batch_hamming_scripts(output_filename=RUN_BATCH_HAMMING_FILENAME,
+                               batch_folder=BATCH_HAMMING_DIR, 
+                               batch_template=BATCH_TEMPLATE_HAMMING):
+    ''' Generate a file that will open a new screen and run a given batch file 
+    
+    '''
+    f = open(output_filename, 'w')
+    f.write(BASH_STR + '\n\n')
+
+    f.write('cd {BATCH_DIR}\n\n'.format(BATCH_DIR=batch_folder))
+
+    template = batch_template.format('$1', '$1')
+
+    script = '''
+if [ "$1" == "" ]; then
+    exit 1
+fi
+
+EXP_NAME="hexp$1"
 
 screen -S $EXP_NAME -d -m
 
@@ -166,6 +200,7 @@ def generate_copy_results(dimensions):
 if __name__ == '__main__':
     generate_batch_scripts()
     generate_run_batch_scripts()
+    generate_run_batch_hamming_scripts()
     generate_print_results(DIMENSIONS)
     generate_copy_results(DIMENSIONS)
     for dim in xrange(20, 310, 10):
