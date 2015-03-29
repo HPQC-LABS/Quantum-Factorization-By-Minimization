@@ -82,7 +82,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
                 self.apply_judgements_complex(self.equations, num_constant_iter,
                                               verbose=verbose)
 
-                if (num_constant_iter > 4) or (self._length_tuple[0] == 0):
+                if (num_constant_iter > 3) or (self._length_tuple[0] == 0):
                     break
                 
                 self.clean_deductions()
@@ -199,10 +199,12 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         
         # For now don't substitute into thousands of deductions, while we wait
         # for interleaving equation adding
-        num_eq = 50 * num_constant_iter
-        max_states = 2 ** (num_constant_iter + 8) + 2
-        if not (num_constant_iter % 2):
-            eqn_to_search = equations[:num_eq]
+        #num_eq = 20
+        max_states = 2 ** 15 + 2
+        if num_constant_iter not in [1, 2]:
+            eqn_to_search = []
+        elif (num_constant_iter % 2):
+            eqn_to_search = equations#[:num_eq]
         # Or the right
         else:
             # Reverse the equations again so the solver has a better chance
@@ -216,7 +218,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         # Now interleaf them for maximum effectiveness!
         all_eqn = SolverSequential.interleave_equations(eqn_to_search, 
                                                         deduction_eqns, 
-                                                        priority=1)
+                                                        priority=0)
 
         self.judgement_sequential_search(all_eqn, 
                                          max_states=max_states)
@@ -271,11 +273,10 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
             self.judgement_min_max(eqn)
             self.judgement_1(eqn)
             self.judgement_2(eqn)
-            self.judgement_2_extended(eqn)
             self.judgement_3(eqn)
             self.judgement_4(eqn)
-            self.judgement_5(eqn, increase_complexity=False)
-            self.judgement_6(eqn, increase_complexity=False)
+            self.judgement_5(eqn, increase_complexity=True)#False)
+            self.judgement_6(eqn, increase_complexity=True)#False)
             self.judgement_7(eqn)
             self.judgement_8(eqn)
             self.judgement_9(eqn)
@@ -290,9 +291,11 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         variables = set()
         for e in equations:
             search.add_equation(e)
-            search.sub_var(None)
+            subbed = search.sub_var(None)
             
-            variables.update(e.atoms(sympy.Symbol))
+            variables.update(subbed)
+            
+            print search._length_tuple
             
             if ((max_states is not None) and 
                 (len(search.valid_states) > max_states)):
