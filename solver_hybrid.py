@@ -200,7 +200,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         # For now don't substitute into thousands of deductions, while we wait
         # for interleaving equation adding
         #num_eq = 20
-        max_states = 2 ** 15 + 2
+        max_states = 2 ** 14 + 2
         if num_constant_iter not in [1, 2]:
             eqn_to_search = []
         elif (num_constant_iter % 2):
