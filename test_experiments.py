@@ -6,7 +6,7 @@ Created on Sat Feb 21 19:48:44 2015
 """
 
 #!/usr/bin/env python
-
+from semiprime_tools import num_to_factor_num_qubit
 
 from time import time
 
@@ -32,7 +32,10 @@ if __name__ == '__main__':
             print '***\tExperiment {}\t***'.format(exp)
         
             # A default experiment to run
-            digitsInMultiplicand1, digitsInMultiplicand2, product, expected_qubits = params
+#            digitsInMultiplicand1, digitsInMultiplicand2, product, expected_qubits = params
+            product = params.product
+            expected_qubits = params.num_qubits_expected
+            digitsInMultiplicand1, digitsInMultiplicand2 = num_to_factor_num_qubit(product)
             
             # Default assumption parameters
             # Use standard carry equations by default
