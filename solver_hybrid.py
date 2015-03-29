@@ -291,7 +291,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         variables = set()
         for e in equations:
             search.add_equation(e)
-            subbed = search.sub_var(None)
+            subbed = search.sub_var(None, max_states=max_states)
             
             variables.update(subbed)
             
