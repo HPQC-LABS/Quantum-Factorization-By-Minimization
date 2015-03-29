@@ -5,7 +5,7 @@ Created on Wed Jan 14 13:31:21 2015
 @author: Richard
 """
 
-
+import os
 
 from schaller_equations_generator import generate_schaller_equations
 from carry_equations_generator import generate_carry_equations
@@ -20,6 +20,10 @@ SEMIPRIME_FILENAME = 'large_semiprimes.txt'
 FACTORS_FILENAME = 'large_semiprimes_factors.txt'
 # Name of the dict that verification.py will use to find the solutions
 FACTOR_DICT_FILENAME = 'factor_dict'
+
+SEMIPRIMES_HAMMING_FOLDER = 'semiprimes_hamming'
+SEMIPRIMES_HAMMING_TEMPLATE = os.path.join(SEMIPRIMES_HAMMING_FOLDER, 
+                                          'hamming_primes_{}x{}.txt')
 
 # Tuples of equation generator, objective function generator
 QUBIT_REDUCTION_ID =   {0: (generate_carry_equations, equations_to_vanilla_coef_str),

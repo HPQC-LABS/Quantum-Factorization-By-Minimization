@@ -8,14 +8,19 @@ Created on Fri Mar 06 10:42:11 2015
 import os
 
 from semiprime_tools import num_to_factor_num_qubit
+from cfg_sympy_solver import SEMIPRIME_FILENAME, SEMIPRIMES_HAMMING_TEMPLATE
 
 BATCH_FOLDER = 'batch_scripts'
+BATCH_FOLDER_HAMMING = 'batch_scripts_hamming'
 RESULTS_FOLDER = 'results'
-input_filename = 'large_semiprimes.txt'
+input_filename = SEMIPRIME_FILENAME
+
 
 DIMENSIONS = range(20, 260, 10)
 
 BATCH_TEMPLATE = 'batch_experiments_{}x{}.sh'
+BATCH_TEMPLATE_HAMMING = 'batch_experiments_{}x{}.sh'
+
 RUN_BATCH_FILENAME = 'run_batch.sh'
 PRINT_RESULTS_FILENAME = 'print_results.sh'
 COPY_RESULTS_FILENAME = 'copy_results.sh'
@@ -25,6 +30,37 @@ BASH_STR = '#!/bin/sh'
 HOME_DIR = '/home/tanburn/Quantum-Factorization-By-Minimization/'
 BATCH_DIR = os.path.join(HOME_DIR, BATCH_FOLDER)
 RESULTS_DIR = os.path.join(HOME_DIR, RESULTS_FOLDER)
+
+def generate_batch_scripts_hamming(dim='20'):
+    dim = str(dim)
+    if not os.path.exists(BATCH_FOLDER_HAMMING):
+        os.makedirs(BATCH_FOLDER_HAMMING)
+    
+    filename = SEMIPRIMES_HAMMING_TEMPLATE.format(dim, dim)
+    exps = open(filename, 'r').read()
+
+    # Turn the text into tuples
+    exps = exps.split('\n')
+    exps = filter(None, exps)
+
+    # Used to count the position of the prime in its category
+    count = 0
+
+    batch_filename = BATCH_TEMPLATE_HAMMING.format(dim, dim)
+    batch_filename = os.path.join(BATCH_FOLDER_HAMMING, batch_filename)
+    with open(batch_filename, 'w') as f:    
+        f.write(BASH_STR + '\n\n')
+        f.write('cd {HOME_DIR}\n\n'.format(HOME_DIR=HOME_DIR))
+
+        for exp in exps:
+            prod, dist, p, q = exp.strip('(').strip(')').split(', ')
+            count += 1
+            count_str = str(count).rjust(3, '0')
+            entry_str = 'python PrimeFactorizationEquationGenerator.py {prod} > {RES_FOL}/{num_d1}x{num_d2}/{num_d1}x{num_d2}_{count}_0.txt\n'.format(prod=prod, num_d1=dim, num_d2=dim, count=count_str, RES_FOL=RESULTS_DIR)
+            f.write(entry_str)
+    f.close()
+
+    return True
 
 def generate_batch_scripts():
 # Check the batch_scipts folder exists
@@ -132,4 +168,6 @@ if __name__ == '__main__':
     generate_run_batch_scripts()
     generate_print_results(DIMENSIONS)
     generate_copy_results(DIMENSIONS)
+    for dim in xrange(20, 310, 10):
+        generate_batch_scripts_hamming(dim)
     
