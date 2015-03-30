@@ -7,8 +7,12 @@ OUTPUT_DIRECTORY = '/Users/emileokada/Documents/Quantum Computing/Timings/'
 
 #######################################################################################
 
-def extract(str):
-	return re.search(r'(\s)(\d+\.\d+) user', str).groups()[1]
+def extract(str_):
+	res = re.search(r'(\s)(\d+\.\d+) user', str_)
+    if res:
+        return res.groups()[1]
+    else:
+        return str_
 
 def take_time(semiprime):
 	(factors, cpu_time) = qsieve(semiprime,time=True)
