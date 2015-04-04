@@ -33,7 +33,7 @@ QUBIT_REDUCTION_ID =   {0: (generate_carry_equations, equations_to_vanilla_coef_
 
 EXPERIMENTS = {
     1: Experiment(4, 4, 143, 1),
-    2: Experiment(8, 8, 56153, 35),
+    2: Experiment(8, 8, 56153, 1),
     3: Experiment(17, 17, 4299161663, 1),
     4: Experiment(21, 21, 1099532599387, 1),
     5: Experiment(24, 24, 70368895172689, 0),
