@@ -12,8 +12,12 @@ OUTPUT_DIRECTORY = '/home/tanburn/Quantum-Factorization-By-Minimization/sage_tim
 
 manager=Manager()
 
-def extract(str):
-	return re.search(r'(\s)(\d+\.\d+) user', str).groups()[1]
+def extract(str_):
+	match_ = re.search(r'(\s)(\d+\.\d+) user', str_)
+	if match_:
+        return match_.groups()[1]
+    else:
+        return str_
 
 def run_qsieve(semiprime,ans):
 	(factors,cpu_time)=qsieve(semiprime,time=True)
