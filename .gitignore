@@ -1,3 +1,14 @@
+## Custom local ignores
+_*
+# Old files
+ztest_scripts
+zzz
+# dict of solutions, easily generated
+factor_dict
+temp.py
+# folder of batch scripts easily generated
+batch_scripts
+
 #################
 ## Eclipse
 #################

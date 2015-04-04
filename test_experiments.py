@@ -6,7 +6,7 @@ Created on Sat Feb 21 19:48:44 2015
 """
 
 #!/usr/bin/env python
-
+from semiprime_tools import num_to_factor_num_qubit
 
 from time import time
 
@@ -14,10 +14,12 @@ from cfg_sympy_solver import (EXPERIMENTS, EXTENDED_EXPERIMENTS, EXPERIMENTS_20,
                               EXPERIMENTS_21, QUBIT_REDUCTION_ID)
 
 from sympy_solver import EquationSolver
-from verification import check_substitutions
+from solver_hybrid import SolverHybrid
+from verification import check_substitutions, check_solutions
+
 
 if __name__ == '__main__':
-    
+    solver = SolverHybrid  
     SKIP = [100]
     #for exp, params in sorted(EXTENDED_EXPERIMENTS.iteritems(), 
     #                          key=lambda x: x[1].num_qubits_expected,
@@ -30,7 +32,10 @@ if __name__ == '__main__':
             print '***\tExperiment {}\t***'.format(exp)
         
             # A default experiment to run
-            digitsInMultiplicand1, digitsInMultiplicand2, product, expected_qubits = params
+#            digitsInMultiplicand1, digitsInMultiplicand2, product, expected_qubits = params
+            product = params.product
+            expected_qubits = params.num_qubits_expected
+            digitsInMultiplicand1, digitsInMultiplicand2 = num_to_factor_num_qubit(product)
             
             # Default assumption parameters
             # Use standard carry equations by default
@@ -50,11 +55,11 @@ if __name__ == '__main__':
             log_deductions = False
             invariant_interactions_on_substitution = True
         
-            system = EquationSolver(eqns, output_filename=output, 
+            system = solver(eqns, output_filename=output, 
                                                 log_deductions=log_deductions,
                                                 invariant_interactions_on_substitution=invariant_interactions_on_substitution,
                                                 parallelise=False)
-            system.solve_equations(verbose=True, max_iter=200)
+            system.solve_equations(verbose=False, max_iter=200)
     
             if len(system.unsolved_var) != expected_qubits:        
                 print 'Num Qubits Start: {}'.format(system.num_qubits_start)

@@ -177,10 +177,13 @@ def is_monic(expr, allow_negative_monic=False):
     else:
         return all(coef == 1 for coef in expr.as_coefficients_dict().itervalues())
 
-def is_equation(eqn):
+def is_equation(eqn, check_true=True):
     ''' Return True if it is an equation rather than a boolean value.
         If it is False, raise a ContradictionException. We never want anything
-        that might be False
+        that might be False.
+        
+        Optionally, we can turn the check off, but THE DEFAULT VALUE SHOULD
+        ALWAYS BE TRUE. Otherwise bad things will happen.
 
         >>> x, y = sympy.symbols('x y')
         >>> eq1 = sympy.Eq(x, y)
@@ -206,11 +209,12 @@ def is_equation(eqn):
         ContradictionException: False equation
     '''
     if sympy.__version__ == '0.7.5':
-        if isinstance(eqn, sympy.boolalg.BooleanFalse) or (eqn is False):
+        if check_true and (isinstance(eqn, sympy.boolalg.BooleanFalse) or 
+                           (eqn is False)):
             raise ContradictionException('False equation')
         return isinstance(eqn, sympy.Equality)
     else:
-        if eqn is False:
+        if (eqn is False) and check_true:
             raise ContradictionException('False equation')
         return eqn is True
 
@@ -519,6 +523,32 @@ def expressions_to_variables(exprs):
     if sympy.__version__ == '0.7.5':
         assert all(map(lambda x: isinstance(x, sympy.Basic), exprs))
     return set.union(*[expr.atoms(sympy.Symbol) for expr in exprs])
+    
+def eqns_with_variables(eqns, variables, strict=False):
+    ''' Given a set of atoms, return only equations that have something in
+        common
+        
+        >>> x, y, z1, z2 = sympy.symbols('x y z1 z2')        
+        >>> eqns = ['x + y == 1', '2*z1 + 1 == z2', 'x*z1 == 0']
+        >>> eqns = str_eqns_to_sympy_eqns(eqns)
+        >>> eqns_with_variables(eqns, [x])
+        [x + y == 1, x*z1 == 0]
+        >>> eqns_with_variables(eqns, [z1])
+        [2*z1 + 1 == z2, x*z1 == 0]
+        >>> eqns_with_variables(eqns, [y])
+        [x + y == 1]
+
+        >>> eqns_with_variables(eqns, [x], strict=True)
+        []
+        >>> eqns_with_variables(eqns, [x, z1], strict=True)
+        [x*z1 == 0]
+        >>> eqns_with_variables(eqns, [x, y, z1], strict=True)
+        [x + y == 1, x*z1 == 0]
+    '''
+    if strict:
+        return [eqn for eqn in eqns if eqn.atoms(sympy.Symbol).issubset(variables)]
+    else:
+        return [eqn for eqn in eqns if len(eqn.atoms(sympy.Symbol).intersection(variables))]
 
 def gather_monic_terms(eqn):
     ''' Take an equation and put all monic terms on the LHS, all non

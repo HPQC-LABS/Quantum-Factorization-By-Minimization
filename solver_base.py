@@ -18,6 +18,8 @@ import pickle
 import sympy
 from sympy.core.cache import clear_cache
 
+from contradiction_exception import ContradictionException
+from equivalence_dict import BinaryEquivalenceDict
 from sympy_helper_fns import (max_value, min_value, is_equation,
                               remove_binary_squares_eqn, balance_terms,
                               cancel_constant_factor, is_constant,
@@ -72,6 +74,9 @@ class SolverBase(object):
         # Allow parallelisation
         self.parallelise = parallelise
         self._pool = None
+        
+        # Determine whether we have fixed which way around p and q will go
+        self._fix_pq_soln_used = False
 
     def print_(self, output, close=False):
         ''' Print either to screen or a file if given '''
@@ -96,6 +101,7 @@ class SolverBase(object):
         # Now use deepcopy to copy everything else
         copy.num_qubits_start = self.num_qubits_start
         copy.solutions = deepcopy(self.solutions)
+        copy._fix_pq_soln_used = self._fix_pq_soln_used
         return copy
 
     # Pickling
@@ -103,12 +109,13 @@ class SolverBase(object):
     # solutions to disk
     def __getstate__(self):
         return (self.equations, self.solutions, self.variables, self.num_qubits_start,
-                self.output_filename, self.parallelise)
+                self.output_filename, self.parallelise, self._fix_pq_soln_used)
         
     def __setstate__(self, state):
         (self.equations, self.solutions, 
          self.variables, self.num_qubits_start,
-         self.output_filename, self.parallelise) = state
+         self.output_filename, self.parallelise, 
+         self._fix_pq_soln_used) = state
          
     def to_disk(self, filename):
         ''' Write a state to disk '''
@@ -142,6 +149,13 @@ class SolverBase(object):
 
     def add_solution(self, variable, value):
         ''' Add a solution to the solution dict '''
+        assert is_simple_binary(value)
+        assert isinstance(variable, sympy.Symbol)
+
+        current_sol = self.solutions.get(variable)
+        if ((current_sol is not None) and is_constant(value) and 
+            is_constant(current_sol) and value != current_sol):
+            raise ContradictionException('Contradiction in add_solution()')
         self.solutions[variable] = value
 
     @property
@@ -169,6 +183,8 @@ class SolverBase(object):
     @property
     def unsolved_var(self):
         ''' Return a set of variables we haven't managed to eliminate '''
+        #TODO Think of a cleverer way to do this with solutions that still
+        # hold some information, so aren't 'simple' solutions
         return set(self.variables.values()).difference(self.solutions.keys())
 
     @property
@@ -242,8 +258,7 @@ class SolverBase(object):
         # Try to parallelise the slow substitution
         if self.parallelise and (len(batch_equations) >= min_batches):
             try:
-                if self._pool is None:
-                    self._pool = get_pool()
+                self.open_pool()
                 substituted = paralellised_subs(batch_equations, substitutions, 
                                                  pool=self._pool)
             except Exception as e:
@@ -282,6 +297,113 @@ class SolverBase(object):
             self.variables[var] = res
         return res
 
+    def fix_pq_soln(self, solutions=None):
+        ''' Look through a dictionary of solutions for p_i, q_i such that 
+            p_i = 1 - p_i, and both are symbolic. Then we can fix them by
+            symmetry of factors!
+
+            >>> p1, p2, p3, q1, q2, q3, z1, z2, z3 = sympy.symbols('p1, p2, p3, q1, q2, q3, z1, z2, z3')            
+            >>> system = SolverBase()
+            
+            >>> system.fix_pq_soln({p1: 0, q2: 1})
+            >>> system.solutions
+            {}
+
+            >>> system.fix_pq_soln({p1: z1, q2: z2})
+            >>> system.solutions
+            {}
+
+            >>> system.fix_pq_soln({p1: p2, q2: 1 - q3})
+            >>> system.solutions
+            {}
+            
+            >>> system.fix_pq_soln({p1: 1 - z2, q2: 1 - z3})
+            >>> system.solutions
+            {}
+
+            >>> system.fix_pq_soln({p1: 1 - z1, q2: z1})
+            >>> system.solutions
+            {}
+
+            >>> system.fix_pq_soln({p2: 1 - q3})
+            >>> system.solutions
+            {}
+
+            >>> system.fix_pq_soln({p2: q3})
+            >>> system.solutions
+            {}
+
+            >>> system.fix_pq_soln({p1: q1})
+            >>> system.solutions
+            {}
+
+            >>> system = SolverBase()
+            >>> system.fix_pq_soln({p1: 1 - q1})
+            >>> system.solutions
+            {p1: 1, q1: 0}
+
+            This needs fixing!
+            >>> system = SolverBase()
+            >>> system.fix_pq_soln({p1: z2, q1: 1 - z2})
+            >>> system.solutions
+            {}
+        '''
+        # We can only use this judgement once
+        if self._fix_pq_soln_used:
+            return
+
+        if solutions is None:
+            solutions = self.solutions
+        
+        for k, v in solutions.iteritems():
+            strk = str(k)
+            strv = str(v)
+            if strk[0] == 'p':
+                num = strk[1:]
+                if strv == '-q{} + 1'.format(num):
+                    self._fix_pq_soln_used = True
+                    self.add_solution(k, 1)
+                    self.add_solution(1 - v, 0)
+                    return
+            if strk[0] == 'q':
+                num = strk[1:]
+                if strv == '-p{} + 1'.format(num):
+                    self._fix_pq_soln_used = True
+                    self.add_solution(k, 0)
+                    self.add_solution(1 - v, 1)
+                    return
+
+class BinarySolutionSolverBase(SolverBase):
+    ''' A class that is to be used if the funky BinaryEquivalenceDict is wanted
+        to hold solutions
+    '''
+    SOLUTIONS_TYPE = BinaryEquivalenceDict
+
+    @property
+    def unsolved_var(self):
+        ''' Because of the funny way we store variables in a 
+            BinaryEquivalenceDict, count the number of variables that have
+            a non-constant root
+            
+            >>> variables = sympy.symbols('x, y, z')
+            >>> x, y, z = variables            
+            >>> solver = BinarySolutionSolverBase(variables={str(v): v for v in variables})
+            >>> solver.unsolved_var
+            set([x, z, y])
+            >>> solver.add_solution(x, 1)
+            >>> solver.unsolved_var
+            set([z, y])
+            >>> solver.add_solution(y, 1 - z)
+            >>> solver.unsolved_var
+            set([z])
+            >>> solver.add_solution(y, 1)
+            >>> solver.unsolved_var
+            set([])
+        '''
+        sols = [(v, self.solutions[v]) for v in self.variables.values()]
+        unsolved = set([var for var, sol in sols if (var.atoms(sympy.Symbol) == 
+                                                     sol.atoms(sympy.Symbol))])
+        return unsolved
 
 def unique_array_stable(array):
     ''' Given a list of things, return a new list with unique elements with
