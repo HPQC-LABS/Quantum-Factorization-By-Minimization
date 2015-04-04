@@ -85,7 +85,7 @@ def degree(expr):
         ...             'x ** 2 + a*b*c',
         ...             'x**2 + y',
         ...             'x',
-        ...             'x*y']
+        ...             'x*y',]
         >>> eqns = str_exprs_to_sympy_eqns(str_eqns)
         >>> for e in eqns: print degree(e.lhs - e.rhs)
         1
@@ -94,7 +94,14 @@ def degree(expr):
         1
         1
         2
+        
+        Check we deal with constants correctly
+        >>> (degree(0), degree(1), degree(4), 
+        ... degree(sympy.S.Zero), degree(sympy.S.One), degree(sympy.sympify(4)))
+        (0, 0, 0, 0, 0, 0)
     '''
+    if is_constant(expr):
+        return 0
     degree = 0
     for term in expr.as_coefficients_dict().keys():
         degree = max(degree, len(term.atoms(sympy.Symbol)))
