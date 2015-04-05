@@ -504,6 +504,7 @@ def remove_binary_squares(expr):
         var, exp = match.split('**')
         var = sympy.sympify(var)
         exp = int(exp)
+        ##TODO fix circular import and use central subs
         expr = expr.subs(var ** exp, var)
     return expr
 
