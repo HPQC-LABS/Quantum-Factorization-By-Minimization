@@ -10,7 +10,7 @@ import multiprocessing
 import sys
 
 from sympy.core.cache import clear_cache
-
+from sympy_subs import subs_many
 
 DEFAULT_NUM_PROCESSES = {'linux': 6,
                          'linux2': 6,
@@ -25,7 +25,7 @@ def get_pool(processes=DEFAULT_NUM_PROCESSES):
 
 def _subs_wrap((eqns, sub_tuple)):
     ''' Wrapper function to allow parallelisation '''
-    subbed = [eqn.subs(sub_tuple) for eqn in eqns]
+    subbed = subs_many(eqns, sub_tuple)
     clear_cache()
     return subbed
     
