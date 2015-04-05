@@ -19,6 +19,7 @@ from solver_base import BinarySolutionSolverBase
 from sympy_helper_fns import (is_equation, balance_terms, is_constant, 
                               expressions_to_variables, is_simple_binary)
 from sympy.core.cache import clear_cache
+from sympy_subs import subs, subs_many
 
 
 class SolverSequential(BinarySolutionSolverBase):
@@ -263,7 +264,7 @@ class SolverSequential(BinarySolutionSolverBase):
             for possible_val in possible_vals:
                 to_sub = dict(zip(vars_to_sub, possible_val))
                 try:
-                    new_eqns = [eqn.subs(to_sub) for eqn in eqns]
+                    new_eqns = subs_many(eqns, to_sub)
                     new_eqns = map(balance_terms, new_eqns)
                     new_eqns = filter(is_equation, new_eqns)
                     apply_contradictions(new_eqns)
@@ -368,7 +369,7 @@ class SolverSequential(BinarySolutionSolverBase):
         self.valid_states = []
         for state_dict, eqns in old_states:
             try:
-                new_eqn = eqn.subs(state_dict)
+                new_eqn = subs(eqn, state_dict)
                 if is_equation(new_eqn, check_true=True):
                     apply_contradictions([new_eqn])
                     self.valid_states.append((state_dict, eqns + [new_eqn]))
