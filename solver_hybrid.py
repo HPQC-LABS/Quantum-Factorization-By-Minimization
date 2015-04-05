@@ -190,8 +190,24 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         '''
         if num_constant_iter == 0:
             return
-        
+
+        # First make sure we don't have any duplicates, since these will make
+        # searching much longer
         equations = unique_array_stable(equations)
+
+        # First unleash the mini-assumption. This is checking single-equation
+        # consistency
+        if num_constant_iter == 1:
+            # Use mini-assumptions
+            # Do for every stuck iteration, but with more variables
+            for eqn in equations + dict_as_eqns(self.deductions):
+                # Limit the substitutions at 2^6=64
+                num_var = 8#min(num_constant_iter + 6, 9)
+                # Rank by number of times each occurs
+                self.judgement_mini_assumption(eqn, num_var=num_var, 
+                                               coef_transform=lambda x: pow(x, 1.01))
+
+        
         
         # Do a sequential search starting from the left or right of the equations
         # Limit the number of states so that we don't go crazy
@@ -200,40 +216,34 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         
         # For now don't substitute into thousands of deductions, while we wait
         # for interleaving equation adding
-        #num_eq = 20
-        max_states = 2 ** 14 + 2
-        if num_constant_iter not in [1, 2]:
-            eqn_to_search = []
-        elif (num_constant_iter % 2):
-            eqn_to_search = equations#[:num_eq]
-        # Or the right
-        else:
-            # Reverse the equations again so the solver has a better chance
-            eqn_to_search = equations[::-1]#[-num_eq:][::-1]
+        if num_constant_iter in (2, 3):
+            #num_eq = 20
+            max_states = 2 ** 14 + 2
 
-        deductions = dict_as_eqns(self.deductions)
-        # Prune the deductions
-        deduction_eqns = eqns_with_variables(deductions, 
-                                             expressions_to_variables(eqn_to_search),
-                                             strict=True)
-        # Now interleaf them for maximum effectiveness!
-        all_eqn = SolverSequential.interleave_equations(eqn_to_search, 
-                                                        deduction_eqns, 
-                                                        priority=0)
+            if not (num_constant_iter % 2):
+                eqn_to_search = equations#[:num_eq]
+            # Or the right
+            else:
+                # Reverse the equations again so the solver has a better chance
+                eqn_to_search = equations[::-1]#[-num_eq:][::-1]
+    
+            deduction_eqns = dict_as_eqns(self.deductions)
+            
+            # Prune the deductions
+            atoms_of_interest = expressions_to_variables(eqn_to_search)
+            if atoms_of_interest:
+                deduction_eqns = eqns_with_variables(deduction_eqns, 
+                                                     atoms_of_interest,
+                                                     strict=True)
+            # Now interleaf them for maximum effectiveness!
+            all_eqn = SolverSequential.interleave_equations(eqn_to_search,
+                                                            deduction_eqns,
+                                                            priority=0)
 
-        self.judgement_sequential_search(all_eqn, 
-                                         max_states=max_states)
+            self.judgement_sequential_search(all_eqn, 
+                                             max_states=max_states)
 
-        # Now unleash the mini-assumption
-        if num_constant_iter > 2:
-            # Use mini-assumptions
-            # Do for every stuck iteration, but with more variables
-            for eqn in equations + dict_as_eqns(self.deductions):
-                # Limit the substitutions at 2^6=64
-                num_var = min(2*num_constant_iter + 2, 8)
-                # Rank by number of times each occurs
-                self.judgement_mini_assumption(eqn, num_var=num_var, 
-                                               coef_transform=lambda x: pow(x, 1.01))
+
 
     @property
     def deductions_as_equations(self):
