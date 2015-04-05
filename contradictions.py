@@ -11,6 +11,7 @@ import sympy
 
 from contradiction_exception import ContradictionException
 from sympy_helper_fns import min_value, max_value, parity, str_eqns_to_sympy_eqns
+from sympy_subs import subs
 
 def apply_contradictions(equations):
     ''' Now look for contradictions in the equations '''
@@ -91,7 +92,7 @@ def contradiction_mini_assump(eqn, atom_limit=4):
     vals = itertools.product(range(2), repeat=len(atoms))
     for val in vals:
         to_sub = dict(zip(atoms, val))
-        evaluated = eqn.subs(to_sub)
+        evaluated = subs(eqn, to_sub)
         if evaluated:
             return
     
