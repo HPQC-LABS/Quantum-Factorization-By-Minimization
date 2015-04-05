@@ -18,6 +18,7 @@ from sympy_helper_fns import (max_value, min_value, is_equation,
                               is_constant, is_simple_binary,
                               num_add_terms, parity, expressions_to_variables,
                               standardise_equation)
+from sympy_subs import subs, subs_many
 
 class JudgementMixin(object):
     ''' Mixin object that gives access to the judgements '''
@@ -351,7 +352,7 @@ class JudgementMixin(object):
 
         for vals in values:
             to_sub = dict(zip(variables, vals))
-            _eqn = eqn.subs(to_sub)
+            _eqn = subs(eqn, to_sub)
             try:
                 if is_equation(_eqn):
                     _eqn = standardise_equation(_eqn)
@@ -611,7 +612,7 @@ class JudgementMixin(object):
 
         for vals in values:
             to_sub = dict(zip(variables, vals))
-            _eqns = [eqn.subs(to_sub) for eqn in eqns]
+            _eqns = subs_many(eqns, to_sub)
             try:
                 for _eqn in _eqns:
                     if is_equation(_eqn):
@@ -787,9 +788,9 @@ class JudgementMixin(object):
             for term, coef in rhs_term_dict.iteritems():
 #                if abs(coef) != top_coef:
 #                    continue
-                to_subs = {term: 1}                
-                _rhs = rhs.subs(to_subs)
-                _lhs = lhs.subs(to_subs)
+                to_sub = {term: 1}                
+                _rhs = subs(rhs, to_sub)
+                _lhs = subs(lhs, to_sub)
                 if max_value(_lhs) < min_value(_rhs):
                     self.update_value(term, 0)
 
