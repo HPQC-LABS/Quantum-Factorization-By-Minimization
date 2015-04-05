@@ -210,11 +210,11 @@ if __name__ == "__main__":
 
 
     ### Profile the subs methods
-    setup_str = 'from __main__ import subs1, subs2, subs3, _profile1'
+    setup_str = 'from __main__ import subs1, subs2, subs3, _profile'
     num_trial = 10
-    time1 = timeit.timeit("_profile1(subs1)", setup_str, number=num_trial)
+    time1 = timeit.timeit("_profile(subs1)", setup_str, number=num_trial)
     print 'subs1: {:.2f}s'.format(time1)
-    time2 = timeit.timeit("_profile1(subs2)", setup_str, number=num_trial)
+    time2 = timeit.timeit("_profile(subs2)", setup_str, number=num_trial)
     print 'subs2: {:.2f}s'.format(time2)
-    time3 = timeit.timeit("_profile1(subs3)", setup_str, number=num_trial)
+    time3 = timeit.timeit("_profile(subs3)", setup_str, number=num_trial)
     print 'subs3: {:.2f}s'.format(time3)
