@@ -82,10 +82,11 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
                 self.apply_judgements_complex(self.equations, num_constant_iter,
                                               verbose=verbose)
 
-                if (num_constant_iter > 3) or (self._length_tuple[0] == 0):
+                self.clean_deductions()
+
+                if (num_constant_iter > 3) or (len(self.unsolved_var) < 2):
                     break
                 
-                self.clean_deductions()
 
             if self._length_tuple != state_summary:
                 num_constant_iter = 0
@@ -105,7 +106,7 @@ class SolverHybrid(BinarySolutionSolverBase, JudgementMixin):
         to_sub = self.deductions.copy()
 
         # Extract solutions using the magic __getitem__ attribute
-        var_of_interest = expressions_to_variables(cleaned + dict_as_eqns(to_sub))
+        var_of_interest = expressions_to_variables(cleaned + dict_as_eqns(self.deductions))
         for var in var_of_interest:
             sol = self.solutions[var]
             if sol == var:
