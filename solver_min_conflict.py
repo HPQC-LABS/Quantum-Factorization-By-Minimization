@@ -156,7 +156,7 @@ class SolverMinCon2(SolverMinCon):
         from 0 as a conflict, rather than equation True or False    
     '''
     def __init__(self, equations):
-        super(MinConSolver2, self).__init__(equations=equations)
+        super(SolverMinCon2, self).__init__(equations=equations)
         
         self.equations = [e.lhs - e.rhs for e in self.equations]
     
