@@ -155,8 +155,8 @@ def get_target_solutions(product, equation_generator=generate_carry_equations):
     ''' Generate all of the correct solutions by plugging all of the correct
         pi and qi into a Solver and solving
         
-        >>> get_target_solutions(143)
-        {z56: 1, z12: 0, q1: 1, z24: 0, z35: 0, z45: 1, q2: 0, z67: 1, z46: 0, p2: 1, z34: 1, z23: 0, z57: 0, p1: 0}
+        >>> sorted(get_target_solutions(143).items(), key=str)
+        [(p1, 0), (p2, 1), (q1, 1), (q2, 0), (z12, 0), (z23, 0), (z24, 0), (z34, 1), (z35, 0), (z45, 1), (z46, 0), (z56, 1), (z57, 0), (z67, 1)]
     '''
     digitsInMultiplicand1, digitsInMultiplicand2 = get_num_digit_multiplicands(product)    
     
