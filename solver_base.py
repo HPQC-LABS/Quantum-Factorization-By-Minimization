@@ -32,6 +32,7 @@ from objective_function_helper import (equations_to_vanilla_coef_str,
                                        equations_to_vanilla_objective_function)
 
 from sympy_paralleliser import paralellised_subs, get_pool
+from sympy_subs import subs_many
 
 
 __author__ = "Richard Tanburn"
@@ -269,7 +270,7 @@ class SolverBase(object):
         if substituted is None:
             substituted = []
             for batch in batch_equations:
-                substituted.append([eqn.subs(substitutions) for eqn in batch])
+                substituted.append(subs_many(batch, substitutions))
                 clear_cache()
 
         # Now flatten substituted
