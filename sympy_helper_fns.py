@@ -414,7 +414,8 @@ def max_value(expr):
         >>> max_value(expr)
         -2
     '''
-    #expr = sympy.simplify(expr)
+    if not isinstance(expr, sympy.Basic):
+        expr = sympy.sympify(expr)
     coef = expr.as_coefficients_dict()
     max_ = 0
     for term, c in coef.iteritems():
@@ -449,7 +450,8 @@ def min_value(expr):
         >>> min_value(expr)
         -4
     '''
-    #expr = sympy.simplify(expr)
+    if not isinstance(expr, sympy.Basic):
+        expr = sympy.sympify(expr)
     coef = expr.as_coefficients_dict()
     min_ = 0
     for term, c in coef.iteritems():
@@ -585,7 +587,7 @@ def gather_monic_terms(eqn):
     return sympy.Eq(sum(lhs), sum(rhs))
     
     
-def square_equations(equations, term_limit=10, method=3):
+def square_equations(equations, term_limit=10, method=1):
     ''' Take a bunch of equations and square them, depending on the method:
         1: lhs^2 = rhs^2
         2: (lhs - rhs)^2 = 0
