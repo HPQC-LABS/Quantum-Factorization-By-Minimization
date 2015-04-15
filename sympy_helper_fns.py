@@ -125,6 +125,8 @@ def num_add_terms(expr, check=False):
         >>> num_add_terms(sympy.sympify(expr), check=False)
         1
     '''
+    if isinstance(expr, int):
+        return 1
     if check:
         assert expr.func == sympy.Add
     return len(expr.as_ordered_terms())
