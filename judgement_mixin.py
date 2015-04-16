@@ -1297,6 +1297,68 @@ class JudgementMixin(object):
         _helper(eqn.lhs, eqn.rhs)
         _helper(eqn.rhs, eqn.lhs)
 
+    def judgement_8_extended(self, eqn):
+        ''' If 2 lhs terms both being 0 would tip max(lhs) < min(rhs), then we can
+            deduce that x + y = 1 + xy.
+
+            >>> system = JudgementMixinTest()
+            >>> x, y, z1, z2 = sympy.symbols('x y z1 z2')
+            >>> eqn = sympy.Eq(x + y, 2 + z1 + z2)
+            >>> system.judgement_8_extended(eqn)
+            >>> system.deductions
+            {x*y: x + y - 1}
+
+            >>> system = JudgementMixinTest()
+            >>> x, y, z1, z2 = sympy.symbols('x y z1 z2')
+            >>> eqn = sympy.Eq(2 + z1 + z2, x + y)
+            >>> system.judgement_8_extended(eqn)
+            >>> system.deductions
+            {x*y: x + y - 1}
+
+            >>> system = JudgementMixinTest()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + 3 * y, 2 + z)
+            >>> system.judgement_8_extended(eqn)
+            >>> system.deductions
+            {x*y: x + y - 1}
+            
+            >>> system = JudgementMixinTest()
+            >>> x, y, z = sympy.symbols('x y z')
+            >>> eqn = sympy.Eq(x + y + z, 2)
+            >>> system.judgement_8_extended(eqn)
+            >>> system.deductions
+            {x*z: x + z - 1, x*y: x + y - 1, y*z: y + z - 1}
+            
+            >>> eqns = ['2*z56 + 8*z58 == q1 + z35 + 2',
+            ...         'p5*q5 + z1012 + z1112 + z912 == 3']
+            >>> eqns = str_eqns_to_sympy_eqns(eqns)
+            >>> system = JudgementMixinTest()
+            >>> for eqn in eqns: system.judgement_8_extended(eqn)
+            >>> print system.deductions
+            {p5*q5*z1112: p5*q5 + z1112 - 1, z1012*z912: z1012 + z912 - 1, p5*q5*z912: p5*q5 + z912 - 1, z1112*z912: z1112 + z912 - 1, z56*z58: z56 + z58 - 1, p5*q5*z1012: p5*q5 + z1012 - 1, z1012*z1112: z1012 + z1112 - 1}
+        '''
+        def _helper(lhs, rhs):
+            rhs_min = min_value(rhs)
+
+            lhs_terms = lhs.as_ordered_terms()
+            for term1, term2 in itertools.combinations(lhs_terms, r=2):
+                term1_atoms = term1.as_coeff_Mul()[1]
+                term2_atoms = term2.as_coeff_Mul()[1]
+#                if len(term1_atoms.atoms(sympy.Symbol)) != 1:
+#                    continue
+#                if len(term2_atoms.atoms(sympy.Symbol)) != 1:
+#                    continue
+                to_sub = {term1_atoms: 0, term2_atoms: 0}
+                if max_value(lhs.subs(to_sub)) < rhs_min:
+                    self.update_value(term1_atoms * term2_atoms, 
+                                      term1_atoms + term2_atoms - 1)
+#                    return (lhs - term1_atoms - term2_atoms + 1 + term1_atoms * term2_atoms, 
+#                            rhs)
+
+
+        _helper(eqn.lhs, eqn.rhs)
+        _helper(eqn.rhs, eqn.lhs)
+
     def judgement_8_slow(self, eqn):
         ''' If a term being 0 would tip max(rhs) < min(lhs), then it must be 1
 
