@@ -124,7 +124,17 @@ def subs_many(exprs, to_sub):
     if not isinstance(to_sub, dict):
         to_sub = dict(to_sub)
     
-    subbed = DEFAULT_SUBS_MANY(exprs, to_sub)
+    unitary_subs = {}
+    compound_subs = {}
+    for k, v in to_sub.iteritems():
+        if len(k.atoms()) == 1:
+            unitary_subs[k] = v
+        else:
+            compound_subs[k] = v
+
+    subbed = DEFAULT_SUBS_MANY(exprs, unitary_subs)
+    # Revert back to sympy subs for anything complicated
+    subbed = subs1_many(subbed, compound_subs)
     return subbed
 
 
@@ -187,6 +197,7 @@ if __name__ == "__main__":
                {x1: x2, x2: 0, x4: 1},
                {x1: x2 + x4, x2: 2, x4: 1},
                {x1: 1 - x2, x2: -82, x4: 1},
+               {x1*x2: 0, x2*x3: 1},
             ]
     
     for to_sub in to_subs:
@@ -210,8 +221,10 @@ if __name__ == "__main__":
 
 
     ### Profile the subs methods
-    setup_str = 'from __main__ import subs1, subs2, subs3, _profile'
+    setup_str = 'from __main__ import subs, subs1, subs2, subs3, _profile'
     num_trial = 10
+    time0 = timeit.timeit("_profile(subs)", setup_str, number=num_trial)
+    print 'subs: {:.2f}s'.format(time0)
     time1 = timeit.timeit("_profile(subs1)", setup_str, number=num_trial)
     print 'subs1: {:.2f}s'.format(time1)
     time2 = timeit.timeit("_profile(subs2)", setup_str, number=num_trial)
