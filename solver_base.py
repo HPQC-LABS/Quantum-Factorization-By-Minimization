@@ -118,6 +118,8 @@ class SolverBase(object):
          self.output_filename, self.parallelise, 
          self._fix_pq_soln_used) = state
          
+        self._pool = None
+         
     def to_disk(self, filename):
         ''' Write a state to disk '''
         if filename is None:
