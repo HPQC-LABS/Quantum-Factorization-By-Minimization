@@ -10,6 +10,8 @@ import re
 import sympy
 import timeit
 
+from sympy.core.cache import clear_cache
+
 from sympy_helper_fns import is_equation
 from equivalence_dict import EquivalenceDict
 
@@ -27,7 +29,9 @@ def subs1_many(exprs, to_sub):
     ''' Substitute to_sub into many equations. Barebones wrapper to check we
         follow the original implementation.
     '''
-    return [expr.subs(to_sub, simultaneous=True) for expr in exprs]
+    subbed = [expr.subs(to_sub, simultaneous=True) for expr in exprs]
+    clear_cache()
+    return subbed
 
 ### Our better sympy subs
 
