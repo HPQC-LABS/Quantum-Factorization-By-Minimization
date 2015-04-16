@@ -43,6 +43,10 @@ class SolverSequential(BinarySolutionSolverBase):
         for eqn in self.equations:
             self.add_equation(eqn, _init=True)
     
+    @property
+    def final_equations(self):
+        return self.equations
+    
     def reorder_variables_to_sub(self, sorter=None):
         ''' Reorder the queue 
         
