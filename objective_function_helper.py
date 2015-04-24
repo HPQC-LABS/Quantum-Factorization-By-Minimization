@@ -15,7 +15,7 @@ from sympy_helper_fns import remove_binary_squares, expressions_to_variables
 
 
 
-## Groebner stuff
+### Groebner stuff
 def _equations_to_groebner_exprs(eqns):
     ''' Take a bunch of equations, square them, add the equations that binarize
         the variables, and go
@@ -102,7 +102,7 @@ def equations_to_groebner_coef_str(eqns):
     term_dict = sum_term_dicts(term_dicts)
     return term_dict_to_coef_string(term_dict)
 
-## Vanilla obj func
+### Vanilla obj func
 def eqn_to_vanilla_term_dict(eqn):
     ''' Take an equation and square it, throwing away any exponents 
         >>> eqn = sympy.Eq(sympy.sympify('x - 1'))
@@ -202,7 +202,7 @@ def equations_to_vanilla_coef_str(equations):
     term_dict = equations_to_vanilla_term_dict(equations)
     return term_dict_to_coef_string(term_dict)
 
-## General helpers
+### General helpers
 def sum_term_dicts(term_dicts):
     ''' Combine term dicts '''
     term_dict = defaultdict(int)
@@ -459,7 +459,7 @@ def equations_to_recursive_schaller_coef_str(eqns):
     coef_str = term_dict_to_coef_string(term_dict)
     return coef_str
     
-## Introduce auxilary variables
+### Introduce auxilary variables
 def schaller_simple((ab, s)):
     ''' Change (ab-s)**2 to (ab - sa - sb + s), which has minimums at exactly
         the point ab = s
