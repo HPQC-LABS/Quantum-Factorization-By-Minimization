@@ -14,6 +14,8 @@ sage_timings
 results
 objective_functions
 
+*.txt
+
 #################
 ## Eclipse
 #################
