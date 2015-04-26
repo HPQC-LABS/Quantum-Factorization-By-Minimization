@@ -307,48 +307,6 @@ def _check_solutions_for_targets(targets, solutions, verbose=False):
     if verbose:
         print VERIFICATION_SUCCESS_MESSAGE
 
-def evaluate_term_dict(product, term_dict):
-    ''' Given a term dict, check that it evaluates to 0 
-    
-        >>> params = EXPERIMENTS[1][:3]
-        
-        >>> prod = params[-1]
-        >>> eqns = generate_carry_equations(*params)
-        >>> system = SOLVER(eqns)
-        >>> system.solve_equations()
-        >>> term_dict = equations_to_vanilla_term_dict(system.equations)
-        >>> evaluate_term_dict(prod, term_dict)
-        0
-    
-        >>> params = EXPERIMENTS[2][:3]
-        
-        >>> prod = params[-1]
-        >>> eqns = generate_carry_equations(*params)
-        >>> system = SOLVER(eqns)
-        >>> system.solve_equations()
-        >>> term_dict = equations_to_vanilla_term_dict(system.equations)
-        >>> evaluate_term_dict(prod, term_dict)
-        0
-
-        >>> params = EXPERIMENTS[3][:3]
-        
-        >>> prod = params[-1]
-        >>> eqns = generate_carry_equations(*params)
-        >>> system = SOLVER(eqns)
-        >>> system.solve_equations()
-        >>> term_dict = equations_to_vanilla_term_dict(system.equations)
-        >>> evaluate_term_dict(prod, term_dict)
-        0
-    '''
-    target_solns = get_target_solutions(product)
-    
-    obj_func = 0
-    
-    for term, coef in term_dict.iteritems():
-        obj_func += term.subs(target_solns) * coef
-    
-    return obj_func
-
 def factorise(n):
     ''' Return list of factors 
     

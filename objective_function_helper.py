@@ -11,8 +11,11 @@ import operator
 
 import sympy
 
-from sympy_helper_fns import remove_binary_squares, expressions_to_variables
-
+from sympy_helper_fns import (remove_binary_squares, expressions_to_variables, 
+                              degree, num_add_terms, min_value, max_value,
+                              str_eqns_to_sympy_eqns)
+from sympy_subs import subs
+from sympy.core.cache import clear_cache
 
 
 ### Groebner stuff
@@ -203,6 +206,41 @@ def equations_to_vanilla_coef_str(equations):
     return term_dict_to_coef_string(term_dict)
 
 ### General helpers
+
+def evaluate_term_dict(target_solns, term_dict):
+    ''' Given a term dict, check that it evaluates to 0 
+
+        >>> from cfg_sympy_solver import EXPERIMENTS
+        >>> from solver_judgement import SolverJudgement as SOLVER
+        >>> from carry_equations_generator import generate_carry_equations
+        >>> from verification import get_target_solutions
+        
+        >>> params = EXPERIMENTS[1][:3]
+        
+        >>> prod = params[-1]
+        >>> eqns = generate_carry_equations(*params)
+        >>> system = SOLVER(eqns)
+        >>> system.solve_equations(max_iter=2)
+        >>> term_dict = equations_to_vanilla_term_dict(system.equations)
+        >>> evaluate_term_dict(get_target_solutions(prod), term_dict)
+        0
+    
+        >>> params = EXPERIMENTS[2][:3]
+        
+        >>> prod = params[-1]
+        >>> eqns = generate_carry_equations(*params)
+        >>> system = SOLVER(eqns)
+        >>> system.solve_equations(max_iter=2)
+        >>> term_dict = equations_to_vanilla_term_dict(system.equations)
+        >>> evaluate_term_dict(get_target_solutions(prod), term_dict)
+        0
+    '''
+    obj_func = 0
+    
+    for term, coef in term_dict.iteritems():
+        obj_func += term.subs(target_solns) * coef    
+    return obj_func
+
 def sum_term_dicts(term_dicts):
     ''' Combine term dicts '''
     term_dict = defaultdict(int)
