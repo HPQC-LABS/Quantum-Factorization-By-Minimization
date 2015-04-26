@@ -9,6 +9,11 @@ temp.py
 # folder of batch scripts easily generated
 batch_scripts
 
+# Results folders
+sage_timings
+results
+objective_functions
+
 #################
 ## Eclipse
 #################
