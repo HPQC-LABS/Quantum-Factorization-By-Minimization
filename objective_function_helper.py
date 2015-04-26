@@ -586,6 +586,121 @@ def equations_to_auxillary_coef_str(eqns):
     term_dict = exprs_to_auxillary_term_dict(exprs)
     return term_dict_to_coef_string(term_dict)
 
+
+### Deduction reduction
+def reduce_term_dict(term_dict, deductions):
+    ''' Given a term dict and some deductions, simplify the term dict
+    
+        >>> from collections import defaultdict
+        >>> import sympy
+        >>> term_dict = defaultdict(int)
+        >>> a, b, c, u, v, x, y, z = sympy.symbols('a, b, c, u, v, x, y, z')
+        >>> term_dict[a*b*c] = 4
+        >>> term_dict[u*v*z] = 8
+        >>> term_dict[x*y*z] = 10
+        
+        >>> deductions = {
+        ...     a*b: 0,
+        ...     u*v: u + v - 1,
+        ...     }
+    
+        >>> reduced = reduce_term_dict(term_dict, deductions)
+        >>> for term, coef in reduced.iteritems(): print coef * term
+        10*x*y*z
+        5*a*b
+        -9*v
+        -9*u
+        8*u*z
+        9
+        9*u*v
+        -8*z
+        8*v*z
+
+
+        Setup
+        >>> p1, q1, p2, q2, z1, z2 = sympy.symbols('p1 q1 p2 q2 z1 z2')
+        >>> eqns = ['p1 + q1 == 1', 'p1*q2 + q1*p2 == z1 + 2*z2']
+        >>> eqns = str_eqns_to_sympy_eqns(eqns)
+        >>> term_dict1 = equations_to_vanilla_term_dict(eqns)
+        >>> atoms = sorted(expressions_to_variables(eqns), key=str)
+        
+        Check xy = 0 judgement
+        >>> term_dict2 = reduce_term_dict(term_dict1.copy(), {p1 * q1: 0})
+        >>> for vals in itertools.product(range(2), repeat=len(atoms)):
+        ...     to_sub = dict(zip(atoms, vals))
+        ...     val1 = evaluate_term_dict(to_sub, term_dict1)
+        ...     val2 = evaluate_term_dict(to_sub, term_dict2)
+        ...     #print val1, val2
+        ...     assert val1 >= 0        
+        ...     if val1 == 0:
+        ...         assert val2 == 0
+        ...     else:
+        ...         assert val2 > 0
+
+        Check xy = x + y - 1 judgement
+        >>> term_dict2 = reduce_term_dict(term_dict1.copy(), {p1 * q1: p1 + q1 - 1})
+        >>> for vals in itertools.product(range(2), repeat=len(atoms)):
+        ...     to_sub = dict(zip(atoms, vals))
+        ...     val1 = evaluate_term_dict(to_sub, term_dict1)
+        ...     val2 = evaluate_term_dict(to_sub, term_dict2)
+        ...     #print val1, val2
+        ...     assert val1 >= 0        
+        ...     if val1 == 0:
+        ...         assert val2 == 0
+        ...     else:
+        ...         assert val2 > 0
+
+        Setup 2
+        We need z1 = 1 to test the next kind of assumption
+        >>> eqns = ['p1 + q1 == 1', 'p1*q2 + q1*p2 == 1 + 2*z2']
+        >>> eqns = str_eqns_to_sympy_eqns(eqns)
+        >>> term_dict1 = equations_to_vanilla_term_dict(eqns)
+        >>> atoms = sorted(expressions_to_variables(eqns), key=str)
+
+        Check xy = x judgement. First we need to fix z1=1 to assert this
+        >>> term_dict2 = reduce_term_dict(term_dict1.copy(), {p1*q2: p1})
+        >>> for vals in itertools.product(range(2), repeat=len(atoms)):
+        ...     to_sub = dict(zip(atoms, vals))
+        ...     val1 = evaluate_term_dict(to_sub, term_dict1)
+        ...     val2 = evaluate_term_dict(to_sub, term_dict2)
+        ...     #print val1, val2
+        ...     assert val1 >= 0        
+        ...     if val1 == 0:
+        ...         assert val2 == 0
+        ...     else:
+        ...         assert val2 > 0
+
+    '''
+
+    term_dict = term_dict.copy()
+    for poly, value in deductions.iteritems():
+        clear_cache()
+        assert degree(poly) > 1
+        assert num_add_terms(poly) == 1
+        
+        constraint_coefficient = 1
+        poly_atoms = poly.atoms(sympy.Symbol)
+        for term, coef in term_dict.copy().iteritems():
+            if term == poly:
+                continue
+            if poly_atoms.issubset(term.atoms(sympy.Symbol)):
+                # Remove the reference to the old term                
+                term_dict.pop(term)
+                
+                new_term = term.subs(poly, value).expand() * coef
+                constraint_coefficient += abs(coef)
+                for _term, _coef in new_term.as_coefficients_dict().iteritems():
+                    if _coef != 0:
+                        term_dict[_term] += _coef
+        
+        # Now add multiples of the constraint^2 to make sure we are looking at
+        # the same ground states
+        constraint = remove_binary_squares(((poly - value)**2).expand())
+        for _term, _coef in constraint.as_coefficients_dict().iteritems():
+            term_dict[_term] += _coef * constraint_coefficient
+        
+    return term_dict
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
