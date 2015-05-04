@@ -588,7 +588,7 @@ def equations_to_auxillary_coef_str(eqns):
 
 
 ### Deduction reduction
-def reduce_term_dict(term_dict, deductions):
+def reduce_term_dict(term_dict, deductions, penalty_factor=2):
     ''' Given a term dict and some deductions, simplify the term dict
     
         >>> from collections import defaultdict
@@ -607,12 +607,12 @@ def reduce_term_dict(term_dict, deductions):
         >>> reduced = reduce_term_dict(term_dict, deductions)
         >>> for term, coef in reduced.iteritems(): print coef * term
         10*x*y*z
-        5*a*b
-        -9*v
-        -9*u
+        4*a*b
+        -8*v
+        -8*u
         8*u*z
-        9
-        9*u*v
+        8
+        8*u*v
         -8*z
         8*v*z
 
@@ -649,7 +649,7 @@ def reduce_term_dict(term_dict, deductions):
         ...         assert val2 == 0
         ...     else:
         ...         assert val2 > 0
-
+    
         Setup 2
         We need z1 = 1 to test the next kind of assumption
         >>> eqns = ['p1 + q1 == 1', 'p1*q2 + q1*p2 == 1 + 2*z2']
@@ -671,34 +671,36 @@ def reduce_term_dict(term_dict, deductions):
         ...         assert val2 > 0
 
     '''
-
     term_dict = term_dict.copy()
     for poly, value in deductions.iteritems():
         clear_cache()
         assert degree(poly) > 1
         assert num_add_terms(poly) == 1
         
-        constraint_coefficient = 1
+        # Constraint coefficient is the multiplier for the error term
+        constraint_coefficient = penalty_factor
         poly_atoms = poly.atoms(sympy.Symbol)
         for term, coef in term_dict.copy().iteritems():
-            if term == poly:
-                continue
             if poly_atoms.issubset(term.atoms(sympy.Symbol)):
-                # Remove the reference to the old term                
+                # Remove the reference to the old term 
                 term_dict.pop(term)
-                
-                new_term = term.subs(poly, value).expand() * coef
+
+                # Add on the new terms under the judgement                
+                new_term = subs(term, {poly: value}).expand() * coef
+#                new_term1 = term.subs(poly, value).expand() * coef
+#                assert new_term1 == new_term
                 constraint_coefficient += abs(coef)
                 for _term, _coef in new_term.as_coefficients_dict().iteritems():
                     if _coef != 0:
                         term_dict[_term] += _coef
         
         # Now add multiples of the constraint^2 to make sure we are looking at
-        # the same ground states
+        # the same ground states. Multiply by the absolute value of the
+        # coefficients to make sure no negative states occur
         constraint = remove_binary_squares(((poly - value)**2).expand())
         for _term, _coef in constraint.as_coefficients_dict().iteritems():
             term_dict[_term] += _coef * constraint_coefficient
-        
+
     return term_dict
 
 if __name__ == "__main__":
