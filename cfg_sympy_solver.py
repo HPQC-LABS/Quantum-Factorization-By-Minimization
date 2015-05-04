@@ -66,6 +66,9 @@ PRESENTS = {
 
 EXPERIMENTS_20 = {
     9: Experiment(20, 20, 274954455617, 1),
+
+#    16: Experiment(20, 20, 455937533473, 140), # From Hamming set
+
     116: Experiment(20, 20, 275017384217, 1),
     184: Experiment(20, 20, 275162142881, 1),
     189: Experiment(20, 20, 275199914009, 1),
