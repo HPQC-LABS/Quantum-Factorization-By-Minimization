@@ -29,7 +29,7 @@ def subs1_many(exprs, to_sub):
     ''' Substitute to_sub into many equations. Barebones wrapper to check we
         follow the original implementation.
     '''
-    subbed = [expr.subs(to_sub, simultaneous=True) for expr in exprs]
+    subbed = [expr.subs(to_sub, simultaneous=True) if (not isinstance(expr, int)) else expr for expr in exprs]
     clear_cache()
     return subbed
 
