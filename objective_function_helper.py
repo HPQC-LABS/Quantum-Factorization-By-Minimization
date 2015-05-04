@@ -331,6 +331,17 @@ def coef_str_to_file(coef_str, filename=None):
         f.write(coef_str)
         f.close()
 
+def count_qubit_interactions(term_dict):
+    ''' Given a term dict, count the number of terms that have an n-qubit
+        interaction, and return the interaction profile
+    '''
+    count = defaultdict(int)
+    for k in term_dict.iterkeys():
+        count[degree(k)] += 1
+    return count
+
+### Schaller stuff
+
 ## Original Schaller implementation when the equations come transformed, we
 ## just need to add them up
 def equations_to_sum_coef_str(eqns):
