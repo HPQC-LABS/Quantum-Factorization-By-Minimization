@@ -14,7 +14,7 @@ import sympy
 from sympy_helper_fns import (remove_binary_squares, expressions_to_variables, 
                               degree, num_add_terms, min_value, max_value,
                               str_eqns_to_sympy_eqns)
-from sympy_subs import subs
+from sympy_subs import subs, subs_many
 from sympy.core.cache import clear_cache
 
 
@@ -109,7 +109,8 @@ def equations_to_groebner_coef_str(eqns):
 def eqn_to_vanilla_term_dict(eqn):
     ''' Take an equation and square it, throwing away any exponents 
         >>> eqn = sympy.Eq(sympy.sympify('x - 1'))
-        >>> eqn_to_vanilla_term_dict(eqn)
+        >>> term_dict = eqn_to_vanilla_term_dict(eqn)
+        >>> term_dict
         defaultdict(<type 'int'>, {1: 1, x: -1})
     '''
     def _combine_terms((term1, term2)):
@@ -235,11 +236,9 @@ def evaluate_term_dict(target_solns, term_dict):
         >>> evaluate_term_dict(get_target_solutions(prod), term_dict)
         0
     '''
-    obj_func = 0
-    
-    for term, coef in term_dict.iteritems():
-        obj_func += term.subs(target_solns) * coef    
-    return obj_func
+    terms = [coef*variables for (variables, coef) in term_dict.iteritems()]
+    subbed = subs_many(terms, target_solns)
+    return sum(subbed)
 
 def sum_term_dicts(term_dicts):
     ''' Combine term dicts '''
@@ -615,7 +614,7 @@ def reduce_term_dict(term_dict, deductions, penalty_factor=2):
         ...     u*v: u + v - 1,
         ...     }
     
-        >>> reduced = reduce_term_dict(term_dict, deductions)
+        >>> reduced = reduce_term_dict(term_dict, deductions, penalty_factor=0)
         >>> for term, coef in reduced.iteritems(): print coef * term
         10*x*y*z
         4*a*b
