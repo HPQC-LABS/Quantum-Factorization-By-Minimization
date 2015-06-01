@@ -635,6 +635,12 @@ def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2,
         -8*z
         8*v*z
 
+        >>> reduced = reduce_term_dict(term_dict, deductions, 
+        ...                            lagrangian_coefficient=0, preserve_terms=True)
+        >>> for term, coef in reduced.iteritems(): print coef * term
+        10*x*y*z
+        4*a*b*c
+        8*u*v*z
 
         Setup
         >>> p1, q1, p2, q2, z1, z2 = sympy.symbols('p1 q1 p2 q2 z1 z2')
@@ -700,6 +706,16 @@ def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2,
         # not want to go any further
         constraint = remove_binary_squares(((poly - value)**2).expand())
 
+        # Check if adding the Lagrangian would alter the term-dicts profile
+        if preserve_terms:
+            is_subset = True
+            for term in constraint.as_coefficients_dict().keys():
+                if term_dict[term] == 0:
+                    is_subset = False
+                    break
+            if not is_subset:
+                continue
+        
         # Constraint coefficient is the multiplier for the error term
         constraint_coefficient = lagrangian_coefficient
         poly_atoms = poly.atoms(sympy.Symbol)
