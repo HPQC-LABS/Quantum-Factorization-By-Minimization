@@ -5,6 +5,7 @@ Created on Thu Apr 16 17:58:02 2015
 @author: Richard
 """
 
+from collections import defaultdict
 import os
 import re
 
@@ -197,6 +198,18 @@ def extract_equations(filename):
                 else:
                     _add = False
     return str_eqns_to_sympy_eqns(eqns)
+
+def extract_qubit_profile(filename):
+    ''' 
+        Extract the number of n-qubit interactions from a coefficient matrix file
+    '''
+    with open(filename, 'r') as file_:
+        qubit_profile = defaultdict(int)
+        for line in file_.readlines():
+            num_qubits = len(line.strip().split(' ')) - 1            
+            qubit_profile[num_qubits] += 1
+    return qubit_profile
+    
 
 ### Utilities
 def recursive_result_search():
