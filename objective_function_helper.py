@@ -10,13 +10,13 @@ import itertools
 import operator
 
 import sympy
+from sympy.core.cache import clear_cache
 
 from sympy_helper_fns import (remove_binary_squares, expressions_to_variables, 
                               degree, num_add_terms, min_value, max_value,
                               str_eqns_to_sympy_eqns)
 from sympy_subs import subs, subs_many
-from sympy.core.cache import clear_cache
-
+from term_dict import TermDict
 
 ### Groebner stuff
 def _equations_to_groebner_exprs(eqns):
@@ -129,7 +129,7 @@ def eqn_to_vanilla_term_dict(eqn):
     term_to_coef = itertools.imap(_combine_terms, products)
     
     # Now add up and return the term dict    
-    final_terms = defaultdict(int)
+    final_terms = TermDict(int)
     for term, coef in term_to_coef:
         final_terms[term] += coef
     return final_terms
@@ -242,7 +242,7 @@ def evaluate_term_dict(target_solns, term_dict):
 
 def sum_term_dicts(term_dicts):
     ''' Combine term dicts '''
-    term_dict = defaultdict(int)
+    term_dict = TermDict(int)
     for t_d in term_dicts:
         for term, coef in t_d.iteritems():
             term_dict[term] += coef
@@ -256,7 +256,7 @@ def expressions_to_term_dict(exprs, process_eqn=None):
     ''' Given a list of Sympy expressions, calculate the term: coefficient dict
         of the objective function
     '''
-    final_terms = defaultdict(int)
+    final_terms = TermDict(int)
     for i, expr in enumerate(exprs):
         for t, c in expr.as_coefficients_dict().iteritems():
             final_terms[t] += c
@@ -334,7 +334,7 @@ def count_qubit_interactions(term_dict):
     ''' Given a term dict, count the number of terms that have an n-qubit
         interaction, and return the interaction profile
     '''
-    count = defaultdict(int)
+    count = TermDict(int)
     for k in term_dict.iterkeys():
         count[degree(k)] += 1
     return count
@@ -539,7 +539,7 @@ def exprs_to_auxillary_term_dict(exprs):
         >>> eqns = [sympy.Eq(a, b), sympy.Eq(c*d, e)]
         >>> exprs = map(lambda x: x.lhs - x.rhs, eqns)
         >>> exprs_to_auxillary_term_dict(exprs)
-        defaultdict(<type 'int'>, {a*b: -2, c*c_d: -2, c_d: 4, 1: 0, a: 1, c_d*e: -2, e: 1, b: 1, c_d*d: -2, c*d: 1})
+        defaultdict(<type 'int'>, {a*b: -2, c*c_d: -2, c_d: 4, a: 1, c_d*e: -2, e: 1, b: 1, c_d*d: -2, c*d: 1})
     '''
     # First replace all 2 qubit terms with new variables and sub them in
     aux_s = {}
@@ -598,7 +598,8 @@ def equations_to_auxillary_coef_str(eqns):
 
 
 ### Deduction reduction
-def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2, preserve_terms=False):
+def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2, 
+                     preserve_terms=False):
     ''' Given a term dict and some deductions, simplify the term dict
         
         lagrangian_coefficient determines the additive coefficient in front of the
@@ -610,7 +611,7 @@ def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2, preserve_t
     
         >>> from collections import defaultdict
         >>> import sympy
-        >>> term_dict = defaultdict(int)
+        >>> term_dict = TermDict(int)
         >>> a, b, c, u, v, x, y, z = sympy.symbols('a, b, c, u, v, x, y, z')
         >>> term_dict[a*b*c] = 4
         >>> term_dict[u*v*z] = 8
@@ -621,7 +622,8 @@ def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2, preserve_t
         ...     u*v: u + v - 1,
         ...     }
     
-        >>> reduced = reduce_term_dict(term_dict, deductions, lagrangian_coefficient=0)
+        >>> reduced = reduce_term_dict(term_dict, deductions, 
+        ...                            lagrangian_coefficient=0, preserve_terms=False)
         >>> for term, coef in reduced.iteritems(): print coef * term
         10*x*y*z
         4*a*b
@@ -694,6 +696,10 @@ def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2, preserve_t
         assert degree(poly) > 1
         assert num_add_terms(poly) == 1
         
+        # Work out what the Lagrangian multiplier is of the deduction. We might
+        # not want to go any further
+        constraint = remove_binary_squares(((poly - value)**2).expand())
+
         # Constraint coefficient is the multiplier for the error term
         constraint_coefficient = lagrangian_coefficient
         poly_atoms = poly.atoms(sympy.Symbol)
@@ -714,7 +720,6 @@ def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2, preserve_t
         # Now add multiples of the constraint^2 to make sure we are looking at
         # the same ground states. Multiply by the absolute value of the
         # coefficients to make sure no negative states occur
-        constraint = remove_binary_squares(((poly - value)**2).expand())
         for _term, _coef in constraint.as_coefficients_dict().iteritems():
             term_dict[_term] += _coef * constraint_coefficient
 
