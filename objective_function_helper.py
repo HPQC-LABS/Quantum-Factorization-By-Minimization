@@ -598,8 +598,15 @@ def equations_to_auxillary_coef_str(eqns):
 
 
 ### Deduction reduction
-def reduce_term_dict(term_dict, deductions, penalty_factor=2):
+def reduce_term_dict(term_dict, deductions, lagrangian_coefficient=2, preserve_terms=False):
     ''' Given a term dict and some deductions, simplify the term dict
+        
+        lagrangian_coefficient determines the additive coefficient in front of the
+        Lagrangian multiplier of each deduction
+        
+        If preserve_terms is True then don't add any terms unless the
+        term dict already contains the terms in the associated Lagrangian
+        multiplier
     
         >>> from collections import defaultdict
         >>> import sympy
@@ -614,7 +621,7 @@ def reduce_term_dict(term_dict, deductions, penalty_factor=2):
         ...     u*v: u + v - 1,
         ...     }
     
-        >>> reduced = reduce_term_dict(term_dict, deductions, penalty_factor=0)
+        >>> reduced = reduce_term_dict(term_dict, deductions, lagrangian_coefficient=0)
         >>> for term, coef in reduced.iteritems(): print coef * term
         10*x*y*z
         4*a*b
@@ -688,7 +695,7 @@ def reduce_term_dict(term_dict, deductions, penalty_factor=2):
         assert num_add_terms(poly) == 1
         
         # Constraint coefficient is the multiplier for the error term
-        constraint_coefficient = penalty_factor
+        constraint_coefficient = lagrangian_coefficient
         poly_atoms = poly.atoms(sympy.Symbol)
         for term, coef in term_dict.copy().iteritems():
             if poly_atoms.issubset(term.atoms(sympy.Symbol)):
@@ -699,7 +706,7 @@ def reduce_term_dict(term_dict, deductions, penalty_factor=2):
                 new_term = subs(term, {poly: value}).expand() * coef
 #                new_term1 = term.subs(poly, value).expand() * coef
 #                assert new_term1 == new_term
-                constraint_coefficient += abs(coef)
+                constraint_coefficient += max(coef, 0)
                 for _term, _coef in new_term.as_coefficients_dict().iteritems():
                     if _coef != 0:
                         term_dict[_term] += _coef
