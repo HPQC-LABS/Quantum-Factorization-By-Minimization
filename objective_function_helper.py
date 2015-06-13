@@ -85,18 +85,18 @@ def equations_to_groebner_coef_str(eqns):
         >>> rhs = '1'
         >>> eqns = [sympy.Eq(sympy.sympify(lhs), sympy.sympify(rhs))]
         >>> print equations_to_groebner_coef_str(eqns)
-        2 4 1
-        1 2 -1
-        1 2 3 4 2
-        3 4 -1
-        1 3 1
+        5
         3 -2
         4 -2
-        5
-        2 3 1
         1 -2
         2 -2
+        2 4 1
+        1 3 1
+        2 3 1
         1 4 1
+        1 2 -1
+        3 4 -1
+        1 2 3 4 2
         <BLANKLINE>
         {c: 3, b: 2, a: 1, d: 4}
     '''
@@ -197,9 +197,9 @@ def equations_to_vanilla_coef_str(equations):
         >>> rhs = 'x*y'
         >>> eqns = [sympy.Eq(sympy.sympify(lhs), sympy.sympify(rhs))]
         >>> print equations_to_vanilla_coef_str(eqns)
-        1 2 -1
         1 1
         2 1
+        1 2 -1
         <BLANKLINE>
         {x: 1, y: 2}
     '''
@@ -295,6 +295,8 @@ def term_dict_to_coef_string(term_dict):
             line = str(coef)
         lines.append(line)
 
+    lines = sorted(lines, key=len)
+
     coef_str = '\n'.join(lines)
     atom_str = str(atom_map)
     return '\n\n'.join([coef_str, atom_str])
@@ -306,10 +308,10 @@ def expression_to_coef_string(expr):
         >>> inp = '40*s_1 + 30*s_1*s_2 + 100*s_1*s_2*s_3 - 15*s_2*s_3 - 20*s_3 + 4'
         >>> print expression_to_coef_string(inp)
         4
-        1 2 30
-        2 3 -15
         1 40
         3 -20
+        1 2 30
+        2 3 -15
         1 2 3 100
         <BLANKLINE>
         {s_3: 3, s_2: 2, s_1: 1}
@@ -349,12 +351,12 @@ def equations_to_sum_coef_str(eqns):
         >>> equations = map(sympy.sympify, equations)
         >>> equations = map(sympy.Eq, equations)
         >>> print equations_to_sum_coef_str(equations)
-        3 4 -1
-        6 7 3
         -3
         1 1
         2 1
+        6 7 3
         5 6 1
+        3 4 -1
         <BLANKLINE>
         {x3: 7, c: 3, x2: 6, d: 4, x1: 5, a: 1, b: 2}
     '''
@@ -486,20 +488,20 @@ def equations_to_recursive_schaller_coef_str(eqns):
         {s: 3, b: 2, a: 1}
 
         >>> print equations_to_recursive_schaller_coef_str([sympy.Eq(a*b + c*d + e, 2)])
-        1 2 1
-        2 3 4 2
-        1 5 2
-        1 3 4 2
+        22
         3 -8
         4 -8
-        22
+        1 -4
+        2 -4
+        1 2 1
+        1 5 2
         3 5 4
         2 5 2
-        1 -4
         4 5 4
         5 -15
-        2 -4
         3 4 1
+        2 3 4 2
+        1 3 4 2
         <BLANKLINE>
         {c: 3, e: 5, b: 2, a: 1, d: 4}
     '''
@@ -580,15 +582,15 @@ def equations_to_auxillary_coef_str(eqns):
         >>> a, b, c, d, e = sympy.symbols('a b c d e')
         >>> eqns = [sympy.Eq(a, b), sympy.Eq(c*d, e)]
         >>> print equations_to_auxillary_coef_str(eqns)
-        1 2 -2
-        3 4 -2
         4 4
         1 1
-        4 6 -2
         6 1
         2 1
-        4 5 -2
         3 5 1
+        1 2 -2
+        3 4 -2
+        4 6 -2
+        4 5 -2
         <BLANKLINE>
         {c: 3, d: 5, a: 1, e: 6, c_d: 4, b: 2}
     '''
