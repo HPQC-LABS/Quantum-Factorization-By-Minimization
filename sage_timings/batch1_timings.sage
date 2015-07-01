@@ -106,5 +106,5 @@ def run_factorizations(N):
 
 #Run script:
 
-for N in range(70,530,10):
+for N in range(260,360,10):
     run_factorizations(N)
