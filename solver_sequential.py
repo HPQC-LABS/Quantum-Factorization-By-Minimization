@@ -168,7 +168,7 @@ class SolverSequential(BinarySolutionSolverBase):
         filter_ = lambda x: x not in set_vars_to_sub
         self.variables_to_sub = filter(filter_, self.variables_to_sub)
 
-    def sub_var(self, vars_to_sub=5, max_states=10000):
+    def sub_var(self, vars_to_sub=5, max_states=10000, verbose=False):
         ''' Substitute more variables into each system. This can be:
             None - substitute all variables in the queue
             int - Take the first vars_to_sub from the queue
@@ -296,7 +296,10 @@ class SolverSequential(BinarySolutionSolverBase):
         
         # Reset the sympy cache when done
         clear_cache()
-        
+
+        if verbose:
+            self.print_('\t\t'.join(['{}'] * 4).format(*self._length_tuple))
+
         return vars_to_sub
 
     @property
