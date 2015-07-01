@@ -10,7 +10,6 @@ temp.py
 batch_scripts
 
 # Results folders
-sage_timings
 results
 objective_functions
 
