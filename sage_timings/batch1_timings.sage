@@ -33,7 +33,7 @@ OUTPUT_DIRECTORY = '/home/tanburn/Quantum-Factorization-By-Minimization/sage_tim
 
 #######################################################################################
 
-#manager=Manager()
+manager=Manager()
 
 def extract(str_):
     match_ = re.search(r'(\d+\.\d+) ?user', str_)
@@ -90,10 +90,10 @@ def run_factorizations(N):
 
         previous_time = None
         
-        for (semiprime,hamming_distance,p,q) in semi_primes:
+        for semiprime in semi_primes:
             previous_time = take_time(semiprime,previous_time)
 
-            print '('+previous_time+','+str(semiprime)+','+str(hamming_distance)+','+str(p)+','+str(q)+')'+'\n'
+            print '('+previous_time+','+str(semiprime)+')'+'\n'
         
         sys.stdout = sys.__stdout__
         output_file.flush()
