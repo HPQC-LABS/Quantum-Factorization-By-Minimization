@@ -103,8 +103,10 @@ EXPERIMENTS_21 = {
 
 UNSOLVED = {
     # First unsolved 20x20 from second batch
-    1: Experiment(20, 20, 455937533473, -1),
-
+    1: Experiment(20, 20, 455937533473, -1), # 20x20_016
+    2: Experiment(20, 20, 537605114801, -1), # 20x20_019
+    3: Experiment(30, 30, 292951160076082381, -1), # 30x30_011
+    4: Experiment(50, 50, 1267650589799944054235347335521, -1), # 50x50_014
 }
 
 EXTENDED_EXPERIMENTS = EXPERIMENTS.copy()
