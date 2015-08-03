@@ -10,7 +10,7 @@ import os
 from schaller_equations_generator import generate_schaller_equations
 from carry_equations_generator import generate_carry_equations
 from experiment_tuple import Experiment
-from objective_function_helper import (equations_to_vanilla_coef_str, 
+from objective_function_helper import (equations_to_vanilla_coef_str,
                                        equations_to_sum_coef_str,
                                        equations_to_recursive_schaller_coef_str)
 
@@ -22,7 +22,7 @@ FACTORS_FILENAME = 'large_semiprimes_factors.txt'
 FACTOR_DICT_FILENAME = 'factor_dict'
 
 SEMIPRIMES_HAMMING_FOLDER = 'semiprimes_hamming'
-SEMIPRIMES_HAMMING_TEMPLATE = os.path.join(SEMIPRIMES_HAMMING_FOLDER, 
+SEMIPRIMES_HAMMING_TEMPLATE = os.path.join(SEMIPRIMES_HAMMING_FOLDER,
                                           'hamming_primes_{}x{}.txt')
 
 # Tuples of equation generator, objective function generator
@@ -51,7 +51,7 @@ EXPERIMENTS = {
     17: Experiment(51, 51, 1267650600228508624673600186743, 1),
     18: Experiment(51, 51, 1267650600228402790082356974917, 1),
     100: Experiment(165, 165, 1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139, -1),
-}    
+}
 
 PRESENTS = {
     #30x30_009
@@ -99,6 +99,12 @@ EXPERIMENTS_21 = {
     20: Experiment(21, 21, 1099811527037, 1),
     21: Experiment(21, 21, 1099819917733, 1),
     22: Experiment(21, 21, 1099874457257, 1),
+}
+
+UNSOLVED = {
+    # First unsolved 20x20 from second batch
+    1: Experiment(20, 20, 455937533473, -1),
+
 }
 
 EXTENDED_EXPERIMENTS = EXPERIMENTS.copy()
