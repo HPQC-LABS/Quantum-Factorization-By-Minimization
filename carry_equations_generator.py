@@ -13,6 +13,8 @@ import GenerateCarry
 import EquationHandler
 import ReHandler
 
+from sympy_helper_fns import is_equation
+
 
 ## Parsing and set up
 
@@ -57,10 +59,7 @@ def _parse_term(term, variables):
 def generate_carry_equations(digitsInMultiplicand1, digitsInMultiplicand2, product):
     ''' Generate standard carry equations
         >>> eqns = generate_carry_equations(4, 4, 143)
-        10001111
-        4
         >>> for e in eqns: print e
-        True
         p1 + q1 == 2*z12 + 1
         p1*q1 + p2 + q2 + z12 == 2*z23 + 4*z24 + 1
         p1*q2 + p2*q1 + z23 + 2 == 2*z34 + 4*z35 + 1
@@ -73,13 +72,11 @@ def generate_carry_equations(digitsInMultiplicand1, digitsInMultiplicand2, produ
                                       digitsInMultiplicand2=digitsInMultiplicand2,
                                       product=product)
     eqns, variables = parse_equations(params)
-    return eqns
+    return filter(is_equation, eqns)
 
 def _generate_carry_equations(digitsInMultiplicand1, digitsInMultiplicand2, product):
     ''' Generate standard carry equations
         >>> eqns = _generate_carry_equations(4, 4, 143)
-        10001111
-        4
         >>> for e in eqns: print e
         [['1', '', '', ''], ['p1', 'q1', '', ''], ['p2', 'p1q1', 'q2', '', 'z12'], ['1', 'p2q1', 'p1q2', '1', 'z23'], ['', 'q1', 'p2q2', 'p1', 'z34', 'z24'], ['', '', 'q2', 'p2', 'z45', 'z35'], ['', '', '', '1', 'z56', 'z46'], ['', '', '', '', 'z67', 'z57']]
         [['1'], ['1', '2z12'], ['1', '2z23', '4z24'], ['1', '2z34', '4z35'], ['0', '2z45', '4z46'], ['0', '2z56', '4z57'], ['0', '2z67'], ['1']]
