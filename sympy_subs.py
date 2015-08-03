@@ -29,6 +29,8 @@ def subs1_many(exprs, to_sub):
     ''' Substitute to_sub into many equations. Barebones wrapper to check we
         follow the original implementation.
     '''
+    if not len(to_sub):
+        return exprs
     subbed = [expr.subs(to_sub, simultaneous=True) if (not isinstance(expr, int)) else expr for expr in exprs]
     clear_cache()
     return subbed
@@ -45,20 +47,17 @@ def subs2(expr, to_sub):
 
     elif is_equation(expr, check_true=False):
         return sympy.Eq(subs2(expr.lhs, to_sub), subs2(expr.rhs, to_sub))
-    
+
     elif isinstance(expr, sympy.Add):
-        return sum([subs2(arg, to_sub) for arg in expr.args])
+        return sympy.Add.fromiter([subs2(arg, to_sub) for arg in expr.args])
 
     elif isinstance(expr, sympy.Mul):
-        out = 1
-        for arg in expr.args:
-            out *= subs2(arg, to_sub)
-        return out
+        return sympy.Mul.fromiter([subs2(arg, to_sub) for arg in expr.args])
 
     elif isinstance(expr, sympy.Pow):
         base_, exp_ = expr.args
         return subs2(base_, to_sub) ** subs2(exp_, to_sub)
-    
+
     else:
         raise ValueError('Unknown type of {}: {}'.format(expr, type(expr)))
 
@@ -127,7 +126,7 @@ def subs_many(exprs, to_sub):
     # First dictify our to_sub so it plays nicely with sympy
     if not isinstance(to_sub, dict):
         to_sub = dict(to_sub)
-    
+
     unitary_subs = {}
     compound_subs = {}
     for k, v in to_sub.iteritems():
@@ -157,7 +156,7 @@ def _are_equal(expr1, expr2):
         if not is_equation(expr2, check_true=False):
             print '{} != {}'.format(expr1, expr2)
             return False
-        
+
         return _are_equal(expr1.lhs, expr2.lhs) and _are_equal(expr1.rhs, expr2.rhs)
 
     diff = (expr1 - expr2).expand()
@@ -180,7 +179,7 @@ def _profile(sub_func=subs):
         to_sub = dict(zip(var, val))
         _expr = sub_func(expr, to_sub)
     return
-    
+
 
 if __name__ == "__main__":
     import doctest
@@ -193,7 +192,8 @@ if __name__ == "__main__":
             sympy.Eq(x1 + x2*x3),
             sympy.Eq(x1**2, x2 - 3*x3),
             x1*x2*x3 - 4*x4**3,
-            sympy.Eq(x1 + x2 - 2*x3, x4)]
+            sympy.Eq(x1 + x2 - 2*x3, x4),
+            ]
     to_subs = [{x1: 1},
                {x1: x2},
                {x2: x3, x4: x2},
@@ -203,7 +203,7 @@ if __name__ == "__main__":
                {x1: 1 - x2, x2: -82, x4: 1},
                {x1*x2: 0, x2*x3: 1},
             ]
-    
+
     for to_sub in to_subs:
 
         # Work it out the proper way
@@ -212,10 +212,10 @@ if __name__ == "__main__":
         subs_sol = [subs(eqn, to_sub) for eqn in eqns]
         # Work it out with whatever our batch function is
         subs_many_sol = subs_many(eqns, to_sub)
-        
+
         # Check we haven't done anything really crazy
         assert len(sympy_sol) == len(subs_sol) == len(subs_many_sol)
-        
+
         # Now check they're all equal
         for orig, target, ssol, smsol in zip(eqns, sympy_sol, subs_sol, subs_many_sol):
             # Check we're doing what sympy is
