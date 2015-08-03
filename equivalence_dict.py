@@ -16,7 +16,7 @@ PRUNING_DEFAULT = True
 class EquivalenceDict(MutableMapping):
     ''' EquivalenceDict uses a graph like algorithm to store and retrieve
         equivalences.
-        
+
         In this world everything maps to itself at the outset
     '''
 
@@ -33,24 +33,24 @@ class EquivalenceDict(MutableMapping):
         self.graph = dict()
         self.update(dict(*args, **kwargs))
 
-        
+
     def set_root(self, key, value):
-        ''' Set the roots of the graphs to be equal 
-        
+        ''' Set the roots of the graphs to be equal
+
             >>> eq_dict = EquivalenceDict([(1, 3), (3, 6)])
             >>> eq_dict[2] = 4
-            
+
             Nothing has crossed yet, so behave normally
             >>> print eq_dict
             {1: 6, 2: 4, 3: 6}
-            
+
             Now the worlds collide, where 2 roots are equal
             >>> eq_dict[4] = 6
             >>> print eq_dict.graph
             {1: 3, 2: 4, 3: 6, 4: 6}
             >>> print eq_dict
             {1: 6, 2: 6, 3: 6, 4: 6}
-            
+
             Now add another to the same tree.
             Note how the root 6 has been made to point to 7
             >>> eq_dict[1] = 7
@@ -58,7 +58,7 @@ class EquivalenceDict(MutableMapping):
             {1: 3, 2: 4, 3: 6, 4: 6, 6: 7}
             >>> print eq_dict
             {1: 7, 2: 7, 3: 7, 4: 7, 6: 7}
-            
+
             Now assign 2 non roots. Note how the root of 1 graph, 11, points
             to the root of the other: 7.
             >>> eq_dict[10] = 11
@@ -67,7 +67,7 @@ class EquivalenceDict(MutableMapping):
             {1: 3, 2: 4, 3: 6, 4: 6, 6: 7, 10: 11, 11: 7}
             >>> print eq_dict
             {1: 7, 2: 7, 3: 7, 4: 7, 6: 7, 10: 7, 11: 7}
-            
+
             Avoid cyclic things
             >>> eq_dict = EquivalenceDict()
             >>> for k, v in [(1, 2), (2, 1), (1, 2)]:
@@ -81,16 +81,16 @@ class EquivalenceDict(MutableMapping):
         # Deal with the roots rather than the actual nodes
         key = self.get_root(key)
         value = self.get_root(value)
-        
-        # If the roots are the same we're also done!        
+
+        # If the roots are the same we're also done!
         if key == value:
             return
-        
+
         self.graph[key] = value
-    
+
     def get_root(self, key):
         ''' Use the graph to find the root of the node
-            Fetch the root of the key by fetching subsequent values found 
+            Fetch the root of the key by fetching subsequent values found
 
             NOTE keys that aren't found are still returned, as they are
             equivalent to themselves
@@ -102,7 +102,7 @@ class EquivalenceDict(MutableMapping):
             9
             9
             5
-            
+
             Show off the fancy pruning
             >>> eq_dict = EquivalenceDict(pruning=True)
             >>> for k, v in [(1, 2), (4, 5), (1, 4), (1, 9), (1, 11)]:
@@ -128,8 +128,8 @@ class EquivalenceDict(MutableMapping):
 
 
     def update_(self, other):
-        ''' Check update is using all the extra bells and whistles 
-        
+        ''' Check update is using all the extra bells and whistles
+
             >>> eqn1 = EquivalenceDict([(1, 3), (3, 6)])
             >>> eqn2 = EquivalenceDict([(1, 4)])
             >>> eqn1.update(eqn2)
@@ -143,29 +143,29 @@ class EquivalenceDict(MutableMapping):
 
     def __getitem__(self, key):
         return self.get_root(key)
-    
+
     def __setitem__(self, key, value):
         self.set_root(key, value)
-    
+
     def __iter__(self):
         return self.graph.__iter__()
-    
+
     def __len__(self):
         return len(dict(self.items()))
-    
+
     def __delitem__(self):
         pass
-    
+
     def __repr__(self):
         return dict(self.items()).__repr__()
-    
+
     def copy(self):
         cls = type(self)
         return cls(self.graph.copy(), pruning=self.pruning)
 
 #    def copy(self):
-#        ''' Return a copy of the EquivalenceDict 
-#            
+#        ''' Return a copy of the EquivalenceDict
+#
 #            >>> eqn = EquivalenceDict([(1,2)], pruning=True)
 #            >>> copy = eqn.copy()
 #            >>> print isinstance(copy, EquivalenceDict), copy.pruning
@@ -176,14 +176,14 @@ class EquivalenceDict(MutableMapping):
 #        for k, v in self.iteritems():
 #            copy[k] = v
 #        return copy
-    
+
 class BinaryEquivalenceDict(EquivalenceDict):
     ''' EquivalenceDict uses a graph like algorithm to get equivalences and
         check for consistency.
-        
+
         In this world everything maps to itself at the outset
     '''
-    # These are the states variables can be grounded in    
+    # These are the states variables can be grounded in
     GROUND_ROOTS = set([sympy.S.Zero, sympy.S.One])
 
     def __init__(self, *args, **kwargs):
@@ -216,7 +216,7 @@ class BinaryEquivalenceDict(EquivalenceDict):
             -x + 1 == -y + 1
             -y + 1 == -y + 1
             -z + 1 == y
-            
+
             Show of all of the fancy logic
             >>> eq_dict[1-x] = 1
             >>> print eq_dict
@@ -234,7 +234,7 @@ class BinaryEquivalenceDict(EquivalenceDict):
             >>> print eq_dict[x]
             -y + 1
 
-    
+
             Show off the fancy pruning
             >>> x1, x2, x3, x4 = sympy.symbols('x1 x2 x3 x4')
             >>> eq_dict = EquivalenceDict([(x1, x2), (x2, x3), (x3, x4)], pruning=True)
@@ -248,7 +248,7 @@ class BinaryEquivalenceDict(EquivalenceDict):
             {x3: x4, x1: x4, x2: x4}
         '''
         key = self._check_input_node(key)
-        
+
         # We only fetch things for single variables
         if num_add_terms(key) == 2:
             return 1 - self.get_binary_root(1 - key)
@@ -265,7 +265,7 @@ class BinaryEquivalenceDict(EquivalenceDict):
 
         # If we can't do anything funky, never mind
         return value
-        
+
     def __getitem__(self, key):
         return self.get_binary_root(key)
 
@@ -274,27 +274,27 @@ class BinaryEquivalenceDict(EquivalenceDict):
             Also:
             check for consistency
             shuffle the keys so the distinct roots are always roots
-        
+
             Since we are performing the old method too, we need to repeat the
             tests with variable numbers instead
             >>> x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11 = sympy.symbols(
             ... ' '.join(['x{}'.format(i) for i in xrange(1, 12)]))
             >>> eq_dict = BinaryEquivalenceDict([(x1, x3), (x3, x6)])
-            
-            Check binary conditions are enforced            
+
+            Check binary conditions are enforced
             >>> eq_dict[x2] = 4
             Traceback (most recent call last):
                 ...
             ValueError: 4 not allowed in a binary system
-           
-            
+
+
             Nothing has crossed yet, so behave normally
-            >>> eq_dict[x2] = x4 
+            >>> eq_dict[x2] = x4
             >>> print eq_dict.graph
             {x3: x6, x1: x6, x2: x4}
             >>> print eq_dict
             {x3: x6, x1: x6, x2: x4}
-            
+
             Now the worlds collide, where 2 roots are equal
             >>> eq_dict[x4] = x6
             >>> print eq_dict.graph
@@ -310,7 +310,7 @@ class BinaryEquivalenceDict(EquivalenceDict):
             {x6: x7, x3: x6, x4: x6, x1: x6, x2: x4}
             >>> print eq_dict
             {x6: x7, x3: x7, x4: x7, x1: x7, x2: x7}
-            
+
             Now assign 2 non roots. Note how the root of 1 graph, 11, points
             to the root of the other: 7.
             >>> eq_dict[x10] = x11
@@ -319,18 +319,18 @@ class BinaryEquivalenceDict(EquivalenceDict):
             {x3: x6, x10: x11, x2: x4, x6: x7, x11: x7, x4: x6, x1: x6}
             >>> print eq_dict
             {x11: x7, x10: x7, x6: x7, x3: x7, x4: x7, x1: x7, x2: x7}
-            
-            
+
+
             Now for the interesting binary/sympy related tests
 
-            Check ground states are always roots            
+            Check ground states are always roots
             >>> eq_dict = BinaryEquivalenceDict([(0, x1)])
             >>> print eq_dict
             {x1: 0}
             >>> eq_dict[0] = x2
             >>> print eq_dict
             {x1: 0, x2: 0}
-            
+
             Check non-monic terms are always roots.
             We want this so that we can substitute single variables out
             >>> eq_dict = BinaryEquivalenceDict([(1 - x1, x2)])
@@ -358,14 +358,14 @@ class BinaryEquivalenceDict(EquivalenceDict):
             >>> eq_dict = BinaryEquivalenceDict([(1 - x1, 1 - x2)])
             >>> print eq_dict
             {x1: x2}
-            
-            Check obvious contradiction            
+
+            Check obvious contradiction
             >>> eq_dict = BinaryEquivalenceDict()
             >>> eq_dict[0] = 1
             Traceback (most recent call last):
                 ...
             ContradictionException: 0 != 1
-            
+
             Check conflicting ground states
             >>> eq_dict = BinaryEquivalenceDict([(x1, 0), (x2, 1)])
             >>> eq_dict[x1] = x2
@@ -379,13 +379,13 @@ class BinaryEquivalenceDict(EquivalenceDict):
             Traceback (most recent call last):
                 ...
             ContradictionException: x3 != -x3 + 1
-            
-            
+
+
 
         '''
         key = self._check_input_node(key)
         value = self._check_input_node(value)
-        
+
         # Key is 'mapped' to value anyway, so don't put it in the underlying
         # data structure
         if key == value:
@@ -412,40 +412,55 @@ class BinaryEquivalenceDict(EquivalenceDict):
             else:
                 # If key is grounded, but value isn't then swap them over
                 key, value = value, key
-            
+
         # Double negate to we only ever get variable: equivalence
         if num_add_terms(key) == 2:
             key, value = 1 - key, 1 - value
-        
+
         self.set_root(key, value)
         self.mapped_variables.update(key.atoms(sympy.Symbol))
-    
+
     def __setitem__(self, key, value):
         self.set_binary_root(key, value)
 
     def __iter__(self):
         ''' Override iter to iterate over the variables we've updated '''
         return iter(self.mapped_variables)
-        
+
     def update_test(self, other):
-        ''' Check update is using all the extra bells and whistles 
-        
-            >>> a, b, c, d = sympy.symbols('a b c d')            
+        ''' Check update is using all the extra bells and whistles
+
+            >>> a, b, c, d = sympy.symbols('a b c d')
             >>> eqn1 = BinaryEquivalenceDict([(a, b), (b, c)])
             >>> eqn2 = BinaryEquivalenceDict([(a, d)])
             >>> eqn1.update(eqn2)
             >>> print eqn1
             {c: d, b: d, a: d}
-            
+
             Check they're all connected explicitly
             >>> for u, v in itertools.combinations([a, b, c, d], 2):
             ...     assert eqn1[u] == eqn1[v]
         '''
         pass
 
+    def len_test(self, other):
+        ''' Check update is using all the extra bells and whistles
+
+            >>> a, b, c, d = sympy.symbols('a b c d')
+            >>> dict1 = BinaryEquivalenceDict([(a, b), (b, c)])
+            >>> dict2 = BinaryEquivalenceDict([(a, d)])
+            >>> for d in [dict1, dict2]: print len(d)
+            2
+            1
+            >>> dict1[b] = 1
+            >>> print len(dict1)
+            3
+        '''
+        pass
+
     def copy_test(self):
         ''' Check copy method
-    
+
             >>> eqn = BinaryEquivalenceDict([(1, sympy.Symbol('x'))], pruning=True)
             >>> copy = eqn.copy()
             >>> print isinstance(copy, BinaryEquivalenceDict), copy.pruning
@@ -457,7 +472,7 @@ class BinaryEquivalenceDict(EquivalenceDict):
     def iter_tests(self):
         ''' Override __iter__ so that we can iterate over the implicit mappings
             in the usual way. Also test that the other methods also match this
-            
+
             >>> a, b, c, d, e = sympy.symbols('a b c d e')
             >>> eq_dict = BinaryEquivalenceDict([(a, b), (c, 1-d), (d, 1-e)])
 
@@ -468,7 +483,7 @@ class BinaryEquivalenceDict(EquivalenceDict):
             c
             a
             d
-            
+
             We want the solutions to be as nice as possible
             >>> from solver_hybrid import SolverHybrid
             >>> from sympy_helper_fns import is_equation
@@ -542,7 +557,8 @@ class BinaryEquivalenceDict(EquivalenceDict):
 
 if __name__ == "__main__":
     import doctest
-    
+    import itertools
+
     # Turn off pruning so the tests are clearer and stable
     PRUNING_DEFAULT = False
     doctest.testmod()
