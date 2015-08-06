@@ -35,7 +35,7 @@ def is_simple_binary(expr):
         False
         0.5
         False
-        
+
         >>> for test in [x, y, x*y, 2*x, x + 1, x + y, 1 - x, x - 1, 1 - x*y]:
         ...     print test
         ...     print is_simple_binary(test)
@@ -60,26 +60,26 @@ def is_simple_binary(expr):
     '''
     if is_constant(expr):
         return is_one_or_zero(expr)
-    
+
     if len(expr.atoms(sympy.Symbol)) > 2:
         return False
-    
+
     if not is_one_or_zero(min_value(expr)):
         return False
     if not is_one_or_zero(max_value(expr)):
         return False
-    
+
     for var in [expr, 1 - expr]:
         if len(var.atoms()) == 1:
             return True
-    
+
     return False
 
 def degree(expr):
     ''' Return the degree of a sympy expression. I.e. the largest number of
         variables multiplied together.
         NOTE DOES take into account idempotency of binary variables
-        
+
         >>> str_eqns = ['x + y',
         ...             'x*y*z - 1',
         ...             'x ** 2 + a*b*c',
@@ -94,9 +94,9 @@ def degree(expr):
         1
         1
         2
-        
+
         Check we deal with constants correctly
-        >>> (degree(0), degree(1), degree(4), 
+        >>> (degree(0), degree(1), degree(4),
         ... degree(sympy.S.Zero), degree(sympy.S.One), degree(sympy.sympify(4)))
         (0, 0, 0, 0, 0, 0)
     '''
@@ -190,7 +190,7 @@ def is_equation(eqn, check_true=True):
     ''' Return True if it is an equation rather than a boolean value.
         If it is False, raise a ContradictionException. We never want anything
         that might be False.
-        
+
         Optionally, we can turn the check off, but THE DEFAULT VALUE SHOULD
         ALWAYS BE TRUE. Otherwise bad things will happen.
 
@@ -208,7 +208,7 @@ def is_equation(eqn, check_true=True):
         False
         >>> is_equation(eq4)
         True
-        
+
         Now check that it raises exceptions for the right things
         >>> is_equation(0)
         False
@@ -218,7 +218,7 @@ def is_equation(eqn, check_true=True):
         ContradictionException: False equation
     '''
     if sympy.__version__ == '0.7.5':
-        if check_true and (isinstance(eqn, sympy.boolalg.BooleanFalse) or 
+        if check_true and (isinstance(eqn, sympy.boolalg.BooleanFalse) or
                            (eqn is False)):
             raise ContradictionException('False equation')
         return isinstance(eqn, sympy.Equality)
@@ -287,7 +287,7 @@ def cancel_constant_factor(eqn, maintain_sign=False):
         >>> lhs = sympy.sympify('15*x + 3')
         >>> cancel_constant_factor(sympy.Eq(lhs))
         5*x + 1 == 0
-        
+
         Don't cancel variables!
         >>> lhs = sympy.sympify('x*y')
         >>> rhs = sympy.sympify('x*z + z*z1')
@@ -522,7 +522,7 @@ def standardise_equation(eqn):
     return eqn
 
 def expressions_to_variables(exprs):
-    ''' Take a list of equations or expressions and return a set of variables 
+    ''' Take a list of equations or expressions and return a set of variables
 
         >>> eqn = sympy.Eq(sympy.sympify('x*a + 1'))
         >>> expr = sympy.sympify('x + y*z + 2*a^b')
@@ -535,12 +535,12 @@ def expressions_to_variables(exprs):
     if sympy.__version__ == '0.7.5':
         assert all(map(lambda x: isinstance(x, sympy.Basic), exprs))
     return set.union(*[expr.atoms(sympy.Symbol) for expr in exprs])
-    
+
 def eqns_with_variables(eqns, variables, strict=False):
     ''' Given a set of atoms, return only equations that have something in
         common
-        
-        >>> x, y, z1, z2 = sympy.symbols('x y z1 z2')        
+
+        >>> x, y, z1, z2 = sympy.symbols('x y z1 z2')
         >>> eqns = ['x + y == 1', '2*z1 + 1 == z2', 'x*z1 == 0']
         >>> eqns = str_eqns_to_sympy_eqns(eqns)
         >>> eqns_with_variables(eqns, [x])
@@ -565,7 +565,7 @@ def eqns_with_variables(eqns, variables, strict=False):
 def gather_monic_terms(eqn):
     ''' Take an equation and put all monic terms on the LHS, all non
         monic terms + constants on the RHS
-        
+
         >>> eqns = ['x + y + 2*x*y + 3',
         ...         'x + y - z - 1']
         >>> eqns = str_exprs_to_sympy_eqns(eqns)
@@ -587,14 +587,14 @@ def gather_monic_terms(eqn):
         else:
             lhs.append(term * coef)
     return sympy.Eq(sum(lhs), sum(rhs))
-    
-    
+
+
 def square_equations(equations, term_limit=10, method=1):
     ''' Take a bunch of equations and square them, depending on the method:
         1: lhs^2 = rhs^2
         2: (lhs - rhs)^2 = 0
         3: (monic terms)^2 = (other terms)^2
-        
+
         >>> eqns = ['x + y + 2*x*y + 3',
         ...         'x + y - z - 1']
         >>> eqns = str_exprs_to_sympy_eqns(eqns)
@@ -618,12 +618,12 @@ def square_equations(equations, term_limit=10, method=1):
     for eqn in equations:
         if not is_equation(eqn):
             continue
-        
+
         # More than this and we'll grind to a halt
-        if ((term_limit is not None) and 
+        if ((term_limit is not None) and
             (num_add_terms(eqn.lhs) + num_add_terms(eqn.rhs) > term_limit)):
             continue
-        
+
         if method == 1:
             eqn_sq = sympy.Eq((eqn.lhs ** 2).expand(), (eqn.rhs ** 2).expand())
         elif method == 2:
@@ -636,9 +636,9 @@ def square_equations(equations, term_limit=10, method=1):
             raise NotImplementedError('Unknown method {}'.format(method))
 
         eqn_sq = remove_binary_squares_eqn(eqn_sq)
-        eqn_sq = balance_terms(eqn_sq)            
+        eqn_sq = balance_terms(eqn_sq)
         squared.append(eqn_sq)
-    
+
     return squared
 
 def min_atoms(expr1, expr2):
@@ -652,7 +652,7 @@ def min_atoms(expr1, expr2):
 
 def dict_as_eqns(dict_):
     ''' Given a dictionary of lhs: rhs, return the sympy Equations in a list
-        
+
         >>> x, y, z = sympy.symbols('x y z')
         >>> dict_as_eqns({x: 1, y: z, x*y: 1 - z})
         [x*y == -z + 1, x == 1, y == z]
@@ -660,7 +660,7 @@ def dict_as_eqns(dict_):
     return [sympy.Eq(lhs, rhs) for lhs, rhs in dict_.iteritems()]
 
 def str_eqns_to_sympy_eqns(str_eqns):
-    ''' Take string equations and sympify 
+    ''' Take string equations and sympify
 
         >>> str_eqns = ['x + y == 1', 'x*y*z - 3*a == -3']
         >>> eqns = str_eqns_to_sympy_eqns(str_eqns)
@@ -674,7 +674,7 @@ def str_eqns_to_sympy_eqns(str_eqns):
     return str_exprs_to_sympy_eqns(str_exprs)
 
 def str_exprs_to_sympy_eqns(str_exprs):
-    ''' Take some strings and return the sympy expressions 
+    ''' Take some strings and return the sympy expressions
 
         >>> str_eqns = ['x + y - 1', 'x*y*z - 3*a + 3', '2*a - 4*b']
         >>> eqns = str_exprs_to_sympy_eqns(str_eqns)
