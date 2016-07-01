@@ -494,6 +494,10 @@ def remove_binary_squares(expr):
         >>> remove_binary_squares(sympy.sympify(expr))
         x*y + z + 1
 
+        >>> expr = '(x_1*y)**2 + Z**3 + 1 + x_y**2'
+        >>> remove_binary_squares(sympy.sympify(expr))
+        Z + x_1*y + x_y + 1
+
         Because of the new implementation, we want to check the variables
         are exactly equivalent
         >>> x = sympy.symbols('x')
@@ -502,7 +506,8 @@ def remove_binary_squares(expr):
         >>> remove_binary_squares(x ** 3) is x
         True
     '''
-    exp_match = re.compile('[a-zA-Z][0-9_]*\*\*[0-9]*')
+    # \w is equivalent to [a-zA-Z0-9_]
+    exp_match = re.compile('[a-zA-Z][\w]*\*\*[0-9]*')
     matches = re.findall(exp_match, str(expr))
     for match in matches:
         var, exp = match.split('**')
