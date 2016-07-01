@@ -2,6 +2,9 @@
 """
 Created on Thu Apr 16 17:58:02 2015
 
+    Tools for parsing results printouts, both of hybrid solvers and sage 
+    outputs, and turning them into a summary spreadsheet, useful for plotting.
+
 @author: Richard
 """
 
